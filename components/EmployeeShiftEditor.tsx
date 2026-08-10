@@ -1,39 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Employee,
   Shift,
   ShiftType,
   SHIFT_LABELS,
-  DEFAULT_SHIFT_HOURS,
+  LeaveUsageInput,
+  LeaveUsageType,
 } from "@/lib/types";
+import { ShiftDefaultsMap } from "@/lib/useShiftDefaults";
 import { weekdayLabel } from "@/lib/dateUtils";
 import { useSpecialNotes } from "@/lib/useSpecialNotes";
+import { supabase } from "@/lib/supabaseClient";
+import { validateSubRanges } from "@/lib/timeRanges";
 import Button from "./ui/Button";
+import TimeInput24 from "./ui/TimeInput24";
 
 interface Props {
   employee: Employee;
   date: string;
   shift: Shift | null;
   canEdit: boolean;
+  shiftDefaults: ShiftDefaultsMap;
   onSave: (
     shiftType: ShiftType,
     isMain: boolean,
     startTime: string | null,
     endTime: string | null,
-    leaveForDate: string | null
+    leaveForDate: string | null,
+    subEntries: LeaveUsageInput[]
   ) => Promise<void>;
   onClose: () => void;
 }
 
 const TYPES: ShiftType[] = ["dawn", "day", "night", "leave", "off"];
 
+const USAGE_LABELS: Record<LeaveUsageType, string> = {
+  annual: "연차",
+  personal_leave: "본인 대휴",
+  other: "기타",
+};
+
 function hasHours(type: ShiftType): type is "dawn" | "day" | "night" {
   return type === "dawn" || type === "day" || type === "night";
 }
 
-// <input type="time">은 24:00을 표현할 수 없어 실제 입력값은 다음날 00:00으로 대체
+// 24:00은 시/분 드롭다운(00~23)으로 표현할 수 없어 다음날 00:00으로 대체
 function timeForInput(value: string): string {
   return value === "24:00" ? "00:00" : value;
 }
@@ -43,10 +56,61 @@ function crossesMidnight(start: string, end: string): boolean {
   return start !== "" && end !== "" && end <= start;
 }
 
-function defaultTimesFor(type: ShiftType): { start: string; end: string } {
+function defaultTimesFor(
+  type: ShiftType,
+  shiftDefaults: ShiftDefaultsMap
+): { start: string; end: string } {
+  if (type === "leave") return { start: "09:00", end: "18:00" };
   if (!hasHours(type)) return { start: "", end: "" };
-  const d = DEFAULT_SHIFT_HOURS[type];
+  const d = shiftDefaults[type];
   return { start: timeForInput(d.start), end: timeForInput(d.end) };
+}
+
+let tempIdCounter = 0;
+function nextTempId(): string {
+  tempIdCounter += 1;
+  return `temp-${tempIdCounter}`;
+}
+
+interface TimeRangeFieldsProps {
+  startLabel: string;
+  endLabel: string;
+  start: string;
+  end: string;
+  canEdit: boolean;
+  onStartChange: (v: string) => void;
+  onEndChange: (v: string) => void;
+}
+
+function TimeRangeFields({
+  startLabel,
+  endLabel,
+  start,
+  end,
+  canEdit,
+  onStartChange,
+  onEndChange,
+}: TimeRangeFieldsProps) {
+  return (
+    <div className="flex items-center gap-3">
+      <div>
+        <label className="text-xs text-blue-900 block mb-0.5">{startLabel}</label>
+        <TimeInput24 value={start} disabled={!canEdit} onChange={onStartChange} />
+      </div>
+      <div>
+        <label className="text-xs text-blue-900 block mb-0.5">{endLabel}</label>
+        <TimeInput24 value={end} disabled={!canEdit} onChange={onEndChange} />
+      </div>
+    </div>
+  );
+}
+
+interface SubEntry {
+  key: string;
+  usageType: LeaveUsageType;
+  hours: number;
+  start: string;
+  end: string;
 }
 
 export default function EmployeeShiftEditor({
@@ -54,6 +118,7 @@ export default function EmployeeShiftEditor({
   date,
   shift,
   canEdit,
+  shiftDefaults,
   onSave,
   onClose,
 }: Props) {
@@ -61,49 +126,129 @@ export default function EmployeeShiftEditor({
   const [type, setType] = useState<ShiftType>(initialType);
   const [isMain, setIsMain] = useState(shift?.is_main ?? false);
   const [start, setStart] = useState(
-    shift?.start_time ? timeForInput(shift.start_time.slice(0, 5)) : defaultTimesFor(initialType).start
+    shift?.start_time
+      ? timeForInput(shift.start_time.slice(0, 5))
+      : defaultTimesFor(initialType, shiftDefaults).start
   );
   const [end, setEnd] = useState(
-    shift?.end_time ? timeForInput(shift.end_time.slice(0, 5)) : defaultTimesFor(initialType).end
+    shift?.end_time
+      ? timeForInput(shift.end_time.slice(0, 5))
+      : defaultTimesFor(initialType, shiftDefaults).end
   );
   const [leaveForDate, setLeaveForDate] = useState(shift?.leave_for_date ?? "");
+  const [subEntries, setSubEntries] = useState<SubEntry[]>([]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { groups: specialNoteGroups } = useSpecialNotes();
   const myUnresolvedDates =
     specialNoteGroups.find((g) => g.employeeId === employee.id)?.dates ?? [];
 
+  const shiftId = shift?.id;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      if (!shiftId) {
+        setSubEntries([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("shift_leave_usage")
+        .select("*")
+        .eq("shift_id", shiftId)
+        .order("start_time");
+      if (cancelled) return;
+      setSubEntries(
+        (data ?? []).map((d) => ({
+          key: d.id,
+          usageType: d.usage_type,
+          hours: Number(d.hours),
+          start: d.start_time.slice(0, 5),
+          end: d.end_time.slice(0, 5),
+        }))
+      );
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [shiftId]);
+
   const handleTypeClick = (t: ShiftType) => {
     setType(t);
+    setError(null);
     if (t !== "dawn" && t !== "night") setIsMain(false);
-    const d = defaultTimesFor(t);
+    if (!hasHours(t)) setSubEntries([]);
+    const d = defaultTimesFor(t, shiftDefaults);
     setStart(d.start);
     setEnd(d.end);
   };
 
+  const addSubEntry = (usageType: LeaveUsageType) => {
+    setError(null);
+    setSubEntries((prev) => [...prev, { key: nextTempId(), usageType, hours: 8, start, end }]);
+  };
+
+  const updateSubEntry = (key: string, patch: Partial<SubEntry>) => {
+    setSubEntries((prev) => prev.map((e) => (e.key === key ? { ...e, ...patch } : e)));
+  };
+
+  const removeSubEntry = (key: string) => {
+    setSubEntries((prev) => prev.filter((e) => e.key !== key));
+  };
+
   const handleSave = async () => {
+    setError(null);
+
+    if (hasHours(type) && subEntries.length > 0) {
+      const result = validateSubRanges(
+        { start, end },
+        subEntries.map((e) => ({ start: e.start, end: e.end, label: USAGE_LABELS[e.usageType] }))
+      );
+      if (!result.valid) {
+        setError(result.error ?? "부분사용 시간을 확인해주세요");
+        return;
+      }
+    }
+
     setSaving(true);
     await onSave(
       type,
       isMain,
       hasHours(type) ? start : null,
       hasHours(type) ? end : null,
-      type === "leave" && leaveForDate ? leaveForDate : null
+      type === "leave" && leaveForDate ? leaveForDate : null,
+      hasHours(type)
+        ? subEntries.map((e) => ({
+            usageType: e.usageType,
+            hours: e.hours,
+            start: e.start,
+            end: e.end,
+          }))
+        : []
     );
     setSaving(false);
     onClose();
   };
 
+  const currentDefault = hasHours(type)
+    ? { start: shiftDefaults[type].start, end: timeForInput(shiftDefaults[type].end) }
+    : null;
+
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs text-gray-400">
+        <p className="text-base font-semibold text-gray-900">
           {date} ({weekdayLabel(date)})
         </p>
-        <p className="text-base font-semibold">{employee.name}</p>
+        <p className="text-lg font-bold text-gray-900">{employee.name}</p>
       </div>
 
       <div>
-        <p className="text-xs text-gray-500 mb-1">근무형태</p>
+        <p className="text-xs text-gray-900 mb-1">근무형태</p>
         <div className="grid grid-cols-5 gap-1">
           {TYPES.map((t) => (
             <Button
@@ -128,14 +273,14 @@ export default function EmployeeShiftEditor({
             onChange={(e) => setIsMain(e.target.checked)}
             className="accent-gray-900"
           />
-          메인당직으로 지정 (★)
+          메인당직으로 지정 ({type === "dawn" ? "☆" : "★"})
         </label>
       )}
 
       {type === "leave" && (
         <div className="space-y-2">
           <div className="space-y-1">
-            <label className="text-xs text-gray-500 block">이 대휴가 보상하는 날짜</label>
+            <label className="text-xs text-blue-900 block">이 대휴가 보상하는 날짜</label>
             <input
               type="date"
               value={leaveForDate}
@@ -147,7 +292,7 @@ export default function EmployeeShiftEditor({
 
           {myUnresolvedDates.length > 0 && (
             <div className="space-y-1">
-              <p className="text-xs text-gray-400">대휴 미지정 근무일</p>
+              <p className="text-xs text-gray-900">대휴 미지정 근무일</p>
               <div className="flex flex-wrap gap-1">
                 {myUnresolvedDates.map((d) => (
                   <Button
@@ -166,40 +311,94 @@ export default function EmployeeShiftEditor({
         </div>
       )}
 
-      {hasHours(type) && (
+      {hasHours(type) && currentDefault && (
         <div className="space-y-2">
-          <p className="text-xs text-gray-500">
-            근무시간 · 기본 {DEFAULT_SHIFT_HOURS[type].start} ~{" "}
-            {DEFAULT_SHIFT_HOURS[type].end === "24:00"
-              ? "익일 00:00"
-              : DEFAULT_SHIFT_HOURS[type].end}
+          <p className="text-xs text-gray-900">
+            근무시간 · 기본 {currentDefault.start} ~{" "}
+            {crossesMidnight(currentDefault.start, currentDefault.end) ? "익일 " : ""}
+            {currentDefault.end}
           </p>
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <label className="text-xs text-gray-400 block mb-0.5">출근</label>
-              <input
-                type="time"
-                value={start}
-                disabled={!canEdit}
-                onChange={(e) => setStart(e.target.value)}
-                className="w-full border rounded-lg px-2 py-1 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="text-xs text-gray-400 block mb-0.5">
-                퇴근{crossesMidnight(start, end) ? " (익일)" : ""}
-              </label>
-              <input
-                type="time"
-                value={end}
-                disabled={!canEdit}
-                onChange={(e) => setEnd(e.target.value)}
-                className="w-full border rounded-lg px-2 py-1 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
-              />
-            </div>
-          </div>
+          <TimeRangeFields
+            startLabel="출근"
+            endLabel={`퇴근${crossesMidnight(start, end) ? " (익일)" : ""}`}
+            start={start}
+            end={end}
+            canEdit={canEdit}
+            onStartChange={setStart}
+            onEndChange={setEnd}
+          />
         </div>
       )}
+
+      {hasHours(type) && (
+        <div className="space-y-2">
+          <p className="text-xs text-gray-900">
+            근무 중 부분 연차/대휴 사용 (기본 근무시간 안에서만 지정 가능)
+          </p>
+
+          {subEntries.length > 0 && (
+            <div className="space-y-2">
+              {subEntries.map((entry) => (
+                <div key={entry.key} className="border rounded-lg p-2 space-y-2 bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-900">
+                      {USAGE_LABELS[entry.usageType]}
+                    </span>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => removeSubEntry(entry.key)}
+                        className="text-xs text-red-500 hover:text-red-700"
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs text-blue-900 block mb-0.5">사용 시간</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={entry.hours}
+                      disabled={!canEdit}
+                      onChange={(e) =>
+                        updateSubEntry(entry.key, { hours: Number(e.target.value) })
+                      }
+                      className="w-full border rounded-lg px-2 py-1 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                    />
+                  </div>
+                  <TimeRangeFields
+                    startLabel={`${USAGE_LABELS[entry.usageType]} 시작시각`}
+                    endLabel={`${USAGE_LABELS[entry.usageType]} 종료시각`}
+                    start={entry.start}
+                    end={entry.end}
+                    canEdit={canEdit}
+                    onStartChange={(v) => updateSubEntry(entry.key, { start: v })}
+                    onEndChange={(v) => updateSubEntry(entry.key, { end: v })}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {canEdit && (
+            <div className="flex gap-2">
+              <Button onClick={() => addSubEntry("annual")} className="text-xs px-2 py-1">
+                + 연차 사용
+              </Button>
+              <Button onClick={() => addSubEntry("personal_leave")} className="text-xs px-2 py-1">
+                + 본인 대휴 사용
+              </Button>
+              <Button onClick={() => addSubEntry("other")} className="text-xs px-2 py-1">
+                + 기타 사용
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
 
       {canEdit && (
         <div className="flex gap-2 pt-2">

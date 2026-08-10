@@ -2,13 +2,21 @@
 
 import { useCallback, useEffect, useId, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Employee, Shift, ShiftType, Holiday } from "@/lib/types";
+import {
+  Employee,
+  Shift,
+  ShiftType,
+  Holiday,
+  ShiftLeaveUsage,
+  LeaveUsageInput,
+} from "@/lib/types";
 import { getCalendarWeeks, getMonthDates } from "@/lib/dateUtils";
 
 export function useSchedule(year: number, month: number) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [leaveUsages, setLeaveUsages] = useState<ShiftLeaveUsage[]>([]);
   const [loading, setLoading] = useState(true);
   // 채널 이름이 고정 문자열이면 StrictMode의 이중 마운트 중 이전 채널이 채 정리되기 전에
   // 같은 이름을 재사용하면서 충돌할 수 있어 인스턴스별로 고유하게 만든다.
@@ -21,7 +29,7 @@ export function useSchedule(year: number, month: number) {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [{ data: emp }, { data: sh }, { data: hol }] = await Promise.all([
+    const [{ data: emp }, { data: sh }, { data: hol }, { data: usages }] = await Promise.all([
       supabase.from("employees").select("*").eq("active", true).order("sort_order"),
       supabase
         .from("shifts")
@@ -33,12 +41,18 @@ export function useSchedule(year: number, month: number) {
         .select("*")
         .gte("work_date", startDate)
         .lte("work_date", endDate),
+      supabase
+        .from("shift_leave_usage")
+        .select("*")
+        .gte("work_date", startDate)
+        .lte("work_date", endDate),
     ]);
     setEmployees(emp ?? []);
     setShifts(sh ?? []);
     setHolidays(hol ?? []);
+    setLeaveUsages(usages ?? []);
     setLoading(false);
-    return { shifts: sh ?? [], holidays: hol ?? [] };
+    return { shifts: sh ?? [], holidays: hol ?? [], leaveUsages: usages ?? [] };
   }, [startDate, endDate]);
 
   useEffect(() => {
@@ -47,7 +61,7 @@ export function useSchedule(year: number, month: number) {
     fetchData();
   }, [fetchData]);
 
-  // 다른 브라우저/사용자가 근무표/직원/공휴일을 수정하면 실시간으로 반영
+  // 다른 브라우저/사용자가 근무표/직원/공휴일/부분사용내역을 수정하면 실시간으로 반영
   useEffect(() => {
     const channel = supabase
       .channel(`schedule-changes-${instanceId}`)
@@ -58,6 +72,9 @@ export function useSchedule(year: number, month: number) {
         fetchData();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "holidays" }, () => {
+        fetchData();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "shift_leave_usage" }, () => {
         fetchData();
       })
       .subscribe();
@@ -96,6 +113,11 @@ export function useSchedule(year: number, month: number) {
           start_time: startTime,
           end_time: endTime,
           leave_for_date: leaveForDate,
+          // 예전 방식(하루 종일 연차/본인대휴)은 새벽·야간·주간 안의 부분사용 항목으로 대체되어
+          // 더 이상 이 필드들을 채우지 않는다.
+          is_personal_leave: false,
+          leave_hours: null,
+          annual_hours: null,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "work_date,employee_id" }
@@ -103,6 +125,36 @@ export function useSchedule(year: number, month: number) {
 
       const fresh = await fetchData();
       return { error, shifts: fresh.shifts };
+    },
+    [fetchData]
+  );
+
+  // 특정 shift에 연결된 부분사용(연차/본인대휴) 항목을 통째로 교체
+  const syncLeaveUsages = useCallback(
+    async (shiftId: string, employeeId: string, workDate: string, entries: LeaveUsageInput[]) => {
+      const { error: deleteError } = await supabase
+        .from("shift_leave_usage")
+        .delete()
+        .eq("shift_id", shiftId);
+      if (deleteError) return { error: deleteError };
+
+      if (entries.length > 0) {
+        const { error: insertError } = await supabase.from("shift_leave_usage").insert(
+          entries.map((e) => ({
+            shift_id: shiftId,
+            employee_id: employeeId,
+            work_date: workDate,
+            usage_type: e.usageType,
+            hours: e.hours,
+            start_time: e.start,
+            end_time: e.end,
+          }))
+        );
+        if (insertError) return { error: insertError };
+      }
+
+      await fetchData();
+      return { error: null };
     },
     [fetchData]
   );
@@ -136,5 +188,16 @@ export function useSchedule(year: number, month: number) {
     [holidays, fetchData]
   );
 
-  return { employees, shifts, holidays, weeks, loading, upsertShift, toggleHoliday, resetMonth };
+  return {
+    employees,
+    shifts,
+    holidays,
+    leaveUsages,
+    weeks,
+    loading,
+    upsertShift,
+    syncLeaveUsages,
+    toggleHoliday,
+    resetMonth,
+  };
 }

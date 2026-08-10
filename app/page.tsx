@@ -6,13 +6,17 @@ import CalendarGrid from "@/components/CalendarGrid";
 import EmployeeFilter from "@/components/EmployeeFilter";
 import NoticeBox from "@/components/NoticeBox";
 import SpecialNotesTable from "@/components/SpecialNotesTable";
+import CompLeaveTable from "@/components/CompLeaveTable";
+import AnnualLeaveTable from "@/components/AnnualLeaveTable";
+import MonthlyStatsTable from "@/components/MonthlyStatsTable";
 import ShiftSidebar from "@/components/ShiftSidebar";
 import EmployeeShiftEditor from "@/components/EmployeeShiftEditor";
 import DayDetailPanel from "@/components/DayDetailPanel";
 import { useSchedule } from "@/lib/useSchedule";
+import { useShiftDefaults } from "@/lib/useShiftDefaults";
 import { useAuth } from "./providers";
 import { checkPairRule } from "@/lib/validation";
-import { ShiftType } from "@/lib/types";
+import { ShiftType, LeaveUsageInput } from "@/lib/types";
 import { exportScheduleToExcel } from "@/lib/scheduleExport";
 import { captureNodeAsBlob, downloadBlob } from "@/lib/captureImage";
 import Button from "@/components/ui/Button";
@@ -22,17 +26,31 @@ type SidebarState =
   | { mode: "day"; date: string }
   | null;
 
+type SortMode = "default" | "byShiftType";
+
 export default function Home() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const { session } = useAuth();
-  const { employees, shifts, holidays, weeks, loading, upsertShift, toggleHoliday, resetMonth } =
-    useSchedule(year, month);
+  const {
+    employees,
+    shifts,
+    holidays,
+    leaveUsages,
+    weeks,
+    loading,
+    upsertShift,
+    syncLeaveUsages,
+    toggleHoliday,
+    resetMonth,
+  } = useSchedule(year, month);
+  const { defaults: shiftDefaults } = useShiftDefaults();
   const [warning, setWarning] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState<SidebarState>(null);
   const [showColors, setShowColors] = useState(false);
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>("default");
   const calendarRef = useRef<HTMLDivElement>(null);
 
   const canEdit = !!session;
@@ -45,7 +63,8 @@ export default function Home() {
     isMain: boolean,
     startTime: string | null,
     endTime: string | null,
-    leaveForDate: string | null
+    leaveForDate: string | null,
+    subEntries: LeaveUsageInput[]
   ) => {
     const { error, shifts: freshShifts } = await upsertShift(
       employeeId,
@@ -60,6 +79,22 @@ export default function Home() {
     if (error) {
       setWarning(`저장 실패: ${error.message}`);
       return;
+    }
+
+    const savedShift = freshShifts.find(
+      (s) => s.employee_id === employeeId && s.work_date === workDate
+    );
+    if (savedShift) {
+      const { error: usageError } = await syncLeaveUsages(
+        savedShift.id,
+        employeeId,
+        workDate,
+        subEntries
+      );
+      if (usageError) {
+        setWarning(`부분사용 저장 실패: ${usageError.message}`);
+        return;
+      }
     }
 
     // 2인1조 경고는 화면에 보이는(활성) 직원 기준으로만 판단
@@ -105,7 +140,7 @@ export default function Home() {
       : null;
 
   return (
-    <main className="p-4 max-w-[1700px] mx-auto w-full space-y-4">
+    <main className="p-4 max-w-[1900px] mx-auto w-full space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <MonthPicker
           year={year}
@@ -152,6 +187,13 @@ export default function Home() {
             selectedId={filterEmployeeId}
             onSelect={setFilterEmployeeId}
           />
+          <Button
+            onClick={() => setSortMode((m) => (m === "default" ? "byShiftType" : "default"))}
+            active={sortMode === "byShiftType"}
+            className="w-full justify-center"
+          >
+            {sortMode === "byShiftType" ? "시간대 정렬" : "기본 정렬"}
+          </Button>
           <NoticeBox canEdit={canEdit} />
         </div>
 
@@ -163,11 +205,13 @@ export default function Home() {
               <CalendarGrid
                 employees={employees}
                 shifts={shifts}
+                leaveUsages={leaveUsages}
                 holidayDates={holidayDates}
                 weeks={weeks}
                 canEdit={canEdit}
                 showColors={showColors}
                 filterEmployeeId={filterEmployeeId}
+                sortMode={sortMode}
                 onCellClick={(employeeId, date) => setSidebar({ mode: "employee", employeeId, date })}
                 onDateClick={(date) => setSidebar({ mode: "day", date })}
               />
@@ -175,14 +219,25 @@ export default function Home() {
           )}
 
           <div className="flex gap-4 text-xs text-gray-500 pt-2 flex-wrap">
-            <span>★ = 메인당직자</span>
+            <span>☆ = 새벽 메인당직 · ★ = 야간 메인당직</span>
             <span className="text-red-500">빨간칸 = 새벽/야간 2인1조 미충족</span>
             <span className="text-sky-600">토요일</span>
             <span className="text-red-400">일요일</span>
             <span className="text-red-600">공휴일</span>
           </div>
 
-          <SpecialNotesTable />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <SpecialNotesTable />
+            <AnnualLeaveTable year={year} month={month} canEdit={canEdit} />
+          </div>
+          <CompLeaveTable year={year} month={month} canEdit={canEdit} />
+          <MonthlyStatsTable
+            year={year}
+            month={month}
+            employees={employees}
+            shifts={shifts}
+            leaveUsages={leaveUsages}
+          />
         </div>
       </div>
 
@@ -198,7 +253,8 @@ export default function Home() {
             date={sidebar.date}
             shift={activeShift}
             canEdit={canEdit}
-            onSave={(shiftType, isMain, startTime, endTime, leaveForDate) =>
+            shiftDefaults={shiftDefaults}
+            onSave={(shiftType, isMain, startTime, endTime, leaveForDate, subEntries) =>
               handleSaveShift(
                 sidebar.employeeId,
                 sidebar.date,
@@ -206,7 +262,8 @@ export default function Home() {
                 isMain,
                 startTime,
                 endTime,
-                leaveForDate
+                leaveForDate,
+                subEntries
               )
             }
             onClose={() => setSidebar(null)}
@@ -217,6 +274,7 @@ export default function Home() {
             date={sidebar.date}
             employees={employees}
             shifts={shifts}
+            leaveUsages={leaveUsages}
             isHoliday={holidayDates.has(sidebar.date)}
             canEdit={canEdit}
             onToggleHoliday={() => toggleHoliday(sidebar.date)}

@@ -110,7 +110,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                   accept=".xlsx"
                   onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                   disabled={status === "parsing"}
-                  className="text-sm text-gray-500 disabled:opacity-50 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-300 file:bg-white file:text-sm file:font-medium file:text-gray-700 file:cursor-pointer file:transition-all file:duration-150 hover:file:bg-gray-50 hover:file:border-gray-400"
+                  className="text-sm text-gray-500 disabled:opacity-50 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-300 file:bg-white file:text-sm file:font-medium file:text-gray-700 file:cursor-pointer file:transition-all file:duration-150 hover:file:bg-gray-100 hover:file:border-gray-400"
                 />
               )}
             </>
@@ -150,7 +150,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                     {parsed.preview.map((row) => (
                       <tr
                         key={row.date}
-                        className="border-b last:border-b-0 transition-colors duration-150 hover:bg-gray-50"
+                        className="border-b last:border-b-0 transition-colors duration-150 hover:bg-gray-100"
                       >
                         <td className="px-2 py-1 whitespace-nowrap">{formatDate(row.date)}</td>
                         {row.codes.map((code, i) => (

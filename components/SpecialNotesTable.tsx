@@ -24,7 +24,7 @@ export default function SpecialNotesTable() {
       <div className="overflow-x-auto">
         <table className="text-sm w-full">
           <thead>
-            <tr className="text-left text-gray-400 text-xs">
+            <tr className="text-left text-blue-900 text-xs">
               <th className="pb-1 pr-4 font-normal w-10">구분</th>
               <th className="pb-1 pr-4 font-normal w-24">이름</th>
               <th className="pb-1 font-normal">날짜</th>
@@ -34,7 +34,7 @@ export default function SpecialNotesTable() {
             {groups.map((g, i) => (
               <tr
                 key={g.employeeId}
-                className="border-t transition-colors duration-150 hover:bg-gray-50"
+                className="border-t transition-colors duration-150 hover:bg-gray-100"
               >
                 <td className="py-1 pr-4 text-gray-400">{employeeLabel(i)}</td>
                 <td className="py-1 pr-4 whitespace-nowrap">{g.employeeName}</td>

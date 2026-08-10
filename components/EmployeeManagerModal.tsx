@@ -104,7 +104,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                     title="위로"
                     onClick={() => moveEmployee(emp.id, "up")}
                     disabled={i === 0}
-                    className="w-6 h-6 text-xs border rounded-md transition-all duration-150 hover:bg-gray-50 hover:shadow-sm hover:-translate-y-0.5 disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                    className="w-6 h-6 text-xs border rounded-md transition-all duration-150 hover:bg-gray-100 hover:shadow-sm hover:-translate-y-0.5 disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                   >
                     ▲
                   </button>
@@ -113,7 +113,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                     title="아래로"
                     onClick={() => moveEmployee(emp.id, "down")}
                     disabled={i === sorted.length - 1}
-                    className="w-6 h-6 text-xs border rounded-md transition-all duration-150 hover:bg-gray-50 hover:shadow-sm hover:-translate-y-0.5 disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                    className="w-6 h-6 text-xs border rounded-md transition-all duration-150 hover:bg-gray-100 hover:shadow-sm hover:-translate-y-0.5 disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                   >
                     ▼
                   </button>
