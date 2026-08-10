@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/providers";
+import Button from "@/components/ui/Button";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -35,7 +36,7 @@ export default function LoginPage() {
           placeholder="이메일"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border rounded px-3 py-2 text-sm"
+          className="w-full border rounded-lg px-3 py-2 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
         />
         <input
           type="password"
@@ -43,16 +44,12 @@ export default function LoginPage() {
           placeholder="비밀번호"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border rounded px-3 py-2 text-sm"
+          className="w-full border rounded-lg px-3 py-2 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full bg-gray-900 text-white rounded px-3 py-2 text-sm disabled:opacity-50"
-        >
+        <Button type="submit" variant="primary" disabled={submitting} className="w-full py-2">
           {submitting ? "로그인 중..." : "로그인"}
-        </button>
+        </Button>
       </form>
     </div>
   );

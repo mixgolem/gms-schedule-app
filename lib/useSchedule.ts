@@ -74,7 +74,8 @@ export function useSchedule(year: number, month: number) {
       shiftType: ShiftType,
       isMain: boolean,
       startTime: string | null,
-      endTime: string | null
+      endTime: string | null,
+      leaveForDate: string | null
     ) => {
       // 메인당직으로 지정하면 같은 날짜/타입의 기존 메인당직자를 먼저 해제
       if (isMain) {
@@ -94,6 +95,7 @@ export function useSchedule(year: number, month: number) {
           is_main: isMain,
           start_time: startTime,
           end_time: endTime,
+          leave_for_date: leaveForDate,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "work_date,employee_id" }

@@ -1,5 +1,7 @@
 "use client";
 
+import Button from "./ui/Button";
+
 interface Props {
   year: number;
   month: number; // 1-12
@@ -18,15 +20,15 @@ export default function MonthPicker({ year, month, onChange }: Props) {
 
   return (
     <div className="flex items-center gap-3">
-      <button onClick={prev} className="px-2 py-1 border rounded hover:bg-gray-50">
+      <Button onClick={prev} className="px-2.5 py-1" aria-label="이전 달">
         ◀
-      </button>
+      </Button>
       <span className="text-2xl font-semibold">
         {year}년 {month}월
       </span>
-      <button onClick={next} className="px-2 py-1 border rounded hover:bg-gray-50">
+      <Button onClick={next} className="px-2.5 py-1" aria-label="다음 달">
         ▶
-      </button>
+      </Button>
     </div>
   );
 }

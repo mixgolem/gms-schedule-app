@@ -1,6 +1,7 @@
 "use client";
 
 import { Shift, SHIFT_LABELS, SHIFT_COLORS } from "@/lib/types";
+import { weekdayLabel } from "@/lib/dateUtils";
 
 interface Props {
   employeeName: string;
@@ -22,7 +23,11 @@ export default function ShiftCell({
   const current = shift?.shift_type ?? null;
   const isMain = shift?.is_main ?? false;
   const timeLabel =
-    shift?.start_time && shift?.end_time
+    current === "leave" && shift?.leave_for_date
+      ? `${Number(shift.leave_for_date.slice(5, 7))}/${Number(
+          shift.leave_for_date.slice(8, 10)
+        )}(${weekdayLabel(shift.leave_for_date)})`
+      : shift?.start_time && shift?.end_time
       ? `${shift.start_time.slice(0, 5)}~${shift.end_time.slice(0, 5)}`
       : null;
 
@@ -39,8 +44,10 @@ export default function ShiftCell({
       type="button"
       disabled={!canEdit}
       onClick={onClick}
-      className={`w-full flex items-center gap-1.5 rounded border px-2 py-1.5 text-xs whitespace-nowrap ${colorClass} ${
-        canEdit ? "cursor-pointer hover:opacity-80" : "cursor-default"
+      className={`w-full flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs whitespace-nowrap transition-all duration-150 ease-out ${colorClass} ${
+        canEdit
+          ? "cursor-pointer hover:shadow-sm hover:-translate-y-0.5 hover:brightness-95 active:translate-y-0 active:shadow-none"
+          : "cursor-default"
       }`}
       title={invalid ? "2인1조 원칙 미충족" : undefined}
     >

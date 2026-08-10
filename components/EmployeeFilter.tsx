@@ -1,6 +1,7 @@
 "use client";
 
 import { Employee, employeeLabel } from "@/lib/types";
+import Button from "./ui/Button";
 
 interface Props {
   employees: Employee[];
@@ -10,33 +11,25 @@ interface Props {
 
 export default function EmployeeFilter({ employees, selectedId, onSelect }: Props) {
   return (
-    <div className="w-36 shrink-0 space-y-1">
+    <div className="w-full space-y-1">
       <p className="text-xs font-medium text-gray-500 px-1 mb-1">근무자별 조회</p>
-      <button
-        type="button"
+      <Button
         onClick={() => onSelect(null)}
-        className={`w-full text-left text-sm rounded border px-2 py-1.5 ${
-          selectedId === null
-            ? "bg-gray-900 text-white border-gray-900"
-            : "bg-white hover:bg-gray-50"
-        }`}
+        active={selectedId === null}
+        className="w-full justify-start"
       >
         전체보기
-      </button>
+      </Button>
       {employees.map((emp, i) => (
-        <button
+        <Button
           key={emp.id}
-          type="button"
           onClick={() => onSelect(emp.id)}
-          className={`w-full text-left text-sm rounded border px-2 py-1.5 ${
-            selectedId === emp.id
-              ? "bg-gray-900 text-white border-gray-900"
-              : "bg-white hover:bg-gray-50"
-          }`}
+          active={selectedId === emp.id}
+          className="w-full justify-start"
         >
           <span className="mr-1 text-gray-400">{employeeLabel(i)}</span>
           {emp.name}
-        </button>
+        </Button>
       ))}
     </div>
   );

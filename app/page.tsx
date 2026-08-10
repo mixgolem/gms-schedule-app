@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import MonthPicker from "@/components/MonthPicker";
 import CalendarGrid from "@/components/CalendarGrid";
 import EmployeeFilter from "@/components/EmployeeFilter";
+import NoticeBox from "@/components/NoticeBox";
+import SpecialNotesTable from "@/components/SpecialNotesTable";
 import ShiftSidebar from "@/components/ShiftSidebar";
 import EmployeeShiftEditor from "@/components/EmployeeShiftEditor";
 import DayDetailPanel from "@/components/DayDetailPanel";
@@ -11,6 +13,9 @@ import { useSchedule } from "@/lib/useSchedule";
 import { useAuth } from "./providers";
 import { checkPairRule } from "@/lib/validation";
 import { ShiftType } from "@/lib/types";
+import { exportScheduleToExcel } from "@/lib/scheduleExport";
+import { captureNodeAsBlob, downloadBlob } from "@/lib/captureImage";
+import Button from "@/components/ui/Button";
 
 type SidebarState =
   | { mode: "employee"; employeeId: string; date: string }
@@ -28,6 +33,7 @@ export default function Home() {
   const [sidebar, setSidebar] = useState<SidebarState>(null);
   const [showColors, setShowColors] = useState(false);
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
 
   const canEdit = !!session;
   const holidayDates = new Set(holidays.map((h) => h.work_date));
@@ -38,7 +44,8 @@ export default function Home() {
     shiftType: ShiftType,
     isMain: boolean,
     startTime: string | null,
-    endTime: string | null
+    endTime: string | null,
+    leaveForDate: string | null
   ) => {
     const { error, shifts: freshShifts } = await upsertShift(
       employeeId,
@@ -46,7 +53,8 @@ export default function Home() {
       shiftType,
       isMain,
       startTime,
-      endTime
+      endTime,
+      leaveForDate
     );
 
     if (error) {
@@ -70,6 +78,24 @@ export default function Home() {
     setWarning(error ? `초기화 실패: ${error.message}` : null);
   };
 
+  const handleExportExcel = () => {
+    exportScheduleToExcel(year, month, employees, shifts, filterEmployeeId);
+  };
+
+  const handleCopyImage = async () => {
+    if (!calendarRef.current) return;
+    const blob = await captureNodeAsBlob(calendarRef.current);
+    if (!blob) return;
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+  };
+
+  const handleDownloadImage = async () => {
+    if (!calendarRef.current) return;
+    const blob = await captureNodeAsBlob(calendarRef.current);
+    if (!blob) return;
+    downloadBlob(blob, `GMS_근무표_${year}년${month}월.png`);
+  };
+
   const activeEmployee =
     sidebar?.mode === "employee" ? employees.find((e) => e.id === sidebar.employeeId) : undefined;
   const activeShift =
@@ -89,26 +115,17 @@ export default function Home() {
             setMonth(m);
           }}
         />
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowColors((v) => !v)}
-            className={`px-3 py-1 text-sm rounded border ${
-              showColors
-                ? "bg-gray-900 text-white border-gray-900"
-                : "bg-white hover:bg-gray-50"
-            }`}
-          >
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button onClick={() => setShowColors((v) => !v)} active={showColors}>
             근무 색상 {showColors ? "ON" : "OFF"}
-          </button>
+          </Button>
+          <Button onClick={handleExportExcel}>엑셀 다운로드</Button>
+          <Button onClick={handleCopyImage}>이미지 복사</Button>
+          <Button onClick={handleDownloadImage}>이미지 다운로드</Button>
           {canEdit && (
-            <button
-              type="button"
-              onClick={handleResetMonth}
-              className="px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50"
-            >
+            <Button variant="danger" onClick={handleResetMonth}>
               이번 달 초기화
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -117,39 +134,44 @@ export default function Home() {
       )}
 
       {warning && (
-        <div className="bg-amber-50 border border-amber-300 text-amber-800 text-sm rounded px-3 py-2 flex justify-between items-center">
+        <div className="bg-amber-50 border border-amber-300 text-amber-800 text-sm rounded-lg px-3 py-2 flex justify-between items-center animate-[popIn_150ms_ease-out]">
           <span>⚠️ {warning}</span>
           <button
             onClick={() => setWarning(null)}
-            className="text-amber-500 hover:text-amber-700 ml-3"
+            className="text-amber-500 rounded-md p-1 ml-3 transition-all duration-150 hover:text-amber-700 hover:bg-amber-100 hover:scale-110"
           >
             ✕
           </button>
         </div>
       )}
 
-      <div className="flex gap-4 items-start">
-        <EmployeeFilter
-          employees={employees}
-          selectedId={filterEmployeeId}
-          onSelect={setFilterEmployeeId}
-        />
+      <div className="flex gap-4 items-start flex-col md:flex-row">
+        <div className="w-full md:w-36 shrink-0 space-y-3">
+          <EmployeeFilter
+            employees={employees}
+            selectedId={filterEmployeeId}
+            onSelect={setFilterEmployeeId}
+          />
+          <NoticeBox canEdit={canEdit} />
+        </div>
 
         <div className="flex-1 min-w-0 space-y-3">
           {loading ? (
             <p className="text-sm text-gray-400">불러오는 중...</p>
           ) : (
-            <CalendarGrid
-              employees={employees}
-              shifts={shifts}
-              holidayDates={holidayDates}
-              weeks={weeks}
-              canEdit={canEdit}
-              showColors={showColors}
-              filterEmployeeId={filterEmployeeId}
-              onCellClick={(employeeId, date) => setSidebar({ mode: "employee", employeeId, date })}
-              onDateClick={(date) => setSidebar({ mode: "day", date })}
-            />
+            <div ref={calendarRef}>
+              <CalendarGrid
+                employees={employees}
+                shifts={shifts}
+                holidayDates={holidayDates}
+                weeks={weeks}
+                canEdit={canEdit}
+                showColors={showColors}
+                filterEmployeeId={filterEmployeeId}
+                onCellClick={(employeeId, date) => setSidebar({ mode: "employee", employeeId, date })}
+                onDateClick={(date) => setSidebar({ mode: "day", date })}
+              />
+            </div>
           )}
 
           <div className="flex gap-4 text-xs text-gray-500 pt-2 flex-wrap">
@@ -159,6 +181,8 @@ export default function Home() {
             <span className="text-red-400">일요일</span>
             <span className="text-red-600">공휴일</span>
           </div>
+
+          <SpecialNotesTable />
         </div>
       </div>
 
@@ -174,8 +198,16 @@ export default function Home() {
             date={sidebar.date}
             shift={activeShift}
             canEdit={canEdit}
-            onSave={(shiftType, isMain, startTime, endTime) =>
-              handleSaveShift(sidebar.employeeId, sidebar.date, shiftType, isMain, startTime, endTime)
+            onSave={(shiftType, isMain, startTime, endTime, leaveForDate) =>
+              handleSaveShift(
+                sidebar.employeeId,
+                sidebar.date,
+                shiftType,
+                isMain,
+                startTime,
+                endTime,
+                leaveForDate
+              )
             }
             onClose={() => setSidebar(null)}
           />

@@ -35,12 +35,13 @@ export default function DayDetailPanel({
         <p className="text-base font-semibold">{date}</p>
       </div>
 
-      <label className="flex items-center gap-2 text-sm border rounded px-3 py-2 bg-gray-50">
+      <label className="flex items-center gap-2 text-sm border rounded-lg px-3 py-2 bg-gray-50 transition-colors duration-150 hover:bg-gray-100">
         <input
           type="checkbox"
           checked={isHoliday}
           disabled={!canEdit}
           onChange={() => onToggleHoliday()}
+          className="accent-gray-900"
         />
         공휴일로 지정
       </label>

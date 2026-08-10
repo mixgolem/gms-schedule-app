@@ -52,20 +52,20 @@ export default function CalendarGrid({
     <div className="space-y-3">
       {weeks.map((week, wi) => (
         <div key={wi} className="overflow-x-auto">
-          <div className="grid grid-cols-7 gap-2 min-w-[1500px]">
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-2 min-w-full md:min-w-[1500px]">
             {week.map((day) => {
               const dayColor = getDayColor(day.date, holidayDates.has(day.date));
               return (
                 <div
                   key={day.date}
-                  className={`border rounded ${
+                  className={`border rounded-lg overflow-hidden transition-shadow duration-150 hover:shadow-md ${
                     day.inMonth ? "bg-white" : "bg-gray-50 opacity-50"
                   }`}
                 >
                   <button
                     type="button"
                     onClick={() => onDateClick(day.date)}
-                    className={`w-full px-2 py-1 border-b text-xs font-medium flex items-baseline gap-1 hover:opacity-80 ${DAY_BADGE_CLASS[dayColor]}`}
+                    className={`w-full px-2 py-1 border-b border-black/5 text-xs font-medium flex items-baseline gap-1 transition-all duration-150 hover:brightness-95 ${DAY_BADGE_CLASS[dayColor]}`}
                   >
                     <span className="font-bold">{dayOfMonth(day.date)}</span>
                     <span className="text-[10px]">{weekdayLabel(day.date)}</span>

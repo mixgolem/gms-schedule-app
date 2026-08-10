@@ -21,13 +21,13 @@ export default function ShiftSidebar({ open, title, onClose, children }: Props) 
   return (
     <div className={`fixed inset-0 z-30 ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
       <div
-        className={`absolute inset-0 bg-black/30 transition-opacity ${
+        className={`absolute inset-0 bg-black/30 transition-opacity duration-200 ease-out ${
           open ? "opacity-100" : "opacity-0"
         }`}
         onClick={onClose}
       />
       <div
-        className={`absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl transition-transform duration-200 flex flex-col ${
+        className={`absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl transition-transform duration-200 ease-out flex flex-col ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -36,7 +36,7 @@ export default function ShiftSidebar({ open, title, onClose, children }: Props) 
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-lg leading-none"
+            className="text-gray-400 hover:text-gray-700 text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
           >
             ✕
           </button>

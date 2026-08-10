@@ -88,5 +88,23 @@ export function useEmployees() {
     [employees, fetchData]
   );
 
-  return { employees, loading, addEmployee, renameEmployee, setActive, moveEmployee };
+  // 완전 삭제 — FK의 on delete cascade로 이 직원의 shifts 기록도 함께 영구 삭제됨
+  const deleteEmployee = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("employees").delete().eq("id", id);
+      await fetchData();
+      return { error };
+    },
+    [fetchData]
+  );
+
+  return {
+    employees,
+    loading,
+    addEmployee,
+    renameEmployee,
+    setActive,
+    moveEmployee,
+    deleteEmployee,
+  };
 }

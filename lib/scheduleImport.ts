@@ -23,9 +23,16 @@ interface ParsedRow {
   end_time: string | null;
 }
 
+export interface ParsePreviewRow {
+  date: string;
+  codes: (string | null)[]; // A~G 순서, 7칸
+}
+
 export interface ParseResult {
   rows: ParsedRow[];
   warnings: string[];
+  preview: ParsePreviewRow[];
+  employeeNames: (string | null)[]; // A~G 순서, 매칭된 직원 없으면 null
 }
 
 function hoursFor(type: ShiftType): { start: string | null; end: string | null } {
@@ -58,7 +65,12 @@ export async function parseScheduleFile(
 
   const warnings: string[] = [];
   const rows: ParsedRow[] = [];
+  const preview: ParsePreviewRow[] = [];
   const sorted = [...employees].sort((a, b) => a.sort_order - b.sort_order);
+  const employeeNames: (string | null)[] = Array.from(
+    { length: EMPLOYEE_COLUMNS },
+    (_, i) => sorted[i]?.name ?? null
+  );
 
   // 1행은 헤더(A, B, C ...)라 건너뛰고 2행부터 데이터로 읽는다
   for (let r = 1; r < raw.length; r++) {
@@ -72,10 +84,12 @@ export async function parseScheduleFile(
       continue;
     }
 
+    const previewCodes: (string | null)[] = [];
+
     for (let col = 0; col < EMPLOYEE_COLUMNS; col++) {
       const rawCode = line[col + 1];
-      if (!rawCode) continue;
-      const code = String(rawCode).trim();
+      const code = rawCode ? String(rawCode).trim() : "";
+      previewCodes.push(code || null);
       if (!code) continue;
 
       const employee = sorted[col];
@@ -100,9 +114,11 @@ export async function parseScheduleFile(
         end_time: hours.end,
       });
     }
+
+    preview.push({ date, codes: previewCodes });
   }
 
-  return { rows, warnings };
+  return { rows, warnings, preview, employeeNames };
 }
 
 export async function applyParsedSchedule(
