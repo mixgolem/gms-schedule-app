@@ -17,28 +17,28 @@ export default function SpecialNotesTable() {
     <div className="border rounded-lg p-3 transition-shadow duration-150 hover:shadow-sm">
       <p className="text-sm font-medium text-gray-700 mb-2">
         특이사항{" "}
-        <span className="text-xs text-gray-400 font-normal">
+        <span className="text-xs text-gray-600 font-normal">
           (주말 근무인데 대휴가 지정 안 된 경우, 전체 기간)
         </span>
       </p>
       <div className="overflow-x-auto">
-        <table className="text-sm w-full">
+        <table className="text-xs font-bold w-full">
           <thead>
-            <tr className="text-left text-blue-900 text-xs">
-              <th className="pb-1 pr-4 font-normal w-10">구분</th>
-              <th className="pb-1 pr-4 font-normal w-24">이름</th>
-              <th className="pb-1 font-normal">날짜</th>
+            <tr className="text-left text-blue-900 divide-x divide-gray-300">
+              <th className="pb-1 pr-4 font-bold w-10">구분</th>
+              <th className="pb-1 pl-2 pr-4 font-bold w-24">이름</th>
+              <th className="pb-1 pl-2 font-bold">날짜</th>
             </tr>
           </thead>
           <tbody>
             {groups.map((g, i) => (
               <tr
                 key={g.employeeId}
-                className="border-t transition-colors duration-150 hover:bg-gray-100"
+                className="border-t divide-x divide-gray-300 transition-colors duration-150 hover:bg-gray-100"
               >
                 <td className="py-1 pr-4 text-gray-400">{employeeLabel(i)}</td>
-                <td className="py-1 pr-4 whitespace-nowrap">{g.employeeName}</td>
-                <td className="py-1 text-gray-600">
+                <td className="py-1 pl-2 pr-4 whitespace-nowrap">{g.employeeName}</td>
+                <td className="py-1 pl-2 text-gray-600">
                   {g.dates.length > 0 ? g.dates.map(formatDate).join(", ") : ""}
                 </td>
               </tr>

@@ -51,3 +51,33 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
+
+// Header는 레이아웃 상 페이지(캘린더)보다 먼저 렌더링되는 형제 컴포넌트라 props를 직접
+// 못 받는다. "이번 달 초기화" 버튼을 Header 쪽에 두면서도 어떤 연/월을 초기화할지, 실제
+// 삭제 로직은 여전히 페이지(useSchedule)가 갖고 있게 하기 위한 공유 슬롯.
+interface ResetMonthInfo {
+  year: number;
+  month: number;
+  canReset: boolean;
+  onReset: () => void;
+}
+
+interface ResetMonthContextValue {
+  info: ResetMonthInfo | null;
+  setInfo: (info: ResetMonthInfo | null) => void;
+}
+
+const ResetMonthContext = createContext<ResetMonthContextValue | undefined>(undefined);
+
+export function ResetMonthProvider({ children }: { children: React.ReactNode }) {
+  const [info, setInfo] = useState<ResetMonthInfo | null>(null);
+  return (
+    <ResetMonthContext.Provider value={{ info, setInfo }}>{children}</ResetMonthContext.Provider>
+  );
+}
+
+export function useResetMonth() {
+  const ctx = useContext(ResetMonthContext);
+  if (!ctx) throw new Error("useResetMonth must be used within ResetMonthProvider");
+  return ctx;
+}

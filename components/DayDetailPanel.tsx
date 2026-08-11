@@ -116,7 +116,7 @@ export default function DayDetailPanel({
             <p className="text-xs font-semibold text-gray-700 mb-1">미배정</p>
             <ul className="space-y-1">
               {unassigned.map((e) => (
-                <li key={e.id} className="text-sm text-gray-400">
+                <li key={e.id} className="text-sm text-gray-600">
                   {e.name}
                 </li>
               ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import MonthPicker from "@/components/MonthPicker";
 import CalendarGrid from "@/components/CalendarGrid";
 import EmployeeFilter from "@/components/EmployeeFilter";
@@ -15,10 +15,9 @@ import DayDetailPanel from "@/components/DayDetailPanel";
 import ErpExportModal from "@/components/ErpExportModal";
 import { useSchedule } from "@/lib/useSchedule";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
-import { useAuth } from "./providers";
+import { useAuth, useResetMonth } from "./providers";
 import { checkPairRule } from "@/lib/validation";
 import { ShiftType, LeaveUsageInput } from "@/lib/types";
-import { exportBackupToExcel } from "@/lib/backupExport";
 import { captureNodeAsBlob, downloadBlob } from "@/lib/captureImage";
 import Button from "@/components/ui/Button";
 
@@ -47,9 +46,10 @@ export default function Home() {
     resetMonth,
   } = useSchedule(year, month);
   const { defaults: shiftDefaults } = useShiftDefaults();
+  const { setInfo: setResetInfo } = useResetMonth();
   const [warning, setWarning] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState<SidebarState>(null);
-  const [showColors, setShowColors] = useState(false);
+  const [showColors, setShowColors] = useState(true);
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("default");
   const [erpExportOpen, setErpExportOpen] = useState(false);
@@ -105,7 +105,7 @@ export default function Home() {
     setWarning(checkPairRule(activeShifts, workDate, shiftType));
   };
 
-  const handleResetMonth = async () => {
+  const handleResetMonth = useCallback(async () => {
     const ok = window.confirm(
       `${year}년 ${month}월 근무표를 전부 초기화할까요? 직원 목록은 그대로 남고, 이 달의 근무 기록만 삭제되며 되돌릴 수 없어요.`
     );
@@ -113,11 +113,13 @@ export default function Home() {
 
     const { error } = await resetMonth();
     setWarning(error ? `초기화 실패: ${error.message}` : null);
-  };
+  }, [year, month, resetMonth]);
 
-  const handleExportBackup = async () => {
-    await exportBackupToExcel();
-  };
+  // Header에서 "이번 달 초기화" 버튼을 띄울 수 있도록 현재 연/월과 초기화 함수를 공유 슬롯에 등록
+  useEffect(() => {
+    setResetInfo({ year, month, canReset: canEdit, onReset: handleResetMonth });
+    return () => setResetInfo(null);
+  }, [year, month, canEdit, handleResetMonth, setResetInfo]);
 
   const handleCopyImage = async () => {
     if (!calendarRef.current) return;
@@ -153,32 +155,18 @@ export default function Home() {
           }}
         />
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => setShowColors((v) => !v)} active={showColors}>
-            근무 색상 {showColors ? "ON" : "OFF"}
-          </Button>
           <Button
             onClick={() => setErpExportOpen(true)}
             title="선택한 근무자의 한 달치 근무를 ERP 업로드 양식 그대로 내보내요"
           >
             ERP엑셀 다운로드
           </Button>
-          <Button
-            onClick={handleExportBackup}
-            title="대휴 발생/사용누적, 연차 할당 등 수기입력 값과 연차·대휴·기타 사용내역 전체를 엑셀로 백업해요"
-          >
-            백업 다운로드
-          </Button>
           <Button onClick={handleCopyImage}>이미지 복사</Button>
           <Button onClick={handleDownloadImage}>이미지 다운로드</Button>
-          {canEdit && (
-            <Button variant="danger" onClick={handleResetMonth}>
-              이번 달 초기화
-            </Button>
-          )}
         </div>
       </div>
       {!canEdit && (
-        <p className="text-xs text-gray-400 -mt-2">조회 전용입니다. 로그인하면 편집할 수 있어요.</p>
+        <p className="text-xs text-gray-600 -mt-2">조회 전용입니다. 로그인하면 편집할 수 있어요.</p>
       )}
 
       {warning && (
@@ -194,12 +182,19 @@ export default function Home() {
       )}
 
       <div className="flex gap-4 items-start flex-col md:flex-row">
-        <div className="w-full md:w-36 shrink-0 space-y-3">
+        <div className="w-full md:w-36 shrink-0 space-y-3 md:sticky md:top-4 md:self-start">
           <EmployeeFilter
             employees={employees}
             selectedId={filterEmployeeId}
             onSelect={setFilterEmployeeId}
           />
+          <Button
+            onClick={() => setShowColors((v) => !v)}
+            active={showColors}
+            className="w-full justify-center"
+          >
+            근무 색상 {showColors ? "ON" : "OFF"}
+          </Button>
           <Button
             onClick={() => setSortMode((m) => (m === "default" ? "byShiftType" : "default"))}
             active={sortMode === "byShiftType"}
@@ -212,7 +207,7 @@ export default function Home() {
 
         <div className="flex-1 min-w-0 space-y-3">
           {loading ? (
-            <p className="text-sm text-gray-400">불러오는 중...</p>
+            <p className="text-sm text-gray-600">불러오는 중...</p>
           ) : (
             <div ref={calendarRef}>
               <CalendarGrid

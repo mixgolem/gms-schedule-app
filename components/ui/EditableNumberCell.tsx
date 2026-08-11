@@ -6,13 +6,20 @@ interface Props {
   value: number;
   canEdit: boolean;
   onCommit: (value: number) => void;
+  unit?: string; // 값 뒤에 붙일 단위 표시 (예: "h")
 }
 
-export default function EditableNumberCell({ value, canEdit, onCommit }: Props) {
+export default function EditableNumberCell({ value, canEdit, onCommit, unit }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
 
-  if (!canEdit) return <span>{value}</span>;
+  if (!canEdit)
+    return (
+      <span>
+        {value}
+        {unit}
+      </span>
+    );
 
   if (editing) {
     return (
@@ -35,7 +42,7 @@ export default function EditableNumberCell({ value, canEdit, onCommit }: Props) 
 
   return (
     <span
-      className="inline-flex items-center gap-0.5 cursor-pointer rounded px-1.5 py-0.5 bg-blue-50/50 text-blue-600 border border-dashed border-blue-200 transition-colors duration-150 hover:bg-blue-100/70"
+      className="inline-flex items-center gap-0.5 cursor-pointer rounded px-1.5 py-0.5 bg-blue-50/30 text-blue-500 border border-dashed border-blue-100 transition-colors duration-150 hover:bg-blue-50/60"
       onClick={() => {
         setDraft(String(value));
         setEditing(true);
@@ -43,6 +50,7 @@ export default function EditableNumberCell({ value, canEdit, onCommit }: Props) 
       title="클릭해서 수정"
     >
       {value}
+      {unit}
       <span className="text-[10px] opacity-70">✎</span>
     </span>
   );

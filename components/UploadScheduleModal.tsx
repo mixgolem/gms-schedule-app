@@ -116,8 +116,8 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
             </>
           )}
 
-          {status === "parsing" && <p className="text-gray-400">읽는 중...</p>}
-          {status === "saving" && <p className="text-gray-400">저장 중...</p>}
+          {status === "parsing" && <p className="text-gray-600">읽는 중...</p>}
+          {status === "saving" && <p className="text-gray-600">저장 중...</p>}
           {status === "done" && summary && <p className="text-green-600">{summary}</p>}
           {status === "error" && errorMsg && <p className="text-red-600">{errorMsg}</p>}
 

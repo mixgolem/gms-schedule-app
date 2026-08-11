@@ -58,12 +58,12 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
         </div>
 
         <div className="p-4 space-y-3">
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-600">
             새벽/주간/야간 근무를 새로 등록할 때 기본으로 채워질 출근·퇴근 시각이에요. 이미 저장된
             근무 기록에는 영향을 주지 않아요.
           </p>
           {loading ? (
-            <p className="text-sm text-gray-400">불러오는 중...</p>
+            <p className="text-sm text-gray-600">불러오는 중...</p>
           ) : (
             TYPES.map((type) => (
               <div key={type} className="flex items-center justify-between gap-3 border rounded-lg p-2">

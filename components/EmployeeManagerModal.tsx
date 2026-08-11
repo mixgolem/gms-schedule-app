@@ -80,7 +80,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {loading ? (
-            <p className="text-sm text-gray-400">불러오는 중...</p>
+            <p className="text-sm text-gray-600">불러오는 중...</p>
           ) : (
             sorted.map((emp, i) => (
               <div
