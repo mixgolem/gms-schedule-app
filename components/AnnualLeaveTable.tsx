@@ -39,7 +39,7 @@ export default function AnnualLeaveTable({ year, month, canEdit }: Props) {
               <th className="pb-1 pl-2 pr-3 font-bold whitespace-nowrap">이름</th>
               <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">할당(H)</th>
               <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">사용</th>
-              <th className="pb-1 px-2 font-bold whitespace-nowrap">사용일</th>
+              <th className="pb-1 px-2 font-bold whitespace-nowrap">당월사용일</th>
               <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">잔여(H)</th>
               <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">잔여(D)</th>
             </tr>
