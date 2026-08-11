@@ -228,7 +228,7 @@ export default function Home() {
 
           <div className="flex gap-4 text-xs text-gray-500 pt-2 flex-wrap">
             <span>☆ = 새벽 메인당직 · ★ = 야간 메인당직</span>
-            <span className="text-red-500">빨간칸 = 새벽/야간 2인1조 미충족</span>
+            <span className="text-red-800 font-bold">빨간 글자 = 새벽/야간 2인1조 미충족</span>
             <span className="text-sky-600">토요일</span>
             <span className="text-red-400">일요일</span>
             <span className="text-red-600">공휴일</span>

@@ -27,14 +27,19 @@ export default function ShiftCell({
 
   const { timeLabel, usageSuffix } = computeShiftDisplay(shift, leaveUsages);
 
-  const isWhiteBg = !invalid && (!current || !showColors);
-  const colorClass = invalid
-    ? "bg-red-100 text-red-800 border-red-400"
-    : !current
+  // 2인1조 미충족 시 칸 배경은 평소와 동일하게 두고, 글자만 진한 빨간색으로 강조한다.
+  const baseColorClass = !current
     ? "bg-white text-gray-300 border-gray-200"
     : showColors
     ? SHIFT_COLORS[current]
     : "bg-white text-gray-600 border-gray-200";
+  const bgBorderClass = baseColorClass
+    .split(" ")
+    .filter((c) => !c.startsWith("text-"))
+    .join(" ");
+  const colorClass = invalid ? `${bgBorderClass} text-red-800 font-bold` : baseColorClass;
+
+  const isWhiteBg = !current || !showColors;
   const hoverClass = isWhiteBg ? "hover:bg-gray-100" : "hover:brightness-95";
 
   return (
