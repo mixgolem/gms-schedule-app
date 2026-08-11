@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function AnnualLeaveTable({ year, month, canEdit }: Props) {
-  const { rows, loading, setAllocatedHours } = useAnnualLeaveLedger(year, month);
+  const { rows, loading, fiscalYearStart, setAllocatedHours } = useAnnualLeaveLedger(year, month);
 
   if (loading) return null;
 
@@ -20,7 +20,7 @@ export default function AnnualLeaveTable({ year, month, canEdit }: Props) {
       <p className="text-sm font-medium text-gray-700 mb-2">
         연차 내역(시간){" "}
         <span className="text-xs text-gray-600 font-normal">
-          ({year}년 1월~12월 기준, 사용일은 {month}월만 표시)
+          ({fiscalYearStart}년 7월~{fiscalYearStart + 1}년 6월 기준, 사용일은 {month}월만 표시)
         </span>
       </p>
       {canEdit && (
@@ -57,7 +57,7 @@ export default function AnnualLeaveTable({ year, month, canEdit }: Props) {
                     value={row.allocatedHours}
                     unit="h"
                     canEdit={canEdit}
-                    onCommit={(n) => setAllocatedHours(row.employeeId, year, n)}
+                    onCommit={(n) => setAllocatedHours(row.employeeId, fiscalYearStart, n)}
                   />
                 </td>
                 <td className="py-1 px-2 text-right">{row.usedHoursYear ? `${row.usedHoursYear}h` : ""}</td>

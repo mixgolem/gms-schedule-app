@@ -83,7 +83,8 @@ create table if not exists comp_leave_summary (
   unique (employee_id, fiscal_year)
 );
 
--- 연차 내역 - 연도별 할당시간(수기입력)
+-- 연차 내역 - 회계연도별 할당시간(수기입력). year는 회계연도 시작연도(7월)를 뜻함
+-- (예: year=2026은 2026년 7월~2027년 6월)
 create table if not exists annual_leave_allocation (
   id uuid primary key default gen_random_uuid(),
   employee_id uuid not null references employees(id) on delete cascade,

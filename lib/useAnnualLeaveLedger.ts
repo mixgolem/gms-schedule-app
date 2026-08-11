@@ -8,10 +8,16 @@ export interface AnnualLeaveRow {
   employeeName: string;
   sortOrder: number;
   allocatedHours: number;
-  usedHoursYear: number; // 연간(1~12월) 합계
+  usedHoursYear: number; // 회계연도(7월~이듬해 6월) 합계
   usedDatesThisMonth: number[]; // 현재 보고 있는 달의 사용일
   remainingHours: number;
   remainingDaysLabel: string; // 정수면 정수, 아니면 소수 첫째자리
+}
+
+// 연차는 매년 7월 1일 ~ 이듬해 6월 30일을 한 회계연도로 계산한다.
+// 회계연도는 시작 연도(7월이 속한 연도)로 표현 — 예: 2026-07~2027-06은 fiscalYearStart=2026.
+export function fiscalYearStartFor(year: number, month: number): number {
+  return month >= 7 ? year : year - 1;
 }
 
 function formatRemainingDays(hours: number): string {
@@ -23,12 +29,13 @@ export function useAnnualLeaveLedger(year: number, month: number) {
   const [rows, setRows] = useState<AnnualLeaveRow[]>([]);
   const [loading, setLoading] = useState(true);
   const instanceId = useId();
+  const fiscalYearStart = fiscalYearStartFor(year, month);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
 
-    const yearStart = `${year}-01-01`;
-    const yearEnd = `${year}-12-31`;
+    const rangeStart = `${fiscalYearStart}-07-01`;
+    const rangeEnd = `${fiscalYearStart + 1}-06-30`;
     const monthPrefix = `${year}-${String(month).padStart(2, "0")}-`;
 
     const [{ data: emp }, { data: alloc }, { data: usedShifts }] = await Promise.all([
@@ -36,13 +43,13 @@ export function useAnnualLeaveLedger(year: number, month: number) {
       supabase
         .from("annual_leave_allocation")
         .select("employee_id, allocated_hours")
-        .eq("year", year),
+        .eq("year", fiscalYearStart),
       supabase
         .from("shift_leave_usage")
         .select("employee_id, work_date, hours")
         .eq("usage_type", "annual")
-        .gte("work_date", yearStart)
-        .lte("work_date", yearEnd),
+        .gte("work_date", rangeStart)
+        .lte("work_date", rangeEnd),
     ]);
 
     const employees = emp ?? [];
@@ -82,7 +89,7 @@ export function useAnnualLeaveLedger(year: number, month: number) {
 
     setRows(result);
     setLoading(false);
-  }, [year, month]);
+  }, [year, month, fiscalYearStart]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -110,11 +117,11 @@ export function useAnnualLeaveLedger(year: number, month: number) {
   }, [fetchData, instanceId]);
 
   const setAllocatedHours = useCallback(
-    async (employeeId: string, targetYear: number, hours: number) => {
+    async (employeeId: string, targetFiscalYearStart: number, hours: number) => {
       const { error } = await supabase
         .from("annual_leave_allocation")
         .upsert(
-          { employee_id: employeeId, year: targetYear, allocated_hours: hours },
+          { employee_id: employeeId, year: targetFiscalYearStart, allocated_hours: hours },
           { onConflict: "employee_id,year" }
         );
       await fetchData();
@@ -123,5 +130,5 @@ export function useAnnualLeaveLedger(year: number, month: number) {
     [fetchData]
   );
 
-  return { rows, loading, setAllocatedHours };
+  return { rows, loading, fiscalYearStart, setAllocatedHours };
 }
