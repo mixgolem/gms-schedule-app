@@ -21,7 +21,7 @@ export default function SpecialNotesTable() {
           (주말 근무인데 대휴가 지정 안 된 경우, 전체 기간)
         </span>
       </p>
-      <div className="overflow-x-auto">
+      <div>
         <table className="text-xs font-bold w-full">
           <thead>
             <tr className="text-left text-blue-900 divide-x divide-gray-300">

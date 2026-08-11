@@ -24,7 +24,7 @@ export default function MonthlyStatsTable({ year, month, employees, shifts, leav
           (일 기준 8시간, 연차·대휴 사용시간 차감)
         </span>
       </p>
-      <div className="overflow-x-auto">
+      <div>
         <table className="text-xs font-bold w-full">
           <thead>
             <tr className="text-left text-blue-900 divide-x divide-gray-300">

@@ -76,7 +76,7 @@ export default function CalendarGrid({
 
         return (
           <div key={wi} className="flex flex-col md:flex-row gap-2">
-            <div className="overflow-x-auto flex-1">
+            <div className="flex-1">
               <div className="grid grid-cols-1 md:grid-cols-7 gap-2 min-w-full md:min-w-[1400px]">
                 {week.map((day) => {
                   const dayColor = getDayColor(day.date, holidayDates.has(day.date));
