@@ -242,6 +242,7 @@ export default function Home() {
           )}
 
           <div className="flex gap-4 text-xs text-gray-500 pt-2 flex-wrap">
+            <span className="text-blue-900 font-bold">테두리 강조 = 오늘</span>
             <span>★ = 메인당직</span>
             <span className="text-red-800 font-bold">빨간 글자 = 새벽/야간 2인1조 미충족</span>
             <span className="text-sky-600">토요일</span>

@@ -13,6 +13,11 @@ export function getMonthDates(year: number, month: number): string[] {
   return eachDayOfInterval({ start, end }).map((d) => format(d, "yyyy-MM-dd"));
 }
 
+// 오늘 날짜를 'yyyy-MM-dd'로. 캘린더에서 오늘 칸을 강조할 때 쓴다.
+export function todayStr(): string {
+  return format(new Date(), "yyyy-MM-dd");
+}
+
 export interface CalendarDay {
   date: string; // yyyy-MM-dd
   inMonth: boolean;

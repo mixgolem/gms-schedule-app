@@ -59,7 +59,7 @@ export default function ShiftCell({
       title={invalid ? "2인1조 원칙 미충족" : undefined}
     >
       <span className="font-medium">{employeeName}</span>
-      {timeLabel && <span className="opacity-80">{timeLabel}</span>}
+      {timeLabel && <span className="font-medium">{timeLabel}</span>}
       <span className="flex items-center gap-0.5 ml-auto">
         {current === "annual" ? "연차사용" : current ? SHIFT_LABELS[current] : "-"}
         {usageSuffix}

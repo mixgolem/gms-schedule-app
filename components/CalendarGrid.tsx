@@ -1,7 +1,7 @@
 "use client";
 
 import { Employee, Shift, ShiftLeaveUsage } from "@/lib/types";
-import { CalendarDay, weekdayLabel, dayOfMonth, getDayColor } from "@/lib/dateUtils";
+import { CalendarDay, weekdayLabel, dayOfMonth, getDayColor, todayStr } from "@/lib/dateUtils";
 import { countByTypeForDate } from "@/lib/validation";
 import { computeWeeklyHours } from "@/lib/workStats";
 import { shiftPriority } from "@/lib/shiftDisplay";
@@ -68,6 +68,8 @@ export default function CalendarGrid({
       ? employees.filter((e) => filterEmployeeIds.includes(e.id))
       : employees;
 
+  const today = todayStr();
+
   return (
     <div className="space-y-3">
       {weeks.map((week, wi) => {
@@ -93,8 +95,8 @@ export default function CalendarGrid({
                     <div
                       key={day.date}
                       className={`border rounded-lg overflow-hidden transition-shadow duration-150 hover:shadow-md ${
-                        day.inMonth ? "bg-white" : "bg-gray-50 opacity-50"
-                      }`}
+                        day.date === today ? "ring-2 ring-blue-900 ring-offset-1" : ""
+                      } ${day.inMonth ? "bg-white" : "bg-gray-50 opacity-50"}`}
                     >
                       <button
                         type="button"
@@ -103,6 +105,9 @@ export default function CalendarGrid({
                       >
                         <span className="text-base font-bold">{dayOfMonth(day.date)}</span>
                         <span className="text-xs">{weekdayLabel(day.date)}</span>
+                        {day.date === today && (
+                          <span className="text-xs font-bold text-blue-900">오늘</span>
+                        )}
                         {holidayDates.has(day.date) && (
                           <span className="text-xs font-bold">공휴일</span>
                         )}
