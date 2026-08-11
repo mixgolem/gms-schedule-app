@@ -118,6 +118,14 @@ insert into shift_type_defaults (shift_type, start_time, end_time) values
   ('night', '15:00', '00:00') -- 24:00 대신 익일 00:00로 저장
 on conflict (shift_type) do nothing;
 
+-- 로그인 계정별 UI 설정(근무 색상 표시, 정렬 방식)
+create table if not exists user_preferences (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  show_colors boolean not null default true,
+  sort_mode text not null default 'default' check (sort_mode in ('default', 'byShiftType')),
+  updated_at timestamptz not null default now()
+);
+
 -- ============================================================
 -- Row Level Security - 모든 테이블 공통: 누구나 조회, 로그인한 사용자만 편집
 -- ============================================================
@@ -131,6 +139,7 @@ alter table comp_leave_summary enable row level security;
 alter table annual_leave_allocation enable row level security;
 alter table shift_leave_usage enable row level security;
 alter table shift_type_defaults enable row level security;
+alter table user_preferences enable row level security;
 
 create policy "employees_select_all" on employees for select using (true);
 create policy "employees_write_authenticated" on employees
@@ -167,6 +176,12 @@ create policy "shift_leave_usage_write_authenticated" on shift_leave_usage
 create policy "shift_type_defaults_select_all" on shift_type_defaults for select using (true);
 create policy "shift_type_defaults_write_authenticated" on shift_type_defaults
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- user_preferences는 다른 테이블과 달리 본인 설정만 보고 고칠 수 있음
+create policy "user_preferences_select_own" on user_preferences
+  for select using (auth.uid() = user_id);
+create policy "user_preferences_write_own" on user_preferences
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ============================================================
 -- Realtime 구독 활성화

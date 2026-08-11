@@ -17,6 +17,7 @@ function usageHoursByShiftId(leaveUsages: ShiftLeaveUsage[]): Map<string, number
 export interface MonthlyStatsRow {
   employeeId: string;
   employeeName: string;
+  sortOrder: number;
   totalHours: number;
   workDays: number;
   avgHoursPerDay: number;
@@ -69,6 +70,7 @@ export function computeMonthlyStats(
     return {
       employeeId: e.id,
       employeeName: e.name,
+      sortOrder: e.sort_order,
       totalHours: round2(totalHours),
       workDays,
       avgHoursPerDay: workDays > 0 ? round2(totalHours / workDays) : 0,

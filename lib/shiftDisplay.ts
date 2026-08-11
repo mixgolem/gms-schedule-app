@@ -17,6 +17,7 @@ export interface UsageDetail {
 
 export interface ShiftDisplay {
   hasPartialUsage: boolean;
+  isFullyOnLeave: boolean; // 근무시간 전체를 연차/대휴/기타로 써서 실제로는 출근하지 않은 경우
   timeLabel: string | null;
   usageSuffix: string; // "(연차,대휴)" 형태, 없으면 ""
   usageDetails: UsageDetail[]; // 부분사용 항목별 상세 (라벨/시간/구간)
@@ -77,5 +78,28 @@ export function computeShiftDisplay(
       }))
     : [];
 
-  return { hasPartialUsage, timeLabel, usageSuffix, usageDetails };
+  const isFullyOnLeave = hasPartialUsage && remainingRanges.length === 0;
+
+  return { hasPartialUsage, isFullyOnLeave, timeLabel, usageSuffix, usageDetails };
+}
+
+// 시간대 정렬 모드에서의 우선순위: 새벽메인 → 새벽 → 주간 → 야간 → 대휴 → 휴무 → 미배정.
+// 캘린더 그리드(데스크탑)와 하루보기(모바일)에서 공통으로 쓴다.
+export function shiftPriority(shift: Shift | null): number {
+  if (!shift) return 6;
+  switch (shift.shift_type) {
+    case "dawn":
+      return shift.is_main ? 0 : 1;
+    case "day":
+      return 2;
+    case "night":
+      return 3;
+    case "leave":
+    case "annual":
+      return 4;
+    case "off":
+      return 5;
+    default:
+      return 6;
+  }
 }

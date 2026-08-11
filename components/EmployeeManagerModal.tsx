@@ -90,7 +90,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                 }`}
               >
                 <span className="w-5 text-xs font-semibold text-gray-400 shrink-0">
-                  {employeeLabel(i)}
+                  {employeeLabel(emp.sort_order - 1)}
                 </span>
 
                 {editingId === emp.id ? (

@@ -43,7 +43,7 @@ export default function DayDetailPanel({
   return (
     <div className="space-y-4">
       <p className="text-lg font-bold text-gray-900">
-        {date} ({weekdayLabel(date)})
+        {date} ({weekdayLabel(date)}){isHoliday && <span className="text-red-700"> 공휴일</span>}
       </p>
 
       <label className="flex items-center gap-2 text-sm border rounded-lg px-3 py-2 bg-gray-50 transition-colors duration-150 hover:bg-gray-100">
@@ -84,7 +84,7 @@ export default function DayDetailPanel({
                           <span className="text-sm font-medium text-gray-900">{e.name}</span>
                           {isMain && (
                             <span title={type === "dawn" ? "새벽 메인당직" : "메인당직"}>
-                              {type === "dawn" ? "☆" : "★"}
+                              ★
                             </span>
                           )}
                           {timeLabel && (

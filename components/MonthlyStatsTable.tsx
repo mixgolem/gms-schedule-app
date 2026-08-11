@@ -33,7 +33,7 @@ export default function MonthlyStatsTable({ year, month, employees, shifts, leav
               <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">근무시간합계</th>
               <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">업무일</th>
               <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">일평균근무시간</th>
-              <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">새벽메인(☆)</th>
+              <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">새벽메인(★)</th>
               <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">야간메인(★)</th>
               <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">새벽출근</th>
               <th className="pb-1 px-2 font-bold text-right whitespace-nowrap">야간출근</th>
@@ -41,12 +41,12 @@ export default function MonthlyStatsTable({ year, month, employees, shifts, leav
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
+            {rows.map((row) => (
               <tr
                 key={row.employeeId}
                 className="border-t divide-x divide-gray-300 transition-colors duration-150 hover:bg-gray-100"
               >
-                <td className="py-1 pr-3 text-gray-400">{employeeLabel(i)}</td>
+                <td className="py-1 pr-3 text-gray-400">{employeeLabel(row.sortOrder - 1)}</td>
                 <td className="py-1 pl-2 pr-3 whitespace-nowrap">{row.employeeName}</td>
                 <td className="py-1 px-2 text-right">{row.totalHours}h</td>
                 <td className="py-1 px-2 text-right">{row.workDays}일</td>

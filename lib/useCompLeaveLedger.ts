@@ -17,6 +17,7 @@ export function monthColumnToYearMonth(fiscalYear: number, columnIndex: number) 
 export interface CompLeaveRow {
   employeeId: string;
   employeeName: string;
+  sortOrder: number;
   monthlyHours: number[]; // MONTH_ORDER 순서
   accruedTotal: number; // 대휴누적시간
   usedTotal: number; // 사용누적시간(수동입력)
@@ -67,7 +68,7 @@ export function useCompLeaveLedger(year: number, month: number) {
 
     const [{ data: emp }, { data: monthly }, { data: summary }, { data: usedShifts }, { data: monthShifts }, { data: monthHolidays }] =
       await Promise.all([
-        supabase.from("employees").select("id, name").eq("active", true).order("sort_order"),
+        supabase.from("employees").select("id, name, sort_order").eq("active", true).order("sort_order"),
         supabase
           .from("comp_leave_monthly")
           .select("employee_id, year, month, hours")
@@ -131,6 +132,7 @@ export function useCompLeaveLedger(year: number, month: number) {
       return {
         employeeId: e.id,
         employeeName: e.name,
+        sortOrder: e.sort_order,
         monthlyHours,
         accruedTotal,
         usedTotal,

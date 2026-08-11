@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 export interface AnnualLeaveRow {
   employeeId: string;
   employeeName: string;
+  sortOrder: number;
   allocatedHours: number;
   usedHoursYear: number; // 연간(1~12월) 합계
   usedDatesThisMonth: number[]; // 현재 보고 있는 달의 사용일
@@ -31,7 +32,7 @@ export function useAnnualLeaveLedger(year: number, month: number) {
     const monthPrefix = `${year}-${String(month).padStart(2, "0")}-`;
 
     const [{ data: emp }, { data: alloc }, { data: usedShifts }] = await Promise.all([
-      supabase.from("employees").select("id, name").eq("active", true).order("sort_order"),
+      supabase.from("employees").select("id, name, sort_order").eq("active", true).order("sort_order"),
       supabase
         .from("annual_leave_allocation")
         .select("employee_id, allocated_hours")
@@ -70,6 +71,7 @@ export function useAnnualLeaveLedger(year: number, month: number) {
       return {
         employeeId: e.id,
         employeeName: e.name,
+        sortOrder: e.sort_order,
         allocatedHours,
         usedHoursYear,
         usedDatesThisMonth: (usedDatesMap.get(e.id) ?? []).sort((a, b) => a - b),

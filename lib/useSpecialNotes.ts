@@ -7,6 +7,7 @@ import { isWeekend } from "@/lib/dateUtils";
 export interface SpecialNoteGroup {
   employeeId: string;
   employeeName: string;
+  sortOrder: number;
   dates: string[]; // yyyy-MM-dd, 오래된 순
 }
 
@@ -21,7 +22,7 @@ export function useSpecialNotes() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     const [{ data: emp }, { data: worked }, { data: leaves }, { data: hols }] = await Promise.all([
-      supabase.from("employees").select("id, name").eq("active", true).order("sort_order"),
+      supabase.from("employees").select("id, name, sort_order").eq("active", true).order("sort_order"),
       supabase
         .from("shifts")
         .select("employee_id, work_date")
@@ -54,6 +55,7 @@ export function useSpecialNotes() {
     const result: SpecialNoteGroup[] = employees.map((e) => ({
       employeeId: e.id,
       employeeName: e.name,
+      sortOrder: e.sort_order,
       dates: (datesByEmployee.get(e.id) ?? []).sort(),
     }));
 

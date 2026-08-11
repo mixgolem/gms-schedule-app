@@ -56,12 +56,12 @@ export default function CompLeaveTable({ year, month, canEdit }: Props) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
+            {rows.map((row) => (
               <tr
                 key={row.employeeId}
                 className="border-t divide-x divide-gray-300 transition-colors duration-150 hover:bg-gray-100"
               >
-                <td className="py-1 pr-3 text-gray-400">{employeeLabel(i)}</td>
+                <td className="py-1 pr-3 text-gray-400">{employeeLabel(row.sortOrder - 1)}</td>
                 <td className="py-1 pl-2 pr-3 whitespace-nowrap">{row.employeeName}</td>
                 {row.monthlyHours.map((v, ci) => {
                   const { year: y, month: m } = monthColumnToYearMonth(year, ci);

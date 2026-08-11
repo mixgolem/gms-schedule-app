@@ -273,7 +273,7 @@ export default function EmployeeShiftEditor({
             onChange={(e) => setIsMain(e.target.checked)}
             className="accent-gray-900"
           />
-          메인당직으로 지정 ({type === "dawn" ? "☆" : "★"})
+          메인당직으로 지정 (★)
         </label>
       )}
 

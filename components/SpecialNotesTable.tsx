@@ -31,12 +31,12 @@ export default function SpecialNotesTable() {
             </tr>
           </thead>
           <tbody>
-            {groups.map((g, i) => (
+            {groups.map((g) => (
               <tr
                 key={g.employeeId}
                 className="border-t divide-x divide-gray-300 transition-colors duration-150 hover:bg-gray-100"
               >
-                <td className="py-1 pr-4 text-gray-400">{employeeLabel(i)}</td>
+                <td className="py-1 pr-4 text-gray-400">{employeeLabel(g.sortOrder - 1)}</td>
                 <td className="py-1 pl-2 pr-4 whitespace-nowrap">{g.employeeName}</td>
                 <td className="py-1 pl-2 text-gray-600">
                   {g.dates.length > 0 ? g.dates.map(formatDate).join(", ") : ""}

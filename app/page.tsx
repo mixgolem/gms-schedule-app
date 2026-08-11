@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import MonthPicker from "@/components/MonthPicker";
 import CalendarGrid from "@/components/CalendarGrid";
-import EmployeeFilter from "@/components/EmployeeFilter";
+import EmployeeFilter, { EmployeeFilterMode } from "@/components/EmployeeFilter";
 import NoticeBox from "@/components/NoticeBox";
 import SpecialNotesTable from "@/components/SpecialNotesTable";
 import CompLeaveTable from "@/components/CompLeaveTable";
@@ -15,6 +15,7 @@ import DayDetailPanel from "@/components/DayDetailPanel";
 import ErpExportModal from "@/components/ErpExportModal";
 import { useSchedule } from "@/lib/useSchedule";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
+import { useUserPreferences } from "@/lib/useUserPreferences";
 import { useAuth, useResetMonth } from "./providers";
 import { checkPairRule } from "@/lib/validation";
 import { ShiftType, LeaveUsageInput } from "@/lib/types";
@@ -25,8 +26,6 @@ type SidebarState =
   | { mode: "employee"; employeeId: string; date: string }
   | { mode: "day"; date: string }
   | null;
-
-type SortMode = "default" | "byShiftType";
 
 export default function Home() {
   const now = new Date();
@@ -47,11 +46,17 @@ export default function Home() {
   } = useSchedule(year, month);
   const { defaults: shiftDefaults } = useShiftDefaults();
   const { setInfo: setResetInfo } = useResetMonth();
+  const {
+    showColors,
+    setShowColors,
+    sortMode,
+    setSortMode,
+    error: preferencesError,
+  } = useUserPreferences();
   const [warning, setWarning] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState<SidebarState>(null);
-  const [showColors, setShowColors] = useState(true);
-  const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
-  const [sortMode, setSortMode] = useState<SortMode>("default");
+  const [filterEmployeeIds, setFilterEmployeeIds] = useState<string[]>([]);
+  const [filterMode, setFilterMode] = useState<EmployeeFilterMode>("highlight");
   const [erpExportOpen, setErpExportOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
 
@@ -121,6 +126,11 @@ export default function Home() {
     return () => setResetInfo(null);
   }, [year, month, canEdit, handleResetMonth, setResetInfo]);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (preferencesError) setWarning(preferencesError);
+  }, [preferencesError]);
+
   const handleCopyImage = async () => {
     if (!calendarRef.current) return;
     const blob = await captureNodeAsBlob(calendarRef.current);
@@ -185,18 +195,22 @@ export default function Home() {
         <div className="w-full md:w-36 shrink-0 space-y-3 md:sticky md:top-4 md:self-start">
           <EmployeeFilter
             employees={employees}
-            selectedId={filterEmployeeId}
-            onSelect={setFilterEmployeeId}
+            selectedIds={filterEmployeeIds}
+            mode={filterMode}
+            onSelect={(ids, mode) => {
+              setFilterEmployeeIds(ids);
+              setFilterMode(mode);
+            }}
           />
           <Button
-            onClick={() => setShowColors((v) => !v)}
+            onClick={() => setShowColors(!showColors)}
             active={showColors}
             className="w-full justify-center"
           >
             근무 색상 {showColors ? "ON" : "OFF"}
           </Button>
           <Button
-            onClick={() => setSortMode((m) => (m === "default" ? "byShiftType" : "default"))}
+            onClick={() => setSortMode(sortMode === "default" ? "byShiftType" : "default")}
             active={sortMode === "byShiftType"}
             className="w-full justify-center"
           >
@@ -218,7 +232,8 @@ export default function Home() {
                 weeks={weeks}
                 canEdit={canEdit}
                 showColors={showColors}
-                filterEmployeeId={filterEmployeeId}
+                filterEmployeeIds={filterEmployeeIds}
+                filterMode={filterMode}
                 sortMode={sortMode}
                 onCellClick={(employeeId, date) => setSidebar({ mode: "employee", employeeId, date })}
                 onDateClick={(date) => setSidebar({ mode: "day", date })}
@@ -227,7 +242,7 @@ export default function Home() {
           )}
 
           <div className="flex gap-4 text-xs text-gray-500 pt-2 flex-wrap">
-            <span>☆ = 새벽 메인당직 · ★ = 야간 메인당직</span>
+            <span>★ = 메인당직</span>
             <span className="text-red-800 font-bold">빨간 글자 = 새벽/야간 2인1조 미충족</span>
             <span className="text-sky-600">토요일</span>
             <span className="text-red-400">일요일</span>

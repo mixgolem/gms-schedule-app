@@ -58,8 +58,14 @@ export async function exportFullBackupJson(): Promise<FullBackupResult> {
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: "application/json",
   });
-  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  downloadBlob(blob, `GMS_전체백업_${stamp}.json`);
+  const now = new Date();
+  const y = now.getFullYear();
+  const mo = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const stamp = `${y}${mo}${d}_${hh}${mm}`;
+  downloadBlob(blob, `GMSSCHEDULEAPP_BACKUP_${stamp}.json`);
 
   return {};
 }

@@ -29,7 +29,7 @@ export default function NoticeBox({ canEdit }: Props) {
   if (loading) return null;
 
   return (
-    <div className="border rounded-lg p-2 text-sm transition-shadow duration-150 hover:shadow-sm">
+    <div className="border rounded-lg px-3 py-2 text-sm transition-shadow duration-150 hover:shadow-sm">
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-medium text-gray-500">공지사항</p>
         {canEdit && !editing && (

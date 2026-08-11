@@ -4,7 +4,9 @@ import { Employee, Shift, ShiftLeaveUsage } from "@/lib/types";
 import { CalendarDay, weekdayLabel, dayOfMonth, getDayColor } from "@/lib/dateUtils";
 import { countByTypeForDate } from "@/lib/validation";
 import { computeWeeklyHours } from "@/lib/workStats";
+import { shiftPriority } from "@/lib/shiftDisplay";
 import ShiftCell from "./ShiftCell";
+import { EmployeeFilterMode } from "./EmployeeFilter";
 
 export type SortMode = "default" | "byShiftType";
 
@@ -16,7 +18,8 @@ interface Props {
   weeks: CalendarDay[][];
   canEdit: boolean;
   showColors: boolean;
-  filterEmployeeId: string | null; // null이면 전체 표시
+  filterEmployeeIds: string[]; // 비어있으면 전체 표시
+  filterMode: EmployeeFilterMode; // "highlight"면 전체 표시하되 선택된 사람들만 색 강조, "only"면 그 사람만 필터링
   sortMode: SortMode;
   onCellClick: (employeeId: string, date: string) => void;
   onDateClick: (date: string) => void;
@@ -26,28 +29,8 @@ const DAY_BADGE_CLASS: Record<string, string> = {
   default: "text-gray-600 hover:bg-gray-100",
   saturday: "bg-sky-100 text-sky-700 hover:bg-sky-200",
   sunday: "bg-red-100 text-red-700 hover:bg-red-200",
-  holiday: "bg-red-500 text-white hover:bg-red-600",
+  holiday: "bg-red-200 text-red-800 hover:bg-red-300",
 };
-
-// 시간대 정렬 모드에서의 우선순위: 새벽메인 → 새벽 → 주간 → 야간 → 대휴 → 휴무 → 미배정
-function shiftPriority(shift: Shift | null): number {
-  if (!shift) return 6;
-  switch (shift.shift_type) {
-    case "dawn":
-      return shift.is_main ? 0 : 1;
-    case "day":
-      return 2;
-    case "night":
-      return 3;
-    case "leave":
-    case "annual":
-      return 4;
-    case "off":
-      return 5;
-    default:
-      return 6;
-  }
-}
 
 export default function CalendarGrid({
   employees,
@@ -57,7 +40,8 @@ export default function CalendarGrid({
   weeks,
   canEdit,
   showColors,
-  filterEmployeeId,
+  filterEmployeeIds,
+  filterMode,
   sortMode,
   onCellClick,
   onDateClick,
@@ -79,9 +63,10 @@ export default function CalendarGrid({
   const activeIds = new Set(employees.map((e) => e.id));
   const activeShifts = shifts.filter((s) => activeIds.has(s.employee_id));
 
-  const visibleEmployees = filterEmployeeId
-    ? employees.filter((e) => e.id === filterEmployeeId)
-    : employees;
+  const visibleEmployees =
+    filterEmployeeIds.length > 0 && filterMode === "only"
+      ? employees.filter((e) => filterEmployeeIds.includes(e.id))
+      : employees;
 
   return (
     <div className="space-y-3">
@@ -118,14 +103,21 @@ export default function CalendarGrid({
                       >
                         <span className="text-base font-bold">{dayOfMonth(day.date)}</span>
                         <span className="text-xs">{weekdayLabel(day.date)}</span>
+                        {holidayDates.has(day.date) && (
+                          <span className="text-xs font-bold">공휴일</span>
+                        )}
                       </button>
-                      <div className="p-1.5 space-y-1">
+                      <div className="py-1.5 space-y-1">
                         {dayEmployees.map((emp) => {
                           const shift = shiftMap.get(`${emp.id}_${day.date}`) ?? null;
                           const invalid =
                             !!shift &&
                             (shift.shift_type === "dawn" || shift.shift_type === "night") &&
                             countByTypeForDate(activeShifts, day.date, shift.shift_type) !== 2;
+                          const cellShowColors =
+                            filterEmployeeIds.length > 0 && filterMode === "highlight"
+                              ? filterEmployeeIds.includes(emp.id)
+                              : showColors;
 
                           return (
                             <ShiftCell
@@ -135,7 +127,7 @@ export default function CalendarGrid({
                               leaveUsages={leaveUsageMap.get(`${emp.id}_${day.date}`) ?? []}
                               canEdit={canEdit}
                               invalid={invalid}
-                              showColors={showColors}
+                              showColors={cellShowColors}
                               onClick={() => onCellClick(emp.id, day.date)}
                             />
                           );

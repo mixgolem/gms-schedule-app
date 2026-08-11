@@ -25,13 +25,17 @@ export default function ShiftCell({
   const current = shift?.shift_type ?? null;
   const isMain = shift?.is_main ?? false;
 
-  const { timeLabel, usageSuffix } = computeShiftDisplay(shift, leaveUsages);
+  const { timeLabel, usageSuffix, isFullyOnLeave } = computeShiftDisplay(shift, leaveUsages);
+
+  // 근무시간 전체를 연차/대휴/기타로 써서 실제로는 출근하지 않은 날은 대휴/휴무와 같은
+  // 회색으로 보이게 하고, 일부만 쓴 경우(반차/시차 등)는 평소 근무형태 색을 그대로 쓴다.
+  const colorKey = isFullyOnLeave ? "off" : current;
 
   // 2인1조 미충족 시 칸 배경은 평소와 동일하게 두고, 글자만 진한 빨간색으로 강조한다.
-  const baseColorClass = !current
+  const baseColorClass = !colorKey
     ? "bg-white text-gray-300 border-gray-200"
     : showColors
-    ? SHIFT_COLORS[current]
+    ? SHIFT_COLORS[colorKey]
     : "bg-white text-gray-600 border-gray-200";
   const bgBorderClass = baseColorClass
     .split(" ")
@@ -60,9 +64,7 @@ export default function ShiftCell({
         {current === "annual" ? "연차사용" : current ? SHIFT_LABELS[current] : "-"}
         {usageSuffix}
         {isMain && (
-          <span title={current === "dawn" ? "새벽 메인당직" : "야간 메인당직"}>
-            {current === "dawn" ? "☆" : "★"}
-          </span>
+          <span title={current === "dawn" ? "새벽 메인당직" : "야간 메인당직"}>★</span>
         )}
       </span>
     </button>
