@@ -11,11 +11,21 @@ interface Props {
 }
 
 export default function EmployeeManagerModal({ open, onClose }: Props) {
-  const { employees, loading, addEmployee, renameEmployee, setActive, moveEmployee, deleteEmployee } =
-    useEmployees();
+  const {
+    employees,
+    loading,
+    addEmployee,
+    renameEmployee,
+    setEmployeeNumber,
+    setActive,
+    moveEmployee,
+    deleteEmployee,
+  } = useEmployees();
   const [newName, setNewName] = useState("");
+  const [newNumber, setNewNumber] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [editingNumber, setEditingNumber] = useState("");
 
   if (!open) return null;
 
@@ -24,21 +34,25 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
   const handleAdd = async () => {
     const name = newName.trim();
     if (!name) return;
-    await addEmployee(name);
+    await addEmployee(name, newNumber.trim() || null);
     setNewName("");
+    setNewNumber("");
   };
 
-  const startEdit = (id: string, name: string) => {
+  const startEdit = (id: string, name: string, employeeNumber: string | null) => {
     setEditingId(id);
     setEditingName(name);
+    setEditingNumber(employeeNumber ?? "");
   };
 
   const commitEdit = async () => {
     if (editingId && editingName.trim()) {
       await renameEmployee(editingId, editingName.trim());
+      await setEmployeeNumber(editingId, editingNumber.trim() || null);
     }
     setEditingId(null);
     setEditingName("");
+    setEditingNumber("");
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -80,21 +94,40 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                 </span>
 
                 {editingId === emp.id ? (
-                  <input
-                    autoFocus
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && commitEdit()}
-                    onBlur={commitEdit}
-                    className="flex-1 border rounded-md px-2 py-1 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                  />
+                  <div
+                    className="flex-1 flex items-center gap-1"
+                    onBlur={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) commitEdit();
+                    }}
+                  >
+                    <input
+                      autoFocus
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && commitEdit()}
+                      placeholder="이름"
+                      className="flex-1 min-w-0 border rounded-md px-2 py-1 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                    />
+                    <input
+                      value={editingNumber}
+                      onChange={(e) => setEditingNumber(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && commitEdit()}
+                      placeholder="사번"
+                      className="w-20 border rounded-md px-2 py-1 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                    />
+                  </div>
                 ) : (
                   <span
-                    className="flex-1 text-sm cursor-pointer rounded-md px-1 -mx-1 transition-colors duration-150 hover:bg-gray-100"
-                    onClick={() => startEdit(emp.id, emp.name)}
-                    title="클릭해서 이름 수정"
+                    className="flex-1 min-w-0 text-sm cursor-pointer rounded-md px-1 -mx-1 transition-colors duration-150 hover:bg-gray-100 flex items-center gap-1.5"
+                    onClick={() => startEdit(emp.id, emp.name, emp.employee_number)}
+                    title="클릭해서 이름/사번 수정"
                   >
-                    {emp.name}
+                    <span className="truncate">{emp.name}</span>
+                    {emp.employee_number && (
+                      <span className="text-xs text-gray-400 font-normal shrink-0">
+                        #{emp.employee_number}
+                      </span>
+                    )}
                   </span>
                 )}
 
@@ -139,7 +172,14 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             placeholder="새 직원 이름"
-            className="flex-1 border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
+            className="flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
+          />
+          <input
+            value={newNumber}
+            onChange={(e) => setNewNumber(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            placeholder="사번 (선택)"
+            className="w-24 border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
           />
           <Button variant="primary" onClick={handleAdd} className="px-3 py-1.5">
             추가

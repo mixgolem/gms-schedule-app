@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GMS 근무 스케줄
 
-## Getting Started
+GMS 팀 근무 스케줄(새벽/주간/야간/대휴/휴무)을 엑셀 대신 웹에서 관리하는 앱입니다. 조회는 누구나 가능하고, 편집은 로그인한 팀원만 할 수 있으며, Supabase Realtime으로 여러 명이 동시에 봐도 실시간으로 동기화됩니다.
 
-First, run the development server:
+## 주요 기능
+
+- 주 단위 캘린더 형태의 근무표, 2인1조(새벽/야간) 인원 미충족 경고
+- 기본(가나다) / 시간대별 정렬 전환
+- 근무 중 부분 연차/본인 대휴/기타 사용을 시간 단위로 기록
+- 대체휴무 내역, 연차 내역, 월간 근무시간 통계, 특이사항 자동 집계
+- 엑셀 업로드(미리보기 후 반영), 이미지로 캘린더 내보내기
+- ERP 업로드 양식에 맞춘 엑셀 다운로드, 전체 데이터 백업 다운로드
+- 새벽/주간/야간 기본 근무시각을 웹에서 직접 설정, 직원별 사번 관리
+
+## 시작하기
+
+Supabase 프로젝트 생성, 마이그레이션 실행, 환경변수 설정, 배포 방법은 [SETUP.md](./SETUP.md)를 참고하세요.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000)에서 확인할 수 있습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 기술 스택
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js (App Router) · TypeScript · Tailwind CSS · Supabase (Postgres, Auth, Realtime)

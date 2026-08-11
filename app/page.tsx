@@ -12,12 +12,13 @@ import MonthlyStatsTable from "@/components/MonthlyStatsTable";
 import ShiftSidebar from "@/components/ShiftSidebar";
 import EmployeeShiftEditor from "@/components/EmployeeShiftEditor";
 import DayDetailPanel from "@/components/DayDetailPanel";
+import ErpExportModal from "@/components/ErpExportModal";
 import { useSchedule } from "@/lib/useSchedule";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
 import { useAuth } from "./providers";
 import { checkPairRule } from "@/lib/validation";
 import { ShiftType, LeaveUsageInput } from "@/lib/types";
-import { exportScheduleToExcel } from "@/lib/scheduleExport";
+import { exportBackupToExcel } from "@/lib/backupExport";
 import { captureNodeAsBlob, downloadBlob } from "@/lib/captureImage";
 import Button from "@/components/ui/Button";
 
@@ -51,6 +52,7 @@ export default function Home() {
   const [showColors, setShowColors] = useState(false);
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("default");
+  const [erpExportOpen, setErpExportOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
 
   const canEdit = !!session;
@@ -113,8 +115,8 @@ export default function Home() {
     setWarning(error ? `초기화 실패: ${error.message}` : null);
   };
 
-  const handleExportExcel = () => {
-    exportScheduleToExcel(year, month, employees, shifts, filterEmployeeId);
+  const handleExportBackup = async () => {
+    await exportBackupToExcel();
   };
 
   const handleCopyImage = async () => {
@@ -154,7 +156,18 @@ export default function Home() {
           <Button onClick={() => setShowColors((v) => !v)} active={showColors}>
             근무 색상 {showColors ? "ON" : "OFF"}
           </Button>
-          <Button onClick={handleExportExcel}>엑셀 다운로드</Button>
+          <Button
+            onClick={() => setErpExportOpen(true)}
+            title="선택한 근무자의 한 달치 근무를 ERP 업로드 양식 그대로 내보내요"
+          >
+            ERP엑셀 다운로드
+          </Button>
+          <Button
+            onClick={handleExportBackup}
+            title="대휴 발생/사용누적, 연차 할당 등 수기입력 값과 연차·대휴·기타 사용내역 전체를 엑셀로 백업해요"
+          >
+            백업 다운로드
+          </Button>
           <Button onClick={handleCopyImage}>이미지 복사</Button>
           <Button onClick={handleDownloadImage}>이미지 다운로드</Button>
           {canEdit && (
@@ -281,6 +294,17 @@ export default function Home() {
           />
         )}
       </ShiftSidebar>
+
+      <ErpExportModal
+        open={erpExportOpen}
+        employees={employees}
+        year={year}
+        month={month}
+        shifts={shifts}
+        holidayDates={holidayDates}
+        shiftDefaults={shiftDefaults}
+        onClose={() => setErpExportOpen(false)}
+      />
     </main>
   );
 }

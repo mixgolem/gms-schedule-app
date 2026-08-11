@@ -39,11 +39,11 @@ export function useEmployees() {
   }, [fetchData, instanceId]);
 
   const addEmployee = useCallback(
-    async (name: string) => {
+    async (name: string, employeeNumber: string | null) => {
       const nextOrder = employees.reduce((max, e) => Math.max(max, e.sort_order), 0) + 1;
       const { error } = await supabase
         .from("employees")
-        .insert({ name, sort_order: nextOrder, active: true });
+        .insert({ name, employee_number: employeeNumber, sort_order: nextOrder, active: true });
       await fetchData();
       return { error };
     },
@@ -53,6 +53,18 @@ export function useEmployees() {
   const renameEmployee = useCallback(
     async (id: string, name: string) => {
       const { error } = await supabase.from("employees").update({ name }).eq("id", id);
+      await fetchData();
+      return { error };
+    },
+    [fetchData]
+  );
+
+  const setEmployeeNumber = useCallback(
+    async (id: string, employeeNumber: string | null) => {
+      const { error } = await supabase
+        .from("employees")
+        .update({ employee_number: employeeNumber })
+        .eq("id", id);
       await fetchData();
       return { error };
     },
@@ -103,6 +115,7 @@ export function useEmployees() {
     loading,
     addEmployee,
     renameEmployee,
+    setEmployeeNumber,
     setActive,
     moveEmployee,
     deleteEmployee,

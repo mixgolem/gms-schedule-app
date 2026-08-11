@@ -3,6 +3,7 @@ export type ShiftType = "dawn" | "day" | "night" | "off" | "leave" | "annual";
 export interface Employee {
   id: string;
   name: string;
+  employee_number: string | null;
   sort_order: number;
   active: boolean;
 }
