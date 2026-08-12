@@ -48,7 +48,7 @@ const WEEKDAY_KR = ["일", "월", "화", "수", "목", "금", "토"];
 
 // dateStr은 항상 'yyyy-MM-dd' 형식. new Date(string) 파싱은 UTC 기준이라
 // 타임존에 따라 요일이 밀릴 수 있어 연/월/일을 직접 넘겨 로컬 기준으로 계산한다.
-function parseLocalDate(dateStr: string): Date {
+export function parseLocalDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d);
 }

@@ -127,6 +127,27 @@ create table if not exists user_preferences (
   updated_at timestamptz not null default now()
 );
 
+-- 반복 근무패턴(예: 7명 49일 순환) 업로드 이력. 가장 최근 행이 "현재 등록된 패턴"
+create table if not exists shift_patterns (
+  id uuid primary key default gen_random_uuid(),
+  uploaded_by uuid references auth.users(id) on delete set null,
+  uploaded_by_email text,
+  filename text not null,
+  uploaded_at timestamptz not null default now(),
+  pattern jsonb not null
+);
+
+-- 근무패턴을 언제, 누가, 어떤 기간에 적용했는지 이력. 가장 최근 행이 "현재 적용된 기간"
+create table if not exists shift_pattern_applications (
+  id uuid primary key default gen_random_uuid(),
+  pattern_id uuid references shift_patterns(id) on delete set null,
+  applied_by uuid references auth.users(id) on delete set null,
+  applied_by_email text,
+  start_date date not null,
+  end_date date not null,
+  applied_at timestamptz not null default now()
+);
+
 -- ============================================================
 -- Row Level Security - 모든 테이블 공통: 누구나 조회, 로그인한 사용자만 편집
 -- ============================================================
@@ -141,6 +162,8 @@ alter table annual_leave_allocation enable row level security;
 alter table shift_leave_usage enable row level security;
 alter table shift_type_defaults enable row level security;
 alter table user_preferences enable row level security;
+alter table shift_patterns enable row level security;
+alter table shift_pattern_applications enable row level security;
 
 create policy "employees_select_all" on employees for select using (true);
 create policy "employees_write_authenticated" on employees
@@ -184,12 +207,23 @@ create policy "user_preferences_select_own" on user_preferences
 create policy "user_preferences_write_own" on user_preferences
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+create policy "shift_patterns_select_all" on shift_patterns for select using (true);
+create policy "shift_patterns_write_authenticated" on shift_patterns
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+create policy "shift_pattern_applications_select_all" on shift_pattern_applications
+  for select using (true);
+create policy "shift_pattern_applications_write_authenticated" on shift_pattern_applications
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
 -- ============================================================
 -- Realtime 구독 활성화
 -- ============================================================
 
 alter publication supabase_realtime add table shifts;
 alter publication supabase_realtime add table employees;
+alter publication supabase_realtime add table shift_patterns;
+alter publication supabase_realtime add table shift_pattern_applications;
 alter publication supabase_realtime add table holidays;
 alter publication supabase_realtime add table notice;
 alter publication supabase_realtime add table comp_leave_monthly;

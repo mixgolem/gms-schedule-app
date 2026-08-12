@@ -4,7 +4,7 @@
 1. https://supabase.com 가입 후 새 프로젝트 생성 (무료 티어)
 2. 프로젝트 대시보드 > **SQL Editor**에서 `supabase/` 폴더의 파일을 실행
    - **새 프로젝트라면**: `schema_full.sql` 하나만 실행하면 됨 (지금까지의 모든 변경사항이 최종 상태로 합쳐진 파일). 이어서 초기 직원 데이터가 필요하면 `seed.sql`도 실행
-   - `schema.sql` + `migration_002.sql` ~ `migration_011.sql`은 지금까지 실제로 적용해 온 변경 이력(버전별 기록)이라 남겨둔 것 — 이미 운영 중인 기존 프로젝트가 아니라면 개별적으로 실행할 필요 없음
+   - `schema.sql` + `migration_002.sql` ~ `migration_013.sql`은 지금까지 실제로 적용해 온 변경 이력(버전별 기록)이라 남겨둔 것 — 이미 운영 중인 기존 프로젝트가 아니라면 개별적으로 실행할 필요 없음
 3. 대시보드 > **Project Settings > API**에서 다음 값을 복사
    - `Project URL`
    - `anon public` key

@@ -14,7 +14,7 @@ const CODE_MAP: Record<string, { type: ShiftType; main: boolean }> = {
 
 const EMPLOYEE_COLUMNS = 7; // B~H = A~G 직원 7명
 
-interface ParsedRow {
+export interface ParsedRow {
   employee_id: string;
   work_date: string;
   shift_type: ShiftType;
@@ -133,19 +133,18 @@ export async function applyParsedSchedule(
   );
   if (upsertError) return { error: upsertError.message };
 
-  // 2단계: 메인당직자만 병렬로 true 처리 (1단계에서 이미 전부 false라 서로 충돌 없음)
+  // 2단계: 메인당직자만 true로 (1단계에서 이미 전부 false라 서로 충돌 없음)
+  // row마다 개별 요청을 보내면 근무패턴처럼 건수가 많을 때 동시 요청이 폭증해
+  // (realtime 변경 이벤트까지 겹치면) 브라우저가 ERR_INSUFFICIENT_RESOURCES로 죽을 수 있어
+  // 한 번의 upsert로 묶어 보낸다.
   const mainRows = rows.filter((r) => r.is_main);
-  const results = await Promise.all(
-    mainRows.map((r) =>
-      supabase
-        .from("shifts")
-        .update({ is_main: true })
-        .eq("work_date", r.work_date)
-        .eq("employee_id", r.employee_id)
-    )
-  );
-  const failed = results.find((res) => res.error);
-  if (failed?.error) return { error: failed.error.message };
+  if (mainRows.length > 0) {
+    const { error: mainError } = await supabase.from("shifts").upsert(
+      mainRows.map((r) => ({ ...r, is_main: true, updated_at: new Date().toISOString() })),
+      { onConflict: "work_date,employee_id" }
+    );
+    if (mainError) return { error: mainError.message };
+  }
 
   return { error: null };
 }

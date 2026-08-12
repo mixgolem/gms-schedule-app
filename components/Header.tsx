@@ -7,6 +7,7 @@ import EmployeeManagerModal from "./EmployeeManagerModal";
 import UploadScheduleModal from "./UploadScheduleModal";
 import ShiftDefaultsModal from "./ShiftDefaultsModal";
 import FullRestoreModal from "./FullRestoreModal";
+import ShiftPatternModal from "./ShiftPatternModal";
 import Button from "./ui/Button";
 import { exportFullBackupJson } from "@/lib/fullBackupExport";
 
@@ -17,6 +18,7 @@ export default function Header() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [defaultsOpen, setDefaultsOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
+  const [patternOpen, setPatternOpen] = useState(false);
 
   const handleFullBackup = async () => {
     const { error } = await exportFullBackupJson();
@@ -33,6 +35,7 @@ export default function Header() {
               <span className="text-blue-100">{session.user.email}</span>
               <Button onClick={() => setManagerOpen(true)}>직원 관리</Button>
               <Button onClick={() => setUploadOpen(true)}>근무표 업로드</Button>
+              <Button onClick={() => setPatternOpen(true)}>근무패턴 관리</Button>
               {resetInfo?.canReset && (
                 <Button variant="danger" onClick={resetInfo.onReset}>
                   이번 달 초기화
@@ -63,6 +66,7 @@ export default function Header() {
 
       <EmployeeManagerModal open={managerOpen} onClose={() => setManagerOpen(false)} />
       <UploadScheduleModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
+      <ShiftPatternModal open={patternOpen} onClose={() => setPatternOpen(false)} />
       <ShiftDefaultsModal open={defaultsOpen} onClose={() => setDefaultsOpen(false)} />
       <FullRestoreModal open={restoreOpen} onClose={() => setRestoreOpen(false)} />
     </header>
