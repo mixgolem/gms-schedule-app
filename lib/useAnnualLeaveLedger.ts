@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { debounce } from "@/lib/debounce";
 
 export interface AnnualLeaveRow {
   employeeId: string;
@@ -30,8 +31,10 @@ export function useAnnualLeaveLedger(year: number, month: number) {
   const [loading, setLoading] = useState(true);
   const instanceId = useId();
   const fiscalYearStart = fiscalYearStartFor(year, month);
+  const requestIdRef = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
 
     const rangeStart = `${fiscalYearStart}-07-01`;
@@ -87,6 +90,8 @@ export function useAnnualLeaveLedger(year: number, month: number) {
       };
     });
 
+    // 이 요청 중에 더 최신 fetchData가 시작됐다면(예: 그 사이 월 이동) 낡은 결과는 버린다.
+    if (requestId !== requestIdRef.current) return;
     setRows(result);
     setLoading(false);
   }, [year, month, fiscalYearStart]);
@@ -97,21 +102,23 @@ export function useAnnualLeaveLedger(year: number, month: number) {
   }, [fetchData]);
 
   useEffect(() => {
+    const debounced = debounce(fetchData, 300);
     const channel = supabase
       .channel(`annual-leave-ledger-${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "annual_leave_allocation" },
         () => {
-          fetchData();
+          debounced.run();
         }
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "shift_leave_usage" }, () => {
-        fetchData();
+        debounced.run();
       })
       .subscribe();
 
     return () => {
+      debounced.cancel();
       supabase.removeChannel(channel);
     };
   }, [fetchData, instanceId]);

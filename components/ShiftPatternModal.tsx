@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
-import { useAuth } from "@/app/providers";
+import { useAuth, useGlobalLoading } from "@/app/providers";
 import { useEmployees } from "@/lib/useEmployees";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
 import { useShiftPattern } from "@/lib/useShiftPattern";
@@ -43,6 +43,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
   const { employees } = useEmployees();
   const { defaults: shiftDefaults } = useShiftDefaults();
   const { current, latestApplication, uploadPattern, recordApplication } = useShiftPattern();
+  const { runWithLoading } = useGlobalLoading();
 
   const [status, setStatus] = useState<Status>("idle");
   const [parsedDays, setParsedDays] = useState<PatternDays | null>(null);
@@ -125,17 +126,20 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
 
     setStatus("applying");
     setErrorMsg(null);
-    const { error } = await applyPatternRows(rows);
-    if (error) {
-      setStatus("error");
-      setErrorMsg(`적용 실패: ${error}`);
-      return;
-    }
 
-    await recordApplication(current?.id ?? null, startDate, endDate);
+    await runWithLoading("근무패턴 적용 중...", async () => {
+      const { error } = await applyPatternRows(rows);
+      if (error) {
+        setStatus("error");
+        setErrorMsg(`적용 실패: ${error}`);
+        return;
+      }
 
-    setStatus("done");
-    setSummary(`${startDate} ~ ${endDate} 기간에 ${rows.length}건 적용 완료!`);
+      await recordApplication(current?.id ?? null, startDate, endDate);
+
+      setStatus("done");
+      setSummary(`${startDate} ~ ${endDate} 기간에 ${rows.length}건 적용 완료!`);
+    });
   };
 
   return (

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { isWeekend } from "@/lib/dateUtils";
+import { debounce } from "@/lib/debounce";
 
 export interface SpecialNoteGroup {
   employeeId: string;
@@ -18,8 +19,10 @@ export function useSpecialNotes() {
   const [groups, setGroups] = useState<SpecialNoteGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const instanceId = useId();
+  const requestIdRef = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     const [{ data: emp }, { data: worked }, { data: leaves }, { data: hols }] = await Promise.all([
       supabase.from("employees").select("id, name, sort_order").eq("active", true).order("sort_order"),
@@ -59,6 +62,7 @@ export function useSpecialNotes() {
       dates: (datesByEmployee.get(e.id) ?? []).sort(),
     }));
 
+    if (requestId !== requestIdRef.current) return;
     setGroups(result);
     setLoading(false);
   }, []);
@@ -69,20 +73,22 @@ export function useSpecialNotes() {
   }, [fetchData]);
 
   useEffect(() => {
+    const debounced = debounce(fetchData, 300);
     const channel = supabase
       .channel(`special-notes-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "shifts" }, () => {
-        fetchData();
+        debounced.run();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "holidays" }, () => {
-        fetchData();
+        debounced.run();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "employees" }, () => {
-        fetchData();
+        debounced.run();
       })
       .subscribe();
 
     return () => {
+      debounced.cancel();
       supabase.removeChannel(channel);
     };
   }, [fetchData, instanceId]);

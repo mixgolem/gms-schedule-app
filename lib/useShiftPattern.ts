@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { PatternDays } from "./shiftPatternImport";
+import { debounce } from "./debounce";
 
 export interface StoredPattern {
   id: string;
@@ -26,8 +27,10 @@ export function useShiftPattern() {
   const [latestApplication, setLatestApplication] = useState<PatternApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const instanceId = useId();
+  const requestIdRef = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     const [{ data: patternData }, { data: applicationData }] = await Promise.all([
       supabase
@@ -43,6 +46,8 @@ export function useShiftPattern() {
         .limit(1)
         .maybeSingle(),
     ]);
+
+    if (requestId !== requestIdRef.current) return;
 
     setCurrent(
       patternData
@@ -76,21 +81,23 @@ export function useShiftPattern() {
   }, [fetchData]);
 
   useEffect(() => {
+    const debounced = debounce(fetchData, 300);
     const channel = supabase
       .channel(`shift-patterns-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "shift_patterns" }, () => {
-        fetchData();
+        debounced.run();
       })
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "shift_pattern_applications" },
         () => {
-          fetchData();
+          debounced.run();
         }
       )
       .subscribe();
 
     return () => {
+      debounced.cancel();
       supabase.removeChannel(channel);
     };
   }, [fetchData, instanceId]);

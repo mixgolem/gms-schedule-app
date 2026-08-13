@@ -16,7 +16,7 @@ import ErpExportModal from "@/components/ErpExportModal";
 import { useSchedule } from "@/lib/useSchedule";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
 import { useUserPreferences } from "@/lib/useUserPreferences";
-import { useAuth, useResetMonth } from "./providers";
+import { useAuth, useResetMonth, useGlobalLoading } from "./providers";
 import { checkPairRule } from "@/lib/validation";
 import { ShiftType, LeaveUsageInput } from "@/lib/types";
 import { captureScheduleImage, downloadBlob } from "@/lib/captureImage";
@@ -46,6 +46,7 @@ export default function Home() {
   } = useSchedule(year, month);
   const { defaults: shiftDefaults } = useShiftDefaults();
   const { setInfo: setResetInfo } = useResetMonth();
+  const { runWithLoading } = useGlobalLoading();
   const {
     showColors,
     setShowColors,
@@ -117,9 +118,11 @@ export default function Home() {
     );
     if (!ok) return;
 
-    const { error } = await resetMonth();
-    setWarning(error ? `초기화 실패: ${error.message}` : null);
-  }, [year, month, resetMonth]);
+    await runWithLoading("이번 달 초기화 중...", async () => {
+      const { error } = await resetMonth();
+      setWarning(error ? `초기화 실패: ${error.message}` : null);
+    });
+  }, [year, month, resetMonth, runWithLoading]);
 
   // Header에서 "이번 달 초기화" 버튼을 띄울 수 있도록 현재 연/월과 초기화 함수를 공유 슬롯에 등록
   useEffect(() => {

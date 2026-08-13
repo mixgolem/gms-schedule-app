@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -79,5 +79,39 @@ export function ResetMonthProvider({ children }: { children: React.ReactNode }) 
 export function useResetMonth() {
   const ctx = useContext(ResetMonthContext);
   if (!ctx) throw new Error("useResetMonth must be used within ResetMonthProvider");
+  return ctx;
+}
+
+// 시간이 걸리는 작업(이번 달 초기화, 근무패턴 적용 등) 중에는 화면 전체를 덮는 로딩창을
+// 띄워서, 진행 중에 사용자가 다른 달로 넘어가거나 다른 조작을 해서 요청이 꼬이는 걸 막는다.
+interface GlobalLoadingContextValue {
+  message: string | null;
+  runWithLoading: <T>(message: string, fn: () => Promise<T>) => Promise<T>;
+}
+
+const GlobalLoadingContext = createContext<GlobalLoadingContextValue | undefined>(undefined);
+
+export function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
+  const [message, setMessage] = useState<string | null>(null);
+
+  const runWithLoading = useCallback(async <T,>(msg: string, fn: () => Promise<T>): Promise<T> => {
+    setMessage(msg);
+    try {
+      return await fn();
+    } finally {
+      setMessage(null);
+    }
+  }, []);
+
+  return (
+    <GlobalLoadingContext.Provider value={{ message, runWithLoading }}>
+      {children}
+    </GlobalLoadingContext.Provider>
+  );
+}
+
+export function useGlobalLoading() {
+  const ctx = useContext(GlobalLoadingContext);
+  if (!ctx) throw new Error("useGlobalLoading must be used within GlobalLoadingProvider");
   return ctx;
 }

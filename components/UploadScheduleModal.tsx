@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/app/providers";
+import { useAuth, useGlobalLoading } from "@/app/providers";
 import { useEmployees } from "@/lib/useEmployees";
 import {
   parseScheduleFile,
@@ -27,6 +27,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
   const { session } = useAuth();
   const canEdit = !!session;
   const { employees } = useEmployees();
+  const { runWithLoading } = useGlobalLoading();
   const [status, setStatus] = useState<Status>("idle");
   const [parsed, setParsed] = useState<ParseResult | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
@@ -64,17 +65,20 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
   const handleApply = async () => {
     if (!parsed) return;
     setStatus("saving");
-    const { error } = await applyParsedSchedule(parsed.rows);
-    if (error) {
-      setStatus("error");
-      setErrorMsg(`저장 실패: ${error}`);
-      return;
-    }
 
-    const dates = new Set(parsed.rows.map((r) => r.work_date));
-    setSummary(`${dates.size}일 · ${parsed.rows.length}건 반영 완료`);
-    setStatus("done");
-    setParsed(null);
+    await runWithLoading("근무표 반영 중...", async () => {
+      const { error } = await applyParsedSchedule(parsed.rows);
+      if (error) {
+        setStatus("error");
+        setErrorMsg(`저장 실패: ${error}`);
+        return;
+      }
+
+      const dates = new Set(parsed.rows.map((r) => r.work_date));
+      setSummary(`${dates.size}일 · ${parsed.rows.length}건 반영 완료`);
+      setStatus("done");
+      setParsed(null);
+    });
   };
 
   return (

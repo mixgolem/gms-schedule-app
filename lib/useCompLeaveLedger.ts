@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getMonthDates } from "@/lib/dateUtils";
+import { debounce } from "@/lib/debounce";
 
 // 표시 순서: 12월(전년) → 1월~11월(해당 연도)
 export const MONTH_ORDER = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
@@ -58,8 +59,10 @@ export function useCompLeaveLedger(year: number, month: number) {
   const [rows, setRows] = useState<CompLeaveRow[]>([]);
   const [loading, setLoading] = useState(true);
   const instanceId = useId();
+  const requestIdRef = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
 
     const monthDates = getMonthDates(year, month);
@@ -143,6 +146,7 @@ export function useCompLeaveLedger(year: number, month: number) {
       };
     });
 
+    if (requestId !== requestIdRef.current) return;
     setRows(result);
     setLoading(false);
   }, [year, month]);
@@ -153,26 +157,28 @@ export function useCompLeaveLedger(year: number, month: number) {
   }, [fetchData]);
 
   useEffect(() => {
+    const debounced = debounce(fetchData, 300);
     const channel = supabase
       .channel(`comp-leave-ledger-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "comp_leave_monthly" }, () => {
-        fetchData();
+        debounced.run();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "comp_leave_summary" }, () => {
-        fetchData();
+        debounced.run();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "shift_leave_usage" }, () => {
-        fetchData();
+        debounced.run();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "shifts" }, () => {
-        fetchData();
+        debounced.run();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "holidays" }, () => {
-        fetchData();
+        debounced.run();
       })
       .subscribe();
 
     return () => {
+      debounced.cancel();
       supabase.removeChannel(channel);
     };
   }, [fetchData, instanceId]);

@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider, ResetMonthProvider } from "./providers";
+import { AuthProvider, ResetMonthProvider, GlobalLoadingProvider } from "./providers";
 import Header from "@/components/Header";
+import GlobalLoadingOverlay from "@/components/GlobalLoadingOverlay";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,8 +39,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-gray-50">
         <AuthProvider>
           <ResetMonthProvider>
-            <Header />
-            {children}
+            <GlobalLoadingProvider>
+              <Header />
+              {children}
+              <GlobalLoadingOverlay />
+            </GlobalLoadingProvider>
           </ResetMonthProvider>
         </AuthProvider>
       </body>

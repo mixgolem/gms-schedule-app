@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Employee } from "@/lib/types";
+import { debounce } from "@/lib/debounce";
 
 // 직원 관리 모달 전용: 비활성 직원까지 포함한 전체 목록
 export function useEmployees() {
@@ -11,10 +12,13 @@ export function useEmployees() {
   // 채널 이름이 고정 문자열이면 StrictMode의 이중 마운트(구독 후 곧바로 정리) 중
   // 이전 채널이 채 정리되기 전에 같은 이름을 재사용하면서 충돌할 수 있어 인스턴스별로 고유하게 만든다.
   const instanceId = useId();
+  const requestIdRef = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     const { data } = await supabase.from("employees").select("*").order("sort_order");
+    if (requestId !== requestIdRef.current) return data ?? [];
     setEmployees(data ?? []);
     setLoading(false);
     return data ?? [];
@@ -26,14 +30,16 @@ export function useEmployees() {
   }, [fetchData]);
 
   useEffect(() => {
+    const debounced = debounce(fetchData, 300);
     const channel = supabase
       .channel(`employees-manager-changes-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "employees" }, () => {
-        fetchData();
+        debounced.run();
       })
       .subscribe();
 
     return () => {
+      debounced.cancel();
       supabase.removeChannel(channel);
     };
   }, [fetchData, instanceId]);

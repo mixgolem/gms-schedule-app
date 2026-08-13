@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { DEFAULT_SHIFT_HOURS } from "@/lib/types";
+import { debounce } from "@/lib/debounce";
 
 export type ShiftDefaultsMap = Record<"dawn" | "day" | "night", { start: string; end: string }>;
 
@@ -10,10 +11,13 @@ export function useShiftDefaults() {
   const [defaults, setDefaults] = useState<ShiftDefaultsMap>(DEFAULT_SHIFT_HOURS);
   const [loading, setLoading] = useState(true);
   const instanceId = useId();
+  const requestIdRef = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     const { data } = await supabase.from("shift_type_defaults").select("*");
+    if (requestId !== requestIdRef.current) return;
     if (data && data.length > 0) {
       const map = { ...DEFAULT_SHIFT_HOURS };
       for (const row of data) {
@@ -33,18 +37,20 @@ export function useShiftDefaults() {
   }, [fetchData]);
 
   useEffect(() => {
+    const debounced = debounce(fetchData, 300);
     const channel = supabase
       .channel(`shift-type-defaults-changes-${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "shift_type_defaults" },
         () => {
-          fetchData();
+          debounced.run();
         }
       )
       .subscribe();
 
     return () => {
+      debounced.cancel();
       supabase.removeChannel(channel);
     };
   }, [fetchData, instanceId]);
