@@ -13,6 +13,7 @@ import ShiftSidebar from "@/components/ShiftSidebar";
 import EmployeeShiftEditor from "@/components/EmployeeShiftEditor";
 import DayDetailPanel from "@/components/DayDetailPanel";
 import ErpExportModal from "@/components/ErpExportModal";
+import ConfirmPhraseDialog from "@/components/ConfirmPhraseDialog";
 import { useSchedule } from "@/lib/useSchedule";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
 import { useUserPreferences } from "@/lib/useUserPreferences";
@@ -40,6 +41,7 @@ export default function Home() {
     weeks,
     loading,
     upsertShift,
+    deleteShift,
     syncLeaveUsages,
     toggleHoliday,
     resetMonth,
@@ -61,6 +63,7 @@ export default function Home() {
   const [erpExportOpen, setErpExportOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const [printMode, setPrintMode] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   const canEdit = !!session;
   const holidayDates = new Set(holidays.map((h) => h.work_date));
@@ -86,7 +89,11 @@ export default function Home() {
     );
 
     if (error) {
-      setWarning(`저장 실패: ${error.message}`);
+      const message =
+        error.code === "23505"
+          ? "이미 다른 대휴가 같은 날짜를 원래근무일로 쓰고 있어요. 다른 날짜를 선택해주세요."
+          : error.message;
+      setWarning(`저장 실패: ${message}`);
       return;
     }
 
@@ -112,17 +119,26 @@ export default function Home() {
     setWarning(checkPairRule(activeShifts, workDate, shiftType));
   };
 
-  const handleResetMonth = useCallback(async () => {
-    const ok = window.confirm(
-      `${year}년 ${month}월 근무표를 전부 초기화할까요? 직원 목록은 그대로 남고, 이 달의 근무 기록만 삭제되며 되돌릴 수 없어요.`
-    );
-    if (!ok) return;
+  const handleDeleteShift = async (employeeId: string, workDate: string) => {
+    const { error } = await deleteShift(employeeId, workDate);
+    if (error) {
+      setWarning(`삭제 실패: ${error.message}`);
+      return;
+    }
+    setSidebar(null);
+  };
 
+  const handleResetMonth = useCallback(() => {
+    setResetConfirmOpen(true);
+  }, []);
+
+  const runResetMonth = useCallback(async () => {
+    setResetConfirmOpen(false);
     await runWithLoading("이번 달 초기화 중...", async () => {
       const { error } = await resetMonth();
       setWarning(error ? `초기화 실패: ${error.message}` : null);
     });
-  }, [year, month, resetMonth, runWithLoading]);
+  }, [resetMonth, runWithLoading]);
 
   // Header에서 "이번 달 초기화" 버튼을 띄울 수 있도록 현재 연/월과 초기화 함수를 공유 슬롯에 등록
   useEffect(() => {
@@ -355,6 +371,7 @@ export default function Home() {
                 subEntries
               )
             }
+            onDelete={() => handleDeleteShift(sidebar.employeeId, sidebar.date)}
             onClose={() => setSidebar(null)}
           />
         )}
@@ -380,6 +397,16 @@ export default function Home() {
         holidayDates={holidayDates}
         shiftDefaults={shiftDefaults}
         onClose={() => setErpExportOpen(false)}
+      />
+
+      <ConfirmPhraseDialog
+        open={resetConfirmOpen}
+        title={`${year}년 ${month}월 근무표 초기화`}
+        message="직원 목록은 그대로 남고, 이 달의 근무 기록만 삭제되며 되돌릴 수 없어요."
+        phrase="근무표초기화"
+        danger
+        onConfirm={runResetMonth}
+        onCancel={() => setResetConfirmOpen(false)}
       />
     </main>
   );

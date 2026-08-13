@@ -13,6 +13,7 @@ export interface UsageDetail {
   hours: number;
   start: string;
   end: string;
+  reason: string | null;
 }
 
 export interface ShiftDisplay {
@@ -65,8 +66,13 @@ export function computeShiftDisplay(
     ? `${shift.start_time.slice(0, 5)}~${shift.end_time.slice(0, 5)}`
     : null;
 
+  // 괄호 안 표시는 보통 사용유형 이름(연차/대휴/기타)을 쓰지만, "기타"에 사유를 적어뒀으면
+  // "기타" 대신 그 사유를 짧게(3글자) 보여준다.
+  const usageLabel = (u: ShiftLeaveUsage): string =>
+    u.usage_type === "other" && u.reason ? u.reason.slice(0, 3) : USAGE_SHORT_LABELS[u.usage_type];
+
   const usageSuffix = hasPartialUsage
-    ? `(${[...new Set(leaveUsages.map((u) => USAGE_SHORT_LABELS[u.usage_type]))].join(",")})`
+    ? `(${[...new Set(leaveUsages.map(usageLabel))].join(",")})`
     : "";
 
   const usageDetails: UsageDetail[] = hasPartialUsage
@@ -75,6 +81,7 @@ export function computeShiftDisplay(
         hours: u.hours,
         start: u.start_time.slice(0, 5),
         end: u.end_time.slice(0, 5),
+        reason: u.reason,
       }))
     : [];
 
@@ -83,23 +90,28 @@ export function computeShiftDisplay(
   return { hasPartialUsage, isFullyOnLeave, timeLabel, usageSuffix, usageDetails };
 }
 
-// 시간대 정렬 모드에서의 우선순위: 새벽메인 → 새벽 → 주간 → 야간 → 대휴 → 휴무 → 미배정.
+// 시간대 정렬 모드에서의 우선순위 - 출근시간이 이른 순서(새벽 < 주간 < 야간)로 정렬하고,
+// 새벽/야간은 메인당직이 보조보다 먼저 오게 한다. 주간인데 연차/대휴/기타로 근무시간
+// 전체를 써서 실제로는 출근하지 않는 경우는 "출근 안 함"이니 야간 다음으로 보낸다:
+// 새벽메인 → 새벽 → 주간(근무) → 야간메인 → 야간 → 주간(전부휴가) → 대휴/연차 → 휴무 → 미배정.
 // 캘린더 그리드(데스크탑)와 하루보기(모바일)에서 공통으로 쓴다.
-export function shiftPriority(shift: Shift | null): number {
-  if (!shift) return 6;
+export function shiftPriority(shift: Shift | null, leaveUsages: ShiftLeaveUsage[] = []): number {
+  if (!shift) return 8;
   switch (shift.shift_type) {
     case "dawn":
       return shift.is_main ? 0 : 1;
-    case "day":
-      return 2;
+    case "day": {
+      const { isFullyOnLeave } = computeShiftDisplay(shift, leaveUsages);
+      return isFullyOnLeave ? 5 : 2;
+    }
     case "night":
-      return 3;
+      return shift.is_main ? 3 : 4;
     case "leave":
     case "annual":
-      return 4;
-    case "off":
-      return 5;
-    default:
       return 6;
+    case "off":
+      return 7;
+    default:
+      return 8;
   }
 }

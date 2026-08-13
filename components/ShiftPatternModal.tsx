@@ -13,6 +13,7 @@ import {
   PATTERN_DAYS,
 } from "@/lib/shiftPatternImport";
 import { generatePatternRows, applyPatternRows } from "@/lib/shiftPatternApply";
+import { linkWeekendCompLeave } from "@/lib/weekendCompLeaveLink";
 import { employeeLabel } from "@/lib/types";
 import { todayStr, parseLocalDate } from "@/lib/dateUtils";
 import Button from "./ui/Button";
@@ -22,7 +23,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Status = "idle" | "parsing" | "parsed" | "saving" | "applying" | "done" | "error";
+type Status = "idle" | "parsing" | "parsed" | "saving" | "applying" | "linking" | "done" | "error";
 
 // 미리보기에서 원래 엑셀에 적었던 한 글자 코드로 다시 보여주기 위한 역매핑
 const PREVIEW_CODE: Record<string, string> = {
@@ -35,7 +36,7 @@ const PREVIEW_CODE: Record<string, string> = {
   "leave:false": "대",
 };
 
-const DEFAULT_CYCLES = 4; // 49일 × 4회 ≈ 196일(약 6.5개월)
+const DEFAULT_CYCLES = 1; // 49일 × 1회
 
 export default function ShiftPatternModal({ open, onClose }: Props) {
   const { session } = useAuth();
@@ -47,6 +48,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
 
   const [status, setStatus] = useState<Status>("idle");
   const [parsedDays, setParsedDays] = useState<PatternDays | null>(null);
+  const [parsedPresentSlots, setParsedPresentSlots] = useState<boolean[]>([]);
   const [parsedFilename, setParsedFilename] = useState<string>("");
   const [warnings, setWarnings] = useState<string[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -55,15 +57,19 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
   const [inputKey, setInputKey] = useState(0);
   const [startDate, setStartDate] = useState(todayStr());
   const [cycles, setCycles] = useState(DEFAULT_CYCLES);
+  const [linkStartDate, setLinkStartDate] = useState(todayStr());
+  const [linkEndDate, setLinkEndDate] = useState(todayStr());
 
   if (!open) return null;
 
   const activePattern = parsedDays ?? current?.days ?? null;
+  const activePresentSlots = parsedDays ? parsedPresentSlots : current?.presentSlots ?? [];
   const activeFilename = parsedDays ? parsedFilename : current?.filename ?? "";
 
   const reset = () => {
     setStatus("idle");
     setParsedDays(null);
+    setParsedPresentSlots([]);
     setParsedFilename("");
     setWarnings([]);
     setValidationErrors([]);
@@ -78,7 +84,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
     setErrorMsg(null);
     setSummary(null);
 
-    const result = await parsePatternFile(file);
+    const result = await parsePatternFile(file, employees);
     if (result.days.length < PATTERN_DAYS) {
       setStatus("error");
       setErrorMsg(result.warnings[0] ?? "패턴을 읽지 못했어요.");
@@ -86,22 +92,24 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
     }
 
     setParsedDays(result.days);
+    setParsedPresentSlots(result.presentSlots);
     setParsedFilename(file.name);
     setWarnings(result.warnings);
-    setValidationErrors(validatePattern(result.days));
+    setValidationErrors(validatePattern(result.days, result.presentSlots));
     setStatus("parsed");
   };
 
   const handleSavePattern = async () => {
     if (!parsedDays || validationErrors.length > 0) return;
     setStatus("saving");
-    const { error } = await uploadPattern(parsedFilename, parsedDays);
+    const { error } = await uploadPattern(parsedFilename, parsedDays, parsedPresentSlots);
     if (error) {
       setStatus("error");
       setErrorMsg(`패턴 저장 실패: ${error}`);
       return;
     }
     setParsedDays(null);
+    setParsedPresentSlots([]);
     setParsedFilename("");
     setStatus("idle");
     setSummary("패턴이 저장됐어요. 아래에서 적용할 날짜를 선택해주세요.");
@@ -112,15 +120,22 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
 
   const handleApply = async () => {
     if (!activePattern) return;
-    const rows = generatePatternRows(activePattern, employees, startDate, endDate, shiftDefaults);
-    if (rows.length === 0) {
+    const { rows, clearedCells } = generatePatternRows(
+      activePattern,
+      activePresentSlots,
+      employees,
+      startDate,
+      endDate,
+      shiftDefaults
+    );
+    if (rows.length === 0 && clearedCells.length === 0) {
       setErrorMsg("적용할 근무 데이터가 없어요.");
       setStatus("error");
       return;
     }
 
     const ok = window.confirm(
-      `${startDate} ~ ${endDate} 기간에 이 패턴을 적용할까요?\n이 기간에 이미 있던 근무 기록은 지워지고 패턴 내용으로 대체돼요. 되돌릴 수 없어요.`
+      `${startDate} ~ ${endDate} 기간에 이 패턴을 적용할까요?\n이 기간에 이미 있던 근무 기록은 지워지고 패턴 내용으로 대체돼요(빈칸인 근무자·날짜는 새로 채워지지 않고 기존 기록만 삭제돼요). 되돌릴 수 없어요.`
     );
     if (!ok) return;
 
@@ -128,7 +143,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
     setErrorMsg(null);
 
     await runWithLoading("근무패턴 적용 중...", async () => {
-      const { error } = await applyPatternRows(rows);
+      const { error } = await applyPatternRows(rows, clearedCells);
       if (error) {
         setStatus("error");
         setErrorMsg(`적용 실패: ${error}`);
@@ -138,7 +153,43 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
       await recordApplication(current?.id ?? null, startDate, endDate);
 
       setStatus("done");
-      setSummary(`${startDate} ~ ${endDate} 기간에 ${rows.length}건 적용 완료!`);
+      const clearedNote = clearedCells.length > 0 ? ` (빈칸 ${clearedCells.length}건 삭제)` : "";
+      setSummary(`${startDate} ~ ${endDate} 기간에 ${rows.length}건 적용 완료!${clearedNote}`);
+    });
+  };
+
+  const handleLinkWeekendCompLeave = async () => {
+    if (linkEndDate < linkStartDate) {
+      setErrorMsg("종료일이 시작일보다 빠를 수 없어요.");
+      setStatus("error");
+      return;
+    }
+
+    const ok = window.confirm(
+      `${linkStartDate} ~ ${linkEndDate} 기간에서, 주말(토/일)에 근무한 날과 아직 원래근무일이 지정되지 않은 대휴를 근무자별로 날짜가 가까운 순서로 자동 연결할까요?\n공휴일 근무는 대상에서 제외되고, 이미 연결된 대휴는 그대로 유지돼요.`
+    );
+    if (!ok) return;
+
+    setStatus("linking");
+    setErrorMsg(null);
+    setSummary(null);
+
+    await runWithLoading("주말:대휴 연결 중...", async () => {
+      const { matchedCount, unmatchedWorkCount, error } = await linkWeekendCompLeave(
+        linkStartDate,
+        linkEndDate
+      );
+      if (error) {
+        setStatus("error");
+        setErrorMsg(`연결 실패: ${error}`);
+        return;
+      }
+
+      setStatus("done");
+      setSummary(
+        `${matchedCount}건 연결 완료!` +
+          (unmatchedWorkCount > 0 ? ` (짝을 찾지 못한 주말근무 ${unmatchedWorkCount}건 있음)` : "")
+      );
     });
   };
 
@@ -195,8 +246,9 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
 
               <div className="space-y-2">
                 <p className="text-xs text-gray-900">
-                  A열: 참고용(무시), B~H열 1행: 근무자 순번(A~G), 2행부터 {PATTERN_DAYS}행까지{" "}
-                  {PATTERN_DAYS}일치 패턴(메/조/야/여/주/휴/대)이 담긴 .xlsx를 올려주세요.
+                  A열: 참고용(무시), B열부터 1행에 근무자 글자(A,B,C...)를 적고 2행부터{" "}
+                  {PATTERN_DAYS}행까지 {PATTERN_DAYS}일치 패턴(메/조/야/여/주/휴/대)이 담긴 .xlsx를
+                  올려주세요. 열 순서는 상관없이 1행 글자로 매칭되고, 인원수 제한도 없어요.
                 </p>
                 <div className="text-xs text-gray-700 bg-gray-50 border rounded-lg px-3 py-2 leading-relaxed">
                   <p className="font-medium text-gray-900 mb-0.5">검증 기준</p>
@@ -216,8 +268,10 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
               </div>
 
               {status === "parsing" && <p className="text-gray-600">읽는 중...</p>}
-              {(status === "saving" || status === "applying") && (
-                <p className="text-gray-600">{status === "saving" ? "저장 중..." : "적용 중..."}</p>
+              {(status === "saving" || status === "applying" || status === "linking") && (
+                <p className="text-gray-600">
+                  {status === "saving" ? "저장 중..." : status === "applying" ? "적용 중..." : "연결 중..."}
+                </p>
               )}
               {summary && <p className="text-green-600">{summary}</p>}
               {errorMsg && <p className="text-red-600">{errorMsg}</p>}
@@ -229,7 +283,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
 
               {parsedDays && validationErrors.length === 0 && (
                 <p className="text-xs font-medium text-green-700 bg-green-50 border border-green-300 rounded-lg px-3 py-2">
-                  ✓ 7명 49일 검증 결과 이상 없음
+                  ✓ {parsedPresentSlots.filter(Boolean).length}명 49일 검증 결과 이상 없음
                 </p>
               )}
 
@@ -282,7 +336,13 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                         <tr>
                           <th className="px-2 py-1 text-left border-b whitespace-nowrap">일차</th>
                           {Array.from({ length: activePattern[0]?.length ?? 0 }, (_, i) => (
-                            <th key={i} className="px-2 py-1 text-left border-b whitespace-nowrap">
+                            <th
+                              key={i}
+                              className={`px-2 py-1 text-left border-b whitespace-nowrap ${
+                                activePresentSlots[i] ? "" : "text-gray-300"
+                              }`}
+                              title={activePresentSlots[i] ? undefined : "이 패턴에 없는 자리"}
+                            >
                               {employeeLabel(i)}
                             </th>
                           ))}
@@ -344,6 +404,44 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                     </Button>
                   </div>
                 </>
+              )}
+
+              {!parsedDays && (
+                <div className="space-y-2 border-t pt-3">
+                  <p className="text-xs font-medium text-gray-900">주말근무 ↔ 대휴 자동 연결</p>
+                  <p className="text-xs text-gray-600">
+                    지정한 기간에서 주말(토/일)에 근무한 날과 원래근무일이 비어있는 대휴를
+                    근무자별로 날짜가 가까운 순서로 자동 연결해요. 공휴일 근무는 제외되고, 이미
+                    연결된 대휴는 그대로 유지돼요.
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div>
+                      <label className="text-xs text-blue-900 block mb-0.5">시작일</label>
+                      <input
+                        type="date"
+                        value={linkStartDate}
+                        onChange={(e) => setLinkStartDate(e.target.value)}
+                        className="border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-blue-900 block mb-0.5">종료일</label>
+                      <input
+                        type="date"
+                        value={linkEndDate}
+                        onChange={(e) => setLinkEndDate(e.target.value)}
+                        className="border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleLinkWeekendCompLeave}
+                    disabled={status === "linking"}
+                    className="w-full py-2"
+                  >
+                    {status === "linking" ? "연결 중..." : "주말:대휴 적용"}
+                  </Button>
+                </div>
               )}
             </>
           )}

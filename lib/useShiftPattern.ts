@@ -11,6 +11,7 @@ export interface StoredPattern {
   filename: string;
   uploadedAt: string;
   days: PatternDays;
+  presentSlots: boolean[];
 }
 
 export interface PatternApplication {
@@ -51,13 +52,19 @@ export function useShiftPattern() {
 
     setCurrent(
       patternData
-        ? {
-            id: patternData.id,
-            uploadedByEmail: patternData.uploaded_by_email,
-            filename: patternData.filename,
-            uploadedAt: patternData.uploaded_at,
-            days: (patternData.pattern as { days: PatternDays }).days,
-          }
+        ? (() => {
+            const stored = patternData.pattern as { days: PatternDays; presentSlots?: boolean[] };
+            return {
+              id: patternData.id,
+              uploadedByEmail: patternData.uploaded_by_email,
+              filename: patternData.filename,
+              uploadedAt: patternData.uploaded_at,
+              days: stored.days,
+              // 이 필드가 생기기 전에 저장된 옛날 패턴은 항상 정확히 7명이 다 있었으니
+              // 전부 true로 취급한다.
+              presentSlots: stored.presentSlots ?? stored.days[0]?.map(() => true) ?? [],
+            };
+          })()
         : null
     );
 
@@ -103,13 +110,13 @@ export function useShiftPattern() {
   }, [fetchData, instanceId]);
 
   const uploadPattern = useCallback(
-    async (filename: string, days: PatternDays) => {
+    async (filename: string, days: PatternDays, presentSlots: boolean[]) => {
       const { data: userData } = await supabase.auth.getUser();
       const { error } = await supabase.from("shift_patterns").insert({
         uploaded_by: userData.user?.id ?? null,
         uploaded_by_email: userData.user?.email ?? null,
         filename,
-        pattern: { days },
+        pattern: { days, presentSlots },
       });
       await fetchData();
       return { error: error?.message ?? null };

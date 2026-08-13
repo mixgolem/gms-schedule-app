@@ -57,6 +57,14 @@ export default function CalendarGrid({
     leaveUsageMap.set(key, arr);
   }
 
+  // 대휴(leave)의 leave_for_date가 가리키는 "원래 근무일" 칸에도 역으로 대휴일을 보여주기 위한 맵
+  const compLeaveDateByWork = new Map<string, string>();
+  for (const s of shifts) {
+    if (s.shift_type === "leave" && s.leave_for_date) {
+      compLeaveDateByWork.set(`${s.employee_id}_${s.leave_for_date}`, s.work_date);
+    }
+  }
+
   // 2인1조 집계는 화면에 실제로 보이는(활성) 직원 것만 세야 한다.
   // shifts에는 비활성 직원의 기록도 섞여 있어서 그대로 세면 "혼자인데 경고가 안 뜨는" 일이 생긴다.
   // (직원 필터와는 별개로 항상 전체 활성 직원 기준으로 계산해야 정확하다)
@@ -86,8 +94,14 @@ export default function CalendarGrid({
                     sortMode === "byShiftType"
                       ? [...visibleEmployees].sort(
                           (a, b) =>
-                            shiftPriority(shiftMap.get(`${a.id}_${day.date}`) ?? null) -
-                            shiftPriority(shiftMap.get(`${b.id}_${day.date}`) ?? null)
+                            shiftPriority(
+                              shiftMap.get(`${a.id}_${day.date}`) ?? null,
+                              leaveUsageMap.get(`${a.id}_${day.date}`) ?? []
+                            ) -
+                            shiftPriority(
+                              shiftMap.get(`${b.id}_${day.date}`) ?? null,
+                              leaveUsageMap.get(`${b.id}_${day.date}`) ?? []
+                            )
                         )
                       : visibleEmployees;
 
@@ -104,7 +118,7 @@ export default function CalendarGrid({
                         className={`w-full px-2 py-1.5 border-b border-black/5 text-sm font-medium flex items-baseline gap-1.5 transition-colors duration-150 ${DAY_BADGE_CLASS[dayColor]}`}
                       >
                         <span className="text-base font-bold">{dayOfMonth(day.date)}</span>
-                        <span className="text-xs">{weekdayLabel(day.date)}</span>
+                        <span className="text-base font-bold">{weekdayLabel(day.date)}</span>
                         {day.date === today && (
                           <span className="text-xs font-bold text-blue-900">오늘</span>
                         )}
@@ -115,10 +129,20 @@ export default function CalendarGrid({
                       <div className="py-1.5 space-y-1">
                         {dayEmployees.map((emp) => {
                           const shift = shiftMap.get(`${emp.id}_${day.date}`) ?? null;
-                          const invalid =
+                          const pairInvalid =
                             !!shift &&
                             (shift.shift_type === "dawn" || shift.shift_type === "night") &&
                             countByTypeForDate(activeShifts, day.date, shift.shift_type) !== 2;
+                          const compOnHoliday =
+                            !!shift &&
+                            shift.shift_type === "leave" &&
+                            !!shift.leave_for_date &&
+                            holidayDates.has(shift.leave_for_date);
+                          const invalidReason = pairInvalid
+                            ? "2인1조 원칙 미충족"
+                            : compOnHoliday
+                            ? "대휴 원래근무일이 공휴일이에요 (공휴일 근무는 대체휴무시간으로 처리해야 해요)"
+                            : null;
                           const cellShowColors =
                             filterEmployeeIds.length > 0 && filterMode === "highlight"
                               ? filterEmployeeIds.includes(emp.id)
@@ -130,8 +154,9 @@ export default function CalendarGrid({
                               employeeName={emp.name}
                               shift={shift}
                               leaveUsages={leaveUsageMap.get(`${emp.id}_${day.date}`) ?? []}
+                              compLeaveDate={compLeaveDateByWork.get(`${emp.id}_${day.date}`) ?? null}
                               canEdit={canEdit}
-                              invalid={invalid}
+                              invalidReason={invalidReason}
                               showColors={cellShowColors}
                               onClick={() => onCellClick(emp.id, day.date)}
                             />

@@ -31,6 +31,7 @@ interface Props {
     leaveForDate: string | null,
     subEntries: LeaveUsageInput[]
   ) => Promise<void>;
+  onDelete: () => Promise<void>;
   onClose: () => void;
 }
 
@@ -111,6 +112,7 @@ interface SubEntry {
   hours: number;
   start: string;
   end: string;
+  reason: string;
 }
 
 export default function EmployeeShiftEditor({
@@ -120,6 +122,7 @@ export default function EmployeeShiftEditor({
   canEdit,
   shiftDefaults,
   onSave,
+  onDelete,
   onClose,
 }: Props) {
   const initialType = shift?.shift_type ?? "day";
@@ -138,6 +141,7 @@ export default function EmployeeShiftEditor({
   const [leaveForDate, setLeaveForDate] = useState(shift?.leave_for_date ?? "");
   const [subEntries, setSubEntries] = useState<SubEntry[]>([]);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { groups: specialNoteGroups } = useSpecialNotes();
   const myUnresolvedDates =
@@ -166,6 +170,7 @@ export default function EmployeeShiftEditor({
           hours: Number(d.hours),
           start: d.start_time.slice(0, 5),
           end: d.end_time.slice(0, 5),
+          reason: d.reason ?? "",
         }))
       );
     }
@@ -189,7 +194,10 @@ export default function EmployeeShiftEditor({
 
   const addSubEntry = (usageType: LeaveUsageType) => {
     setError(null);
-    setSubEntries((prev) => [...prev, { key: nextTempId(), usageType, hours: 8, start, end }]);
+    setSubEntries((prev) => [
+      ...prev,
+      { key: nextTempId(), usageType, hours: 8, start, end, reason: "" },
+    ]);
   };
 
   const updateSubEntry = (key: string, patch: Partial<SubEntry>) => {
@@ -227,11 +235,21 @@ export default function EmployeeShiftEditor({
             hours: e.hours,
             start: e.start,
             end: e.end,
+            reason: e.usageType === "other" ? e.reason.trim() || null : null,
           }))
         : []
     );
     setSaving(false);
     onClose();
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`${date} ${employee.name}의 근무 기록을 삭제할까요? 되돌릴 수 없어요.`)) {
+      return;
+    }
+    setDeleting(true);
+    await onDelete();
+    setDeleting(false);
   };
 
   const currentDefault = hasHours(type)
@@ -377,6 +395,21 @@ export default function EmployeeShiftEditor({
                     onStartChange={(v) => updateSubEntry(entry.key, { start: v })}
                     onEndChange={(v) => updateSubEntry(entry.key, { end: v })}
                   />
+                  {entry.usageType === "other" && (
+                    <div>
+                      <label className="text-xs text-blue-900 block mb-0.5">
+                        사유 (입력 안 해도 등록 가능)
+                      </label>
+                      <input
+                        type="text"
+                        value={entry.reason}
+                        disabled={!canEdit}
+                        onChange={(e) => updateSubEntry(entry.key, { reason: e.target.value })}
+                        placeholder="예: 경조사, 병원 진료 등"
+                        className="w-full border rounded-lg px-2 py-1 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -409,6 +442,17 @@ export default function EmployeeShiftEditor({
             취소
           </Button>
         </div>
+      )}
+
+      {canEdit && shift && (
+        <Button
+          variant="danger"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="w-full py-2"
+        >
+          {deleting ? "삭제 중..." : "근무 삭제"}
+        </Button>
       )}
     </div>
   );

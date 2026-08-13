@@ -10,6 +10,7 @@ import {
   FullBackupPayload,
 } from "@/lib/fullBackupRestore";
 import Button from "./ui/Button";
+import ConfirmPhraseDialog from "./ConfirmPhraseDialog";
 
 interface Props {
   open: boolean;
@@ -18,15 +19,13 @@ interface Props {
 
 type Status = "idle" | "parsing" | "previewing" | "restoring" | "done" | "error";
 
-const CONFIRM_PHRASE = "전체 복원";
-
 export default function FullRestoreModal({ open, onClose }: Props) {
   const { session } = useAuth();
   const canEdit = !!session;
   const [status, setStatus] = useState<Status>("idle");
   const [backup, setBackup] = useState<FullBackupPayload | null>(null);
   const [counts, setCounts] = useState<Record<string, number> | null>(null);
-  const [confirmText, setConfirmText] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [inputKey, setInputKey] = useState(0);
@@ -44,7 +43,7 @@ export default function FullRestoreModal({ open, onClose }: Props) {
     setStatus("idle");
     setBackup(null);
     setCounts(null);
-    setConfirmText("");
+    setConfirmOpen(false);
     setProgress(null);
     setErrorMsg(null);
     setInputKey((k) => k + 1);
@@ -71,6 +70,7 @@ export default function FullRestoreModal({ open, onClose }: Props) {
 
   const handleRestore = async () => {
     if (!backup) return;
+    setConfirmOpen(false);
     setStatus("restoring");
     setErrorMsg(null);
 
@@ -185,23 +185,10 @@ export default function FullRestoreModal({ open, onClose }: Props) {
                   </p>
                 )}
 
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-900 block">
-                    계속하려면 아래에 <span className="font-bold">{CONFIRM_PHRASE}</span>을(를)
-                    입력하세요
-                  </label>
-                  <input
-                    value={confirmText}
-                    onChange={(e) => setConfirmText(e.target.value)}
-                    className="w-full border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                  />
-                </div>
-
                 <div className="flex gap-2">
                   <Button
                     variant="danger"
-                    onClick={handleRestore}
-                    disabled={confirmText !== CONFIRM_PHRASE}
+                    onClick={() => setConfirmOpen(true)}
                     className="flex-1 py-2"
                   >
                     복원 실행
@@ -215,6 +202,16 @@ export default function FullRestoreModal({ open, onClose }: Props) {
           </div>
         )}
       </div>
+
+      <ConfirmPhraseDialog
+        open={confirmOpen}
+        title="전체 복원"
+        message="지금 모든 데이터가 지워지고 백업 시점 데이터로 완전히 대체돼요. 되돌릴 수 없으니 신중하게 진행하세요."
+        phrase="전체복원"
+        danger
+        onConfirm={handleRestore}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

@@ -98,6 +98,7 @@ export default function DayDetailPanel({
                             {usageDetails.map((u, i) => (
                               <li key={i} className="text-xs text-blue-900">
                                 {u.label} · {u.start}~{u.end} ({u.hours}h)
+                                {u.reason && ` — ${u.reason}`}
                               </li>
                             ))}
                           </ul>

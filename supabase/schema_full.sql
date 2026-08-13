@@ -48,6 +48,11 @@ create unique index if not exists one_main_per_shift
   on shifts (work_date, shift_type)
   where is_main = true;
 
+-- 같은 근무자의 대휴 두 개가 같은 원래근무일(leave_for_date)을 가리키지 못하게(1:1 강제)
+create unique index if not exists shifts_leave_for_date_unique
+  on shifts (employee_id, leave_for_date)
+  where shift_type = 'leave' and leave_for_date is not null;
+
 create index if not exists shifts_work_date_idx on shifts (work_date);
 
 create table if not exists holidays (
@@ -103,6 +108,7 @@ create table if not exists shift_leave_usage (
   hours numeric not null,
   start_time time not null,
   end_time time not null,
+  reason text, -- 특히 "기타" 사용시 사유 메모. 필수 아님
   created_at timestamptz not null default now()
 );
 

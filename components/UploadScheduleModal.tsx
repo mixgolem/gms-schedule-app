@@ -53,7 +53,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
     const result = await parseScheduleFile(file, employees);
     setParsed(result);
 
-    if (result.rows.length === 0) {
+    if (result.rows.length === 0 && result.clearedCells.length === 0) {
       setStatus("error");
       setErrorMsg("반영할 데이터가 없어요. 양식을 확인해주세요.");
       return;
@@ -67,7 +67,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
     setStatus("saving");
 
     await runWithLoading("근무표 반영 중...", async () => {
-      const { error } = await applyParsedSchedule(parsed.rows);
+      const { error } = await applyParsedSchedule(parsed.rows, parsed.clearedCells);
       if (error) {
         setStatus("error");
         setErrorMsg(`저장 실패: ${error}`);
@@ -75,7 +75,9 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
       }
 
       const dates = new Set(parsed.rows.map((r) => r.work_date));
-      setSummary(`${dates.size}일 · ${parsed.rows.length}건 반영 완료`);
+      const clearedNote =
+        parsed.clearedCells.length > 0 ? ` · 빈칸 ${parsed.clearedCells.length}건 삭제` : "";
+      setSummary(`${dates.size}일 · ${parsed.rows.length}건 반영 완료${clearedNote}`);
       setStatus("done");
       setParsed(null);
     });
@@ -102,9 +104,10 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
           ) : (
             <>
               <p className="text-xs text-gray-500">
-                A열: 날짜, B~H열: A~G 직원의 근무코드(메/조/야/여/주/휴/대)로 된 .xlsx 양식을
-                올려주세요. 아래에서 날짜·직원 매칭을 확인한 뒤 &quot;적용&quot;을 눌러야 실제로
-                반영됩니다.
+                A열: 날짜, B열부터 1행에 근무자 글자(A,B,C...)를 적고 그 아래 근무코드(메/조/야/여/주/휴/대)를
+                채운 .xlsx 양식을 올려주세요. 열 순서는 상관없이 1행 글자로 매칭되고, 인원수
+                제한도 없어요. 아래에서 날짜·직원 매칭을 확인한 뒤 &quot;적용&quot;을 눌러야
+                실제로 반영됩니다. 칸을 비워두면 그 근무자의 그 날짜 기존 근무 기록이 삭제돼요.
               </p>
 
               {(status === "idle" || status === "parsing" || status === "error") && (

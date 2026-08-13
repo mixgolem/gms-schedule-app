@@ -40,6 +40,7 @@ export interface ShiftLeaveUsage {
   hours: number;
   start_time: string; // HH:mm[:ss]
   end_time: string;
+  reason: string | null; // 특히 "기타" 사용시 사유 메모, 필수 아님
 }
 
 // 부분사용 항목을 저장할 때 쓰는 입력 형태 (id 없이 값만)
@@ -48,6 +49,7 @@ export interface LeaveUsageInput {
   hours: number;
   start: string;
   end: string;
+  reason: string | null;
 }
 
 export interface Notice {

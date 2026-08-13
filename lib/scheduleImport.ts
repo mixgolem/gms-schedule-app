@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
-import { Employee, ShiftType, DEFAULT_SHIFT_HOURS } from "./types";
+import { Employee, ShiftType, DEFAULT_SHIFT_HOURS, employeeLabel } from "./types";
+import { resolveEmployeeColumns } from "./employeeColumns";
 
 const CODE_MAP: Record<string, { type: ShiftType; main: boolean }> = {
   메: { type: "dawn", main: true },
@@ -12,8 +13,6 @@ const CODE_MAP: Record<string, { type: ShiftType; main: boolean }> = {
   대: { type: "leave", main: false },
 };
 
-const EMPLOYEE_COLUMNS = 7; // B~H = A~G 직원 7명
-
 export interface ParsedRow {
   employee_id: string;
   work_date: string;
@@ -23,16 +22,23 @@ export interface ParsedRow {
   end_time: string | null;
 }
 
+// 빈칸으로 둔 근무자·날짜 - 기존에 있던 근무 기록을 지운다
+export interface ClearedCell {
+  employee_id: string;
+  work_date: string;
+}
+
 export interface ParsePreviewRow {
   date: string;
-  codes: (string | null)[]; // A~G 순서, 7칸
+  codes: (string | null)[]; // A,B,C... 순서, 헤더에 있는 만큼(인원수 제한 없음)
 }
 
 export interface ParseResult {
   rows: ParsedRow[];
+  clearedCells: ClearedCell[];
   warnings: string[];
   preview: ParsePreviewRow[];
-  employeeNames: (string | null)[]; // A~G 순서, 매칭된 직원 없으면 null
+  employeeNames: (string | null)[]; // A,B,C... 순서, 매칭된 직원 없으면 null
 }
 
 function hoursFor(type: ShiftType): { start: string | null; end: string | null } {
@@ -65,14 +71,15 @@ export async function parseScheduleFile(
 
   const warnings: string[] = [];
   const rows: ParsedRow[] = [];
+  const clearedCells: ClearedCell[] = [];
   const preview: ParsePreviewRow[] = [];
-  const sorted = [...employees].sort((a, b) => a.sort_order - b.sort_order);
-  const employeeNames: (string | null)[] = Array.from(
-    { length: EMPLOYEE_COLUMNS },
-    (_, i) => sorted[i]?.name ?? null
-  );
 
-  // 1행은 헤더(A, B, C ...)라 건너뛰고 2행부터 데이터로 읽는다
+  // 헤더(1행)의 A,B,C... 글자를 읽어서 각 열이 어떤 직원인지 정한다 — 위치가 아니라
+  // 글자로 매칭하므로 열 순서를 바꿔 입력해도 안전하고, 인원수 제한도 없다(A~Z).
+  const columns = resolveEmployeeColumns(raw[0] ?? [], employees);
+  const employeeNames: (string | null)[] = columns.map((c) => c.employee?.name ?? null);
+
+  // 2행부터 데이터로 읽는다
   for (let r = 1; r < raw.length; r++) {
     const line = raw[r] ?? [];
     const dateCell = line[0];
@@ -84,29 +91,37 @@ export async function parseScheduleFile(
       continue;
     }
 
-    const previewCodes: (string | null)[] = [];
+    const previewCodes: (string | null)[] = new Array(columns.length).fill(null);
 
-    for (let col = 0; col < EMPLOYEE_COLUMNS; col++) {
-      const rawCode = line[col + 1];
+    for (let col = 0; col < columns.length; col++) {
+      const c = columns[col];
+      if (c.fileCol === null) continue; // 이 글자는 파일 헤더에 아예 없음 - 건드리지 않는다
+
+      const rawCode = line[c.fileCol + 1];
       const code = rawCode ? String(rawCode).trim() : "";
-      previewCodes.push(code || null);
-      if (!code) continue;
+      previewCodes[col] = code || null;
 
-      const employee = sorted[col];
-      if (!employee) {
-        warnings.push(`${date} ${String.fromCharCode(65 + col)}열: 매칭되는 직원이 없어요`);
+      if (!c.employee) {
+        if (code) warnings.push(`${date} ${employeeLabel(col)}열: 매칭되는 직원이 없어요`);
+        continue;
+      }
+
+      // 빈칸 = 그 근무자의 그 날짜 기존 근무 기록을 지운다 (실수로 지우는 걸 막으려면
+      // 알 수 없는 코드처럼 건너뛰면 안 되고, 명확히 비운 칸만 삭제 대상으로 취급한다)
+      if (!code) {
+        clearedCells.push({ employee_id: c.employee.id, work_date: date });
         continue;
       }
 
       const mapping = CODE_MAP[code];
       if (!mapping) {
-        warnings.push(`${date} ${employee.name}: 알 수 없는 코드 '${code}'`);
+        warnings.push(`${date} ${c.employee.name}: 알 수 없는 코드 '${code}'`);
         continue;
       }
 
       const hours = hoursFor(mapping.type);
       rows.push({
-        employee_id: employee.id,
+        employee_id: c.employee.id,
         work_date: date,
         shift_type: mapping.type,
         is_main: mapping.main,
@@ -118,12 +133,32 @@ export async function parseScheduleFile(
     preview.push({ date, codes: previewCodes });
   }
 
-  return { rows, warnings, preview, employeeNames };
+  return { rows, clearedCells, warnings, preview, employeeNames };
 }
 
 export async function applyParsedSchedule(
-  rows: ParsedRow[]
+  rows: ParsedRow[],
+  clearedCells: ClearedCell[] = []
 ): Promise<{ error: string | null }> {
+  // 빈칸으로 지정된 근무자·날짜는 기존 기록을 삭제한다. 근무자별로 묶어서 한 번에
+  // 지우면(개별 요청 대신) 최대 근무자 수만큼의 요청으로 끝난다.
+  if (clearedCells.length > 0) {
+    const datesByEmployee = new Map<string, string[]>();
+    for (const c of clearedCells) {
+      const arr = datesByEmployee.get(c.employee_id) ?? [];
+      arr.push(c.work_date);
+      datesByEmployee.set(c.employee_id, arr);
+    }
+    for (const [employeeId, dates] of datesByEmployee) {
+      const { error } = await supabase
+        .from("shifts")
+        .delete()
+        .eq("employee_id", employeeId)
+        .in("work_date", dates);
+      if (error) return { error: error.message };
+    }
+  }
+
   if (rows.length === 0) return { error: null };
 
   // 1단계: 전부 is_main=false로 업서트 (메인당직 유니크 제약 충돌 방지)

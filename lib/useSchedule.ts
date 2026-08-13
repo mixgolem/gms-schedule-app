@@ -165,6 +165,7 @@ export function useSchedule(year: number, month: number) {
             hours: e.hours,
             start_time: e.start,
             end_time: e.end,
+            reason: e.reason,
           }))
         );
         if (insertError) return { error: insertError };
@@ -172,6 +173,22 @@ export function useSchedule(year: number, month: number) {
 
       await fetchData();
       return { error: null };
+    },
+    [fetchData]
+  );
+
+  // 특정 근무자의 특정 날짜 근무 기록을 통째로 삭제 (연결된 부분사용 항목은
+  // shift_leave_usage의 on delete cascade로 함께 지워진다)
+  const deleteShift = useCallback(
+    async (employeeId: string, workDate: string) => {
+      const { error } = await supabase
+        .from("shifts")
+        .delete()
+        .eq("employee_id", employeeId)
+        .eq("work_date", workDate);
+
+      const fresh = await fetchData();
+      return { error, shifts: fresh.shifts };
     },
     [fetchData]
   );
@@ -199,6 +216,29 @@ export function useSchedule(year: number, month: number) {
         await supabase.from("holidays").delete().eq("work_date", workDate);
       } else {
         await supabase.from("holidays").insert({ work_date: workDate, name: name ?? null });
+
+        // 공휴일로 지정하면, 그날 주간·대휴로 잡혀있던 사람은 전부 휴무로 바꾼다
+        const { data: affected } = await supabase
+          .from("shifts")
+          .select("id")
+          .eq("work_date", workDate)
+          .in("shift_type", ["day", "leave"]);
+
+        if (affected && affected.length > 0) {
+          const ids = affected.map((s) => s.id);
+          await supabase.from("shift_leave_usage").delete().in("shift_id", ids);
+          await supabase
+            .from("shifts")
+            .update({
+              shift_type: "off",
+              is_main: false,
+              start_time: null,
+              end_time: null,
+              leave_for_date: null,
+              updated_at: new Date().toISOString(),
+            })
+            .in("id", ids);
+        }
       }
       await fetchData();
     },
@@ -213,6 +253,7 @@ export function useSchedule(year: number, month: number) {
     weeks,
     loading,
     upsertShift,
+    deleteShift,
     syncLeaveUsages,
     toggleHoliday,
     resetMonth,
