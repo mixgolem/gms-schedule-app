@@ -18,9 +18,9 @@ export default function MonthlyStatsTable({ year, month, employees, shifts, leav
 
   return (
     <div className="border rounded-lg p-3 transition-shadow duration-150 hover:shadow-sm">
-      <p className="text-sm font-medium text-gray-700 mb-2">
+      <p className="text-sm font-medium text-black mb-2">
         {month}월 근무시간 통계{" "}
-        <span className="text-xs text-gray-600 font-normal">
+        <span className="text-xs text-black font-normal">
           (일 기준 8시간, 연차·대휴 사용시간 차감)
         </span>
       </p>
@@ -46,7 +46,7 @@ export default function MonthlyStatsTable({ year, month, employees, shifts, leav
                 key={row.employeeId}
                 className="border-t divide-x divide-gray-300 transition-colors duration-150 hover:bg-gray-100"
               >
-                <td className="py-1 pr-3 text-gray-400">{employeeLabel(row.sortOrder - 1)}</td>
+                <td className="py-1 pr-3 text-black">{employeeLabel(row.sortOrder - 1)}</td>
                 <td className="py-1 pl-2 pr-3 whitespace-nowrap">{row.employeeName}</td>
                 <td className="py-1 px-2 text-right">{row.totalHours}h</td>
                 <td className="py-1 px-2 text-right">{row.workDays}일</td>

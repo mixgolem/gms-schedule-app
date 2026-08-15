@@ -98,7 +98,7 @@ export default function FullRestoreModal({ open, onClose }: Props) {
             type="button"
             onClick={handleClose}
             disabled={isBusy}
-            className="text-gray-400 hover:text-gray-700 text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110 disabled:opacity-30 disabled:pointer-events-none"
+            className="text-black text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110 disabled:opacity-30 disabled:pointer-events-none"
           >
             ✕
           </button>
@@ -107,8 +107,8 @@ export default function FullRestoreModal({ open, onClose }: Props) {
         {isBusy ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-sm">
             <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-blue-900 animate-spin" />
-            <p className="text-gray-900 font-medium">{progress ?? "복원 중..."}</p>
-            <p className="text-xs text-gray-600 text-center">
+            <p className="text-black font-medium">{progress ?? "복원 중..."}</p>
+            <p className="text-xs text-black text-center">
               데이터를 지우고 다시 채우는 중이에요. 창을 닫거나 새로고침하지 마세요.
             </p>
           </div>
@@ -132,13 +132,13 @@ export default function FullRestoreModal({ open, onClose }: Props) {
                     accept=".json"
                     onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                     disabled={status === "parsing"}
-                    className="text-sm text-gray-500 disabled:opacity-50 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-300 file:bg-white file:text-sm file:font-medium file:text-gray-700 file:cursor-pointer file:transition-all file:duration-150 hover:file:bg-gray-100 hover:file:border-gray-400"
+                    className="text-sm text-black disabled:opacity-50 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-300 file:bg-white file:text-sm file:font-medium file:text-black file:cursor-pointer file:transition-all file:duration-150 hover:file:bg-gray-100 hover:file:border-gray-400"
                   />
                 )}
               </>
             )}
 
-            {status === "parsing" && <p className="text-gray-600">읽는 중...</p>}
+            {status === "parsing" && <p className="text-black">읽는 중...</p>}
             {status === "done" && (
               <p className="text-green-600">복원 완료! 잠시 후 페이지를 새로고침할게요.</p>
             )}
@@ -180,7 +180,7 @@ export default function FullRestoreModal({ open, onClose }: Props) {
                   </table>
                 </div>
                 {backup.exportedAt && (
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-black">
                     백업 생성 시각: {new Date(backup.exportedAt).toLocaleString("ko-KR")}
                   </p>
                 )}

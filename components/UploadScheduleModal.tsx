@@ -92,7 +92,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
+            className="text-black text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
           >
             ✕
           </button>
@@ -103,7 +103,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
             <p className="text-red-500">로그인한 사용자만 업로드할 수 있어요.</p>
           ) : (
             <>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-black">
                 A열: 날짜, B열부터 1행에 근무자 글자(A,B,C...)를 적고 그 아래 근무코드(메/조/야/여/주/휴/대)를
                 채운 .xlsx 양식을 올려주세요. 열 순서는 상관없이 1행 글자로 매칭되고, 인원수
                 제한도 없어요. 아래에서 날짜·직원 매칭을 확인한 뒤 &quot;적용&quot;을 눌러야
@@ -117,14 +117,14 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                   accept=".xlsx"
                   onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                   disabled={status === "parsing"}
-                  className="text-sm text-gray-500 disabled:opacity-50 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-300 file:bg-white file:text-sm file:font-medium file:text-gray-700 file:cursor-pointer file:transition-all file:duration-150 hover:file:bg-gray-100 hover:file:border-gray-400"
+                  className="text-sm text-black disabled:opacity-50 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-300 file:bg-white file:text-sm file:font-medium file:text-black file:cursor-pointer file:transition-all file:duration-150 hover:file:bg-gray-100 hover:file:border-gray-400"
                 />
               )}
             </>
           )}
 
-          {status === "parsing" && <p className="text-gray-600">읽는 중...</p>}
-          {status === "saving" && <p className="text-gray-600">저장 중...</p>}
+          {status === "parsing" && <p className="text-black">읽는 중...</p>}
+          {status === "saving" && <p className="text-black">저장 중...</p>}
           {status === "done" && summary && <p className="text-green-600">{summary}</p>}
           {status === "error" && errorMsg && <p className="text-red-600">{errorMsg}</p>}
 
@@ -136,7 +136,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
 
           {parsed && (status === "parsed" || status === "saving") && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-600">
+              <p className="text-xs font-medium text-black">
                 미리보기 — 날짜와 A~G 매칭을 확인해주세요
               </p>
               <div className="border rounded-lg overflow-auto max-h-64">
@@ -148,7 +148,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                         <th key={i} className="px-2 py-1 text-left border-b whitespace-nowrap">
                           {employeeLabel(i)}
                           <br />
-                          <span className="text-gray-400 font-normal">{name ?? "(없음)"}</span>
+                          <span className="text-black font-normal">{name ?? "(없음)"}</span>
                         </th>
                       ))}
                     </tr>

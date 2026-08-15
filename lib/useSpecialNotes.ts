@@ -9,11 +9,13 @@ export interface SpecialNoteGroup {
   employeeId: string;
   employeeName: string;
   sortOrder: number;
-  dates: string[]; // yyyy-MM-dd, 오래된 순
+  dates: string[]; // yyyy-MM-dd, 오래된 순 - 주말근무인데 대휴 미지정
+  unassignedLeaveDates: string[]; // yyyy-MM-dd, 오래된 순 - 대휴인데 원래근무일 미지정
 }
 
 // 활성 직원이 토요일/일요일(공휴일 제외)에 새벽·주간·야간으로 근무했는데,
-// 그 날짜를 보상 대상으로 지정한 대휴 기록이 없는 경우를 월과 상관없이 전체 기간에서 찾는다.
+// 그 날짜를 보상 대상으로 지정한 대휴 기록이 없는 경우와, 반대로 대휴로 잡혀있는데
+// 원래근무일이 지정 안 된 경우를 월과 상관없이 전체 기간에서 찾는다.
 // 대상이 없는 직원도 구분/이름은 그대로 나오도록 활성 직원 전원을 기준으로 그룹을 만든다.
 export function useSpecialNotes() {
   const [groups, setGroups] = useState<SpecialNoteGroup[]>([]);
@@ -24,19 +26,29 @@ export function useSpecialNotes() {
   const fetchData = useCallback(async () => {
     const requestId = ++requestIdRef.current;
     setLoading(true);
-    const [{ data: emp }, { data: worked }, { data: leaves }, { data: hols }] = await Promise.all([
-      supabase.from("employees").select("id, name, sort_order").eq("active", true).order("sort_order"),
-      supabase
-        .from("shifts")
-        .select("employee_id, work_date")
-        .in("shift_type", ["dawn", "day", "night"]),
-      supabase
-        .from("shifts")
-        .select("employee_id, leave_for_date")
-        .eq("shift_type", "leave")
-        .not("leave_for_date", "is", null),
-      supabase.from("holidays").select("work_date"),
-    ]);
+    const [{ data: emp }, { data: worked }, { data: leaves }, { data: hols }, { data: unassignedLeaves }] =
+      await Promise.all([
+        supabase
+          .from("employees")
+          .select("id, name, sort_order")
+          .eq("active", true)
+          .order("sort_order"),
+        supabase
+          .from("shifts")
+          .select("employee_id, work_date")
+          .in("shift_type", ["dawn", "day", "night"]),
+        supabase
+          .from("shifts")
+          .select("employee_id, leave_for_date")
+          .eq("shift_type", "leave")
+          .not("leave_for_date", "is", null),
+        supabase.from("holidays").select("work_date"),
+        supabase
+          .from("shifts")
+          .select("employee_id, work_date")
+          .eq("shift_type", "leave")
+          .is("leave_for_date", null),
+      ]);
 
     const employees = emp ?? [];
     const holidaySet = new Set<string>((hols ?? []).map((h) => h.work_date));
@@ -45,7 +57,11 @@ export function useSpecialNotes() {
     );
 
     const datesByEmployee = new Map<string, string[]>();
-    for (const e of employees) datesByEmployee.set(e.id, []);
+    const unassignedLeaveByEmployee = new Map<string, string[]>();
+    for (const e of employees) {
+      datesByEmployee.set(e.id, []);
+      unassignedLeaveByEmployee.set(e.id, []);
+    }
 
     for (const w of worked ?? []) {
       if (!datesByEmployee.has(w.employee_id)) continue; // 비활성 직원 제외
@@ -55,11 +71,17 @@ export function useSpecialNotes() {
       datesByEmployee.get(w.employee_id)!.push(w.work_date);
     }
 
+    for (const l of unassignedLeaves ?? []) {
+      if (!unassignedLeaveByEmployee.has(l.employee_id)) continue; // 비활성 직원 제외
+      unassignedLeaveByEmployee.get(l.employee_id)!.push(l.work_date);
+    }
+
     const result: SpecialNoteGroup[] = employees.map((e) => ({
       employeeId: e.id,
       employeeName: e.name,
       sortOrder: e.sort_order,
       dates: (datesByEmployee.get(e.id) ?? []).sort(),
+      unassignedLeaveDates: (unassignedLeaveByEmployee.get(e.id) ?? []).sort(),
     }));
 
     if (requestId !== requestIdRef.current) return;

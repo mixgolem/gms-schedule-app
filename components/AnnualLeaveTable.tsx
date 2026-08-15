@@ -17,9 +17,9 @@ export default function AnnualLeaveTable({ year, month, canEdit }: Props) {
 
   return (
     <div className="border rounded-lg p-3 transition-shadow duration-150 hover:shadow-sm">
-      <p className="text-sm font-medium text-gray-700 mb-2">
+      <p className="text-sm font-medium text-black mb-2">
         연차 내역(시간){" "}
-        <span className="text-xs text-gray-600 font-normal">
+        <span className="text-xs text-black font-normal">
           ({fiscalYearStart}년 7월~{fiscalYearStart + 1}년 6월 기준, 사용일은 {month}월만 표시)
         </span>
       </p>
@@ -50,7 +50,7 @@ export default function AnnualLeaveTable({ year, month, canEdit }: Props) {
                 key={row.employeeId}
                 className="border-t divide-x divide-gray-300 transition-colors duration-150 hover:bg-gray-100"
               >
-                <td className="py-1 pr-3 text-gray-400">{employeeLabel(row.sortOrder - 1)}</td>
+                <td className="py-1 pr-3 text-black">{employeeLabel(row.sortOrder - 1)}</td>
                 <td className="py-1 pl-2 pr-3 whitespace-nowrap">{row.employeeName}</td>
                 <td className="py-1 px-2 text-right">
                   <EditableNumberCell

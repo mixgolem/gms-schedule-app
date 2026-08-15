@@ -36,7 +36,7 @@ export default function ShiftSidebar({ open, title, onClose, children }: Props) 
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
+            className="text-black text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
           >
             ✕
           </button>

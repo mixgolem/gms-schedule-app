@@ -26,7 +26,7 @@ interface Props {
 }
 
 const DAY_BADGE_CLASS: Record<string, string> = {
-  default: "text-gray-600 hover:bg-gray-100",
+  default: "text-black hover:bg-gray-100",
   saturday: "bg-sky-100 text-sky-700 hover:bg-sky-200",
   sunday: "bg-red-100 text-red-700 hover:bg-red-200",
   holiday: "bg-red-200 text-red-800 hover:bg-red-300",
@@ -170,7 +170,7 @@ export default function CalendarGrid({
             </div>
 
             <div className="w-full md:w-36 shrink-0 border rounded-lg p-2 bg-gray-50 transition-shadow duration-150 hover:shadow-sm">
-              <p className="text-[11px] font-medium text-gray-500 px-0.5 mb-1">주간 근무시간</p>
+              <p className="text-[11px] font-medium text-black px-0.5 mb-1">주간 근무시간</p>
               <div className="space-y-1">
                 {weeklyHours.map((r) => (
                   <div
@@ -178,7 +178,7 @@ export default function CalendarGrid({
                     className="flex items-center justify-between gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs transition-colors duration-150 hover:bg-gray-100"
                   >
                     <span className="font-medium truncate">{r.employeeName}</span>
-                    <span className="text-gray-500 shrink-0">{r.hours}h</span>
+                    <span className="text-black shrink-0">{r.hours}h</span>
                   </div>
                 ))}
               </div>

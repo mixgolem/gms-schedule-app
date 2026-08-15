@@ -51,19 +51,19 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
+            className="text-black text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
           >
             ✕
           </button>
         </div>
 
         <div className="p-4 space-y-3">
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-black">
             새벽/주간/야간 근무를 새로 등록할 때 기본으로 채워질 출근·퇴근 시각이에요. 이미 저장된
             근무 기록에는 영향을 주지 않아요.
           </p>
           {loading ? (
-            <p className="text-sm text-gray-600">불러오는 중...</p>
+            <p className="text-sm text-black">불러오는 중...</p>
           ) : (
             TYPES.map((type) => (
               <div key={type} className="flex items-center justify-between gap-3 border rounded-lg p-2">
@@ -73,7 +73,7 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
                     value={draft[type].start}
                     onChange={(v) => setDraft((prev) => ({ ...prev, [type]: { ...prev[type], start: v } }))}
                   />
-                  <span className="text-gray-400 text-xs">~</span>
+                  <span className="text-black text-xs">~</span>
                   <TimeInput24
                     value={toDisplay(draft[type].end)}
                     onChange={(v) => setDraft((prev) => ({ ...prev, [type]: { ...prev[type], end: v } }))}

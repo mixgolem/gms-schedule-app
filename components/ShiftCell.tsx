@@ -27,6 +27,8 @@ export default function ShiftCell({
   const current = shift?.shift_type ?? null;
   const isMain = shift?.is_main ?? false;
   const invalid = !!invalidReason;
+  // 대휴인데 원래근무일이 아직 지정 안 된 경우 - 파란 글자로 눈에 띄게 표시
+  const unassignedLeave = current === "leave" && !shift?.leave_for_date;
 
   const { timeLabel, usageSuffix, isFullyOnLeave } = computeShiftDisplay(shift, leaveUsages);
 
@@ -44,7 +46,11 @@ export default function ShiftCell({
         .filter((c) => !c.startsWith("text-"))
         .join(" ")
     : "bg-white border-gray-200";
-  const colorClass = invalid ? `${bgBorderClass} text-red-800 font-bold` : `${bgBorderClass} text-black`;
+  const colorClass = invalid
+    ? `${bgBorderClass} text-red-800 font-bold`
+    : unassignedLeave
+    ? `${bgBorderClass} text-blue-600 font-bold`
+    : `${bgBorderClass} text-black`;
 
   const isWhiteBg = !current || !showColors;
   const hoverClass = isWhiteBg ? "hover:bg-gray-100" : "hover:brightness-95";
@@ -59,7 +65,7 @@ export default function ShiftCell({
           ? `cursor-pointer hover:shadow-sm hover:-translate-y-0.5 ${hoverClass} active:translate-y-0 active:shadow-none`
           : "cursor-default"
       }`}
-      title={invalidReason ?? undefined}
+      title={invalidReason ?? (unassignedLeave ? "대휴 원래근무일이 아직 지정 안 됐어요" : undefined)}
     >
       <span className="font-bold text-[13px]">{employeeName}</span>
       {timeLabel && <span className="font-medium">{timeLabel}</span>}

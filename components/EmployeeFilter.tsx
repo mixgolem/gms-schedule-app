@@ -36,7 +36,7 @@ export default function EmployeeFilter({ employees, selectedIds, mode, onSelect 
 
   return (
     <div className="w-full space-y-1">
-      <p className="text-xs font-medium text-gray-500 px-1 mb-1">근무자별 조회</p>
+      <p className="text-xs font-medium text-black px-1 mb-1">근무자별 조회</p>
       <Button
         onClick={() => onSelect([], "highlight")}
         active={selectedIds.length === 0}
@@ -51,14 +51,14 @@ export default function EmployeeFilter({ employees, selectedIds, mode, onSelect 
           active={selectedIds.includes(emp.id)}
           className="w-full justify-start"
         >
-          <span className="mr-1 text-gray-400">{employeeLabel(emp.sort_order - 1)}</span>
+          <span className="mr-1 text-black">{employeeLabel(emp.sort_order - 1)}</span>
           {emp.name}
           {selectedIds.includes(emp.id) && (
             <span className="ml-1 text-xs opacity-80">{mode === "highlight" ? "강조" : "나만"}</span>
           )}
         </Button>
       ))}
-      <p className="text-[11px] text-gray-500 px-1 pt-1 leading-snug">
+      <p className="text-[11px] text-black px-1 pt-1 leading-snug">
         근무자를 누르면 전체보기에서 그 사람 근무가 색으로 강조돼요(여러 명 동시에 가능). 강조된
         사람을 한 번 더 누르면 그 사람 근무만 보이고, 이때 다른 강조는 풀려요. 다시 누르면
         전체보기로 돌아가요.

@@ -259,14 +259,14 @@ export default function EmployeeShiftEditor({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-base font-semibold text-gray-900">
+        <p className="text-base font-semibold text-black">
           {date} ({weekdayLabel(date)})
         </p>
-        <p className="text-lg font-bold text-gray-900">{employee.name}</p>
+        <p className="text-lg font-bold text-black">{employee.name}</p>
       </div>
 
       <div>
-        <p className="text-xs text-gray-900 mb-1">근무형태</p>
+        <p className="text-xs text-black mb-1">근무형태</p>
         <div className="grid grid-cols-5 gap-1">
           {TYPES.map((t) => (
             <Button
@@ -310,7 +310,7 @@ export default function EmployeeShiftEditor({
 
           {myUnresolvedDates.length > 0 && (
             <div className="space-y-1">
-              <p className="text-xs text-gray-900">대휴 미지정 근무일</p>
+              <p className="text-xs text-black">대휴 미지정 근무일</p>
               <div className="flex flex-wrap gap-1">
                 {myUnresolvedDates.map((d) => (
                   <Button
@@ -331,7 +331,7 @@ export default function EmployeeShiftEditor({
 
       {hasHours(type) && currentDefault && (
         <div className="space-y-2">
-          <p className="text-xs text-gray-900">
+          <p className="text-xs text-black">
             근무시간 · 기본 {currentDefault.start} ~{" "}
             {crossesMidnight(currentDefault.start, currentDefault.end) ? "익일 " : ""}
             {currentDefault.end}
@@ -350,7 +350,7 @@ export default function EmployeeShiftEditor({
 
       {hasHours(type) && (
         <div className="space-y-2">
-          <p className="text-xs text-gray-900">
+          <p className="text-xs text-black">
             근무 중 부분 연차/대휴 사용 (기본 근무시간 안에서만 지정 가능)
           </p>
 
@@ -359,7 +359,7 @@ export default function EmployeeShiftEditor({
               {subEntries.map((entry) => (
                 <div key={entry.key} className="border rounded-lg p-2 space-y-2 bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-900">
+                    <span className="text-xs font-medium text-black">
                       {USAGE_LABELS[entry.usageType]}
                     </span>
                     {canEdit && (

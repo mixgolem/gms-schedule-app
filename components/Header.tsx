@@ -8,6 +8,7 @@ import UploadScheduleModal from "./UploadScheduleModal";
 import ShiftDefaultsModal from "./ShiftDefaultsModal";
 import FullRestoreModal from "./FullRestoreModal";
 import ShiftPatternModal from "./ShiftPatternModal";
+import WeekendCompLeaveModal from "./WeekendCompLeaveModal";
 import Button from "./ui/Button";
 import { exportFullBackupJson } from "@/lib/fullBackupExport";
 
@@ -19,6 +20,7 @@ export default function Header() {
   const [defaultsOpen, setDefaultsOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [patternOpen, setPatternOpen] = useState(false);
+  const [weekendCompLeaveOpen, setWeekendCompLeaveOpen] = useState(false);
 
   const handleFullBackup = async () => {
     const { error } = await exportFullBackupJson();
@@ -36,6 +38,7 @@ export default function Header() {
               <Button onClick={() => setManagerOpen(true)}>직원 관리</Button>
               <Button onClick={() => setUploadOpen(true)}>근무표 업로드</Button>
               <Button onClick={() => setPatternOpen(true)}>근무패턴 관리</Button>
+              <Button onClick={() => setWeekendCompLeaveOpen(true)}>주말:대휴 연결</Button>
               {resetInfo?.canReset && (
                 <Button variant="danger" onClick={resetInfo.onReset}>
                   이번 달 초기화
@@ -56,7 +59,7 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-all duration-150 ease-out hover:-translate-y-0.5 hover:border-gray-300 hover:bg-gray-100 hover:shadow-sm active:translate-y-0"
+              className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-black transition-all duration-150 ease-out hover:-translate-y-0.5 hover:border-gray-300 hover:bg-gray-100 hover:shadow-sm active:translate-y-0"
             >
               로그인
             </Link>
@@ -67,6 +70,10 @@ export default function Header() {
       <EmployeeManagerModal open={managerOpen} onClose={() => setManagerOpen(false)} />
       <UploadScheduleModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
       <ShiftPatternModal open={patternOpen} onClose={() => setPatternOpen(false)} />
+      <WeekendCompLeaveModal
+        open={weekendCompLeaveOpen}
+        onClose={() => setWeekendCompLeaveOpen(false)}
+      />
       <ShiftDefaultsModal open={defaultsOpen} onClose={() => setDefaultsOpen(false)} />
       <FullRestoreModal open={restoreOpen} onClose={() => setRestoreOpen(false)} />
     </header>

@@ -51,10 +51,10 @@ export default function ConfirmPhraseDialog({
         onSubmit={handleSubmit}
         className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 animate-[popIn_150ms_ease-out]"
       >
-        <p className="font-semibold text-sm text-gray-900">{title}</p>
-        <p className="text-xs text-gray-600 whitespace-pre-line">{message}</p>
+        <p className="font-semibold text-sm text-black">{title}</p>
+        <p className="text-xs text-black whitespace-pre-line">{message}</p>
         <div>
-          <label className="text-xs text-gray-900 block mb-1">
+          <label className="text-xs text-black block mb-1">
             계속하려면 <span className="font-bold">{phrase}</span>을(를) 입력하고 Enter를
             누르세요
           </label>

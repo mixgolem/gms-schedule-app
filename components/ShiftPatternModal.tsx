@@ -13,7 +13,6 @@ import {
   PATTERN_DAYS,
 } from "@/lib/shiftPatternImport";
 import { generatePatternRows, applyPatternRows } from "@/lib/shiftPatternApply";
-import { linkWeekendCompLeave } from "@/lib/weekendCompLeaveLink";
 import { employeeLabel } from "@/lib/types";
 import { todayStr, parseLocalDate } from "@/lib/dateUtils";
 import Button from "./ui/Button";
@@ -23,7 +22,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Status = "idle" | "parsing" | "parsed" | "saving" | "applying" | "linking" | "done" | "error";
+type Status = "idle" | "parsing" | "parsed" | "saving" | "applying" | "done" | "error";
 
 // 미리보기에서 원래 엑셀에 적었던 한 글자 코드로 다시 보여주기 위한 역매핑
 const PREVIEW_CODE: Record<string, string> = {
@@ -57,8 +56,6 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
   const [inputKey, setInputKey] = useState(0);
   const [startDate, setStartDate] = useState(todayStr());
   const [cycles, setCycles] = useState(DEFAULT_CYCLES);
-  const [linkStartDate, setLinkStartDate] = useState(todayStr());
-  const [linkEndDate, setLinkEndDate] = useState(todayStr());
 
   if (!open) return null;
 
@@ -135,7 +132,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
     }
 
     const ok = window.confirm(
-      `${startDate} ~ ${endDate} 기간에 이 패턴을 적용할까요?\n이 기간에 이미 있던 근무 기록은 지워지고 패턴 내용으로 대체돼요(빈칸인 근무자·날짜는 새로 채워지지 않고 기존 기록만 삭제돼요). 되돌릴 수 없어요.`
+      `반드시 패턴 시작일을 확인하여 적용하세요.\n\n${startDate} ~ ${endDate} 기간에 이 패턴을 적용할까요?\n이 기간에 이미 있던 근무 기록은 지워지고 패턴 내용으로 대체돼요(빈칸인 근무자·날짜는 새로 채워지지 않고 기존 기록만 삭제돼요). 되돌릴 수 없어요.`
     );
     if (!ok) return;
 
@@ -158,41 +155,6 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
     });
   };
 
-  const handleLinkWeekendCompLeave = async () => {
-    if (linkEndDate < linkStartDate) {
-      setErrorMsg("종료일이 시작일보다 빠를 수 없어요.");
-      setStatus("error");
-      return;
-    }
-
-    const ok = window.confirm(
-      `${linkStartDate} ~ ${linkEndDate} 기간에서, 주말(토/일)에 근무한 날과 아직 원래근무일이 지정되지 않은 대휴를 근무자별로 날짜가 가까운 순서로 자동 연결할까요?\n공휴일 근무는 대상에서 제외되고, 이미 연결된 대휴는 그대로 유지돼요.`
-    );
-    if (!ok) return;
-
-    setStatus("linking");
-    setErrorMsg(null);
-    setSummary(null);
-
-    await runWithLoading("주말:대휴 연결 중...", async () => {
-      const { matchedCount, unmatchedWorkCount, error } = await linkWeekendCompLeave(
-        linkStartDate,
-        linkEndDate
-      );
-      if (error) {
-        setStatus("error");
-        setErrorMsg(`연결 실패: ${error}`);
-        return;
-      }
-
-      setStatus("done");
-      setSummary(
-        `${matchedCount}건 연결 완료!` +
-          (unmatchedWorkCount > 0 ? ` (짝을 찾지 못한 주말근무 ${unmatchedWorkCount}건 있음)` : "")
-      );
-    });
-  };
-
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
@@ -202,7 +164,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
+            className="text-black text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
           >
             ✕
           </button>
@@ -214,8 +176,8 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
           ) : (
             <>
               {current && !parsedDays && (
-                <div className="text-xs text-gray-700 bg-gray-50 border rounded-lg px-3 py-2">
-                  <p className="font-medium text-gray-900 mb-0.5">현재 등록된 패턴</p>
+                <div className="text-xs text-black bg-gray-50 border rounded-lg px-3 py-2">
+                  <p className="font-medium text-black mb-0.5">현재 등록된 패턴</p>
                   <p>파일명: {current.filename}</p>
                   <p>업로더: {current.uploadedByEmail ?? "알 수 없음"}</p>
                   <p>업로드 시각: {new Date(current.uploadedAt).toLocaleString("ko-KR")}</p>
@@ -245,13 +207,13 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
               )}
 
               <div className="space-y-2">
-                <p className="text-xs text-gray-900">
+                <p className="text-xs text-black">
                   A열: 참고용(무시), B열부터 1행에 근무자 글자(A,B,C...)를 적고 2행부터{" "}
                   {PATTERN_DAYS}행까지 {PATTERN_DAYS}일치 패턴(메/조/야/여/주/휴/대)이 담긴 .xlsx를
                   올려주세요. 열 순서는 상관없이 1행 글자로 매칭되고, 인원수 제한도 없어요.
                 </p>
-                <div className="text-xs text-gray-700 bg-gray-50 border rounded-lg px-3 py-2 leading-relaxed">
-                  <p className="font-medium text-gray-900 mb-0.5">검증 기준</p>
+                <div className="text-xs text-black bg-gray-50 border rounded-lg px-3 py-2 leading-relaxed">
+                  <p className="font-medium text-black mb-0.5">검증 기준</p>
                   <p>· 하루(행)마다 메·조·야·여가 각각 정확히 1개씩</p>
                   <p>· 근무자(열)별 49일 동안 메·조·야·여·주 각 7개, 대 8개, 휴 6개</p>
                 </div>
@@ -262,16 +224,14 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                     accept=".xlsx"
                     onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                     disabled={status === "parsing"}
-                    className="text-sm text-gray-500 disabled:opacity-50 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-300 file:bg-white file:text-sm file:font-medium file:text-gray-700 file:cursor-pointer file:transition-all file:duration-150 hover:file:bg-gray-100 hover:file:border-gray-400"
+                    className="text-sm text-black disabled:opacity-50 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-300 file:bg-white file:text-sm file:font-medium file:text-black file:cursor-pointer file:transition-all file:duration-150 hover:file:bg-gray-100 hover:file:border-gray-400"
                   />
                 )}
               </div>
 
-              {status === "parsing" && <p className="text-gray-600">읽는 중...</p>}
-              {(status === "saving" || status === "applying" || status === "linking") && (
-                <p className="text-gray-600">
-                  {status === "saving" ? "저장 중..." : status === "applying" ? "적용 중..." : "연결 중..."}
-                </p>
+              {status === "parsing" && <p className="text-black">읽는 중...</p>}
+              {(status === "saving" || status === "applying") && (
+                <p className="text-black">{status === "saving" ? "저장 중..." : "적용 중..."}</p>
               )}
               {summary && <p className="text-green-600">{summary}</p>}
               {errorMsg && <p className="text-red-600">{errorMsg}</p>}
@@ -339,7 +299,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                             <th
                               key={i}
                               className={`px-2 py-1 text-left border-b whitespace-nowrap ${
-                                activePresentSlots[i] ? "" : "text-gray-300"
+                                activePresentSlots[i] ? "" : "text-black"
                               }`}
                               title={activePresentSlots[i] ? undefined : "이 패턴에 없는 자리"}
                             >
@@ -351,7 +311,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                       <tbody>
                         {activePattern.map((row, i) => (
                           <tr key={i} className="border-b last:border-b-0">
-                            <td className="px-2 py-1 whitespace-nowrap text-gray-500">{i + 1}</td>
+                            <td className="px-2 py-1 whitespace-nowrap text-black">{i + 1}</td>
                             {row.map((cell, ci) => (
                               <td key={ci} className="px-2 py-1 text-center">
                                 {cell ? PREVIEW_CODE[`${cell.shiftType}:${cell.isMain}`] ?? "?" : ""}
@@ -364,7 +324,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                   </div>
 
                   <div className="space-y-2 border-t pt-3">
-                    <p className="text-xs font-medium text-gray-900">
+                    <p className="text-xs font-medium text-black">
                       &quot;{activeFilename}&quot; 패턴 적용
                     </p>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -391,8 +351,11 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                         />
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-black">
                       총 {totalDays}일 적용 · 종료일: {endDate}
+                    </p>
+                    <p className="text-sm font-bold text-red-600">
+                      반드시 패턴 시작일을 확인하여 적용하세요.
                     </p>
                     <Button
                       variant="danger"
@@ -404,44 +367,6 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                     </Button>
                   </div>
                 </>
-              )}
-
-              {!parsedDays && (
-                <div className="space-y-2 border-t pt-3">
-                  <p className="text-xs font-medium text-gray-900">주말근무 ↔ 대휴 자동 연결</p>
-                  <p className="text-xs text-gray-600">
-                    지정한 기간에서 주말(토/일)에 근무한 날과 원래근무일이 비어있는 대휴를
-                    근무자별로 날짜가 가까운 순서로 자동 연결해요. 공휴일 근무는 제외되고, 이미
-                    연결된 대휴는 그대로 유지돼요.
-                  </p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div>
-                      <label className="text-xs text-blue-900 block mb-0.5">시작일</label>
-                      <input
-                        type="date"
-                        value={linkStartDate}
-                        onChange={(e) => setLinkStartDate(e.target.value)}
-                        className="border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-blue-900 block mb-0.5">종료일</label>
-                      <input
-                        type="date"
-                        value={linkEndDate}
-                        onChange={(e) => setLinkEndDate(e.target.value)}
-                        className="border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleLinkWeekendCompLeave}
-                    disabled={status === "linking"}
-                    className="w-full py-2"
-                  >
-                    {status === "linking" ? "연결 중..." : "주말:대휴 적용"}
-                  </Button>
-                </div>
               )}
             </>
           )}

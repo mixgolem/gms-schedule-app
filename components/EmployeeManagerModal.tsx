@@ -72,7 +72,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
+            className="text-black text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
           >
             ✕
           </button>
@@ -80,7 +80,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {loading ? (
-            <p className="text-sm text-gray-600">불러오는 중...</p>
+            <p className="text-sm text-black">불러오는 중...</p>
           ) : (
             sorted.map((emp, i) => (
               <div
@@ -89,7 +89,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                   emp.active ? "bg-white" : "bg-gray-50 opacity-60"
                 }`}
               >
-                <span className="w-5 text-xs font-semibold text-gray-400 shrink-0">
+                <span className="w-5 text-xs font-semibold text-black shrink-0">
                   {employeeLabel(emp.sort_order - 1)}
                 </span>
 
@@ -124,7 +124,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                   >
                     <span className="truncate">{emp.name}</span>
                     {emp.employee_number && (
-                      <span className="text-xs text-gray-400 font-normal shrink-0">
+                      <span className="text-xs text-black font-normal shrink-0">
                         #{emp.employee_number}
                       </span>
                     )}

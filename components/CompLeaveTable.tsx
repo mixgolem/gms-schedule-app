@@ -17,9 +17,9 @@ export default function CompLeaveTable({ year, month, canEdit }: Props) {
 
   return (
     <div className="border rounded-lg p-3 transition-shadow duration-150 hover:shadow-sm">
-      <p className="text-sm font-medium text-gray-700 mb-2">
+      <p className="text-sm font-medium text-black mb-2">
         대체휴무 내역{" "}
-        <span className="text-xs text-gray-600 font-normal">
+        <span className="text-xs text-black font-normal">
           ({year - 1}년 12월 ~ {year}년 11월, 당월 내역은 {month}월 기준)
         </span>
       </p>
@@ -61,7 +61,7 @@ export default function CompLeaveTable({ year, month, canEdit }: Props) {
                 key={row.employeeId}
                 className="border-t divide-x divide-gray-300 transition-colors duration-150 hover:bg-gray-100"
               >
-                <td className="py-1 pr-3 text-gray-400">{employeeLabel(row.sortOrder - 1)}</td>
+                <td className="py-1 pr-3 text-black">{employeeLabel(row.sortOrder - 1)}</td>
                 <td className="py-1 pl-2 pr-3 whitespace-nowrap">{row.employeeName}</td>
                 {row.monthlyHours.map((v, ci) => {
                   const { year: y, month: m } = monthColumnToYearMonth(year, ci);
@@ -92,7 +92,7 @@ export default function CompLeaveTable({ year, month, canEdit }: Props) {
                 <td className="py-1 px-2 whitespace-nowrap">
                   {row.usedThisMonthDates.map((d) => `${d}일`).join(", ")}
                 </td>
-                <td className="py-1 px-2 text-right text-gray-500">
+                <td className="py-1 px-2 text-right text-black">
                   {row.autoAccrualThisMonth ? `${row.autoAccrualThisMonth}h` : ""}
                 </td>
               </tr>

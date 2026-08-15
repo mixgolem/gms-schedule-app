@@ -33,7 +33,7 @@ export default function TimeInput24({ value, disabled, onChange }: Props) {
           </option>
         ))}
       </select>
-      <span className="text-gray-400">:</span>
+      <span className="text-black">:</span>
       <select
         value={minute}
         disabled={disabled}

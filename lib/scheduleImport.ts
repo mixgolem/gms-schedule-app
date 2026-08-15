@@ -161,9 +161,30 @@ export async function applyParsedSchedule(
 
   if (rows.length === 0) return { error: null };
 
+  // 이미 공휴일로 지정된 날짜에 주간/대휴로 쓰려는 행은 자동으로 휴무로 바꾼다.
+  // (공휴일 지정 체크박스를 켤 때는 그 시점에 있던 기록만 바뀌는데, 그 이후에 근무표
+  // 업로드나 근무패턴 적용으로 같은 날짜에 새로 주간/대휴를 쓰면 그때는 안 걸리던 문제)
+  const dates = rows.map((r) => r.work_date).sort();
+  const { data: holidayRows, error: holidayError } = await supabase
+    .from("holidays")
+    .select("work_date")
+    .gte("work_date", dates[0])
+    .lte("work_date", dates[dates.length - 1]);
+  if (holidayError) return { error: holidayError.message };
+
+  const holidaySet = new Set((holidayRows ?? []).map((h) => h.work_date));
+  const finalRows: ParsedRow[] =
+    holidaySet.size === 0
+      ? rows
+      : rows.map((r) =>
+          holidaySet.has(r.work_date) && (r.shift_type === "day" || r.shift_type === "leave")
+            ? { ...r, shift_type: "off", is_main: false, start_time: null, end_time: null }
+            : r
+        );
+
   // 1단계: 전부 is_main=false로 업서트 (메인당직 유니크 제약 충돌 방지)
   const { error: upsertError } = await supabase.from("shifts").upsert(
-    rows.map((r) => ({ ...r, is_main: false, updated_at: new Date().toISOString() })),
+    finalRows.map((r) => ({ ...r, is_main: false, updated_at: new Date().toISOString() })),
     { onConflict: "work_date,employee_id" }
   );
   if (upsertError) return { error: upsertError.message };
@@ -172,7 +193,7 @@ export async function applyParsedSchedule(
   // row마다 개별 요청을 보내면 근무패턴처럼 건수가 많을 때 동시 요청이 폭증해
   // (realtime 변경 이벤트까지 겹치면) 브라우저가 ERR_INSUFFICIENT_RESOURCES로 죽을 수 있어
   // 한 번의 upsert로 묶어 보낸다.
-  const mainRows = rows.filter((r) => r.is_main);
+  const mainRows = finalRows.filter((r) => r.is_main);
   if (mainRows.length > 0) {
     const { error: mainError } = await supabase.from("shifts").upsert(
       mainRows.map((r) => ({ ...r, is_main: true, updated_at: new Date().toISOString() })),

@@ -50,7 +50,7 @@ export default function ErpExportModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
+            className="text-black text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
           >
             ✕
           </button>
@@ -65,10 +65,10 @@ export default function ErpExportModal({
         <div className="flex-1 overflow-y-auto p-4 space-y-1">
           {employees.map((emp) => (
             <Button key={emp.id} onClick={() => handleSelect(emp)} className="w-full justify-start">
-              <span className="mr-1 text-gray-400">{employeeLabel(emp.sort_order - 1)}</span>
+              <span className="mr-1 text-black">{employeeLabel(emp.sort_order - 1)}</span>
               {emp.name}
               {emp.employee_number && (
-                <span className="ml-auto text-xs text-gray-400">#{emp.employee_number}</span>
+                <span className="ml-auto text-xs text-black">#{emp.employee_number}</span>
               )}
             </Button>
           ))}

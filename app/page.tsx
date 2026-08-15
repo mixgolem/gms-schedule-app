@@ -257,7 +257,7 @@ export default function Home() {
         </div>
       </div>
       {!canEdit && (
-        <p className="text-xs text-gray-600 -mt-2">조회 전용입니다. 로그인하면 편집할 수 있어요.</p>
+        <p className="text-xs text-black -mt-2">조회 전용입니다. 로그인하면 편집할 수 있어요.</p>
       )}
 
       {warning && (
@@ -302,7 +302,7 @@ export default function Home() {
 
         <div className="flex-1 min-w-0 space-y-3">
           {loading ? (
-            <p className="text-sm text-gray-600">불러오는 중...</p>
+            <p className="text-sm text-black">불러오는 중...</p>
           ) : (
             <div ref={calendarRef} className={printMode ? "print-capturing" : undefined}>
               <CalendarGrid
@@ -322,7 +322,7 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex gap-4 text-xs text-gray-500 pt-2 flex-wrap">
+          <div className="flex gap-4 text-xs text-black pt-2 flex-wrap">
             <span className="text-blue-900 font-bold">테두리 강조 = 오늘</span>
             <span>★ = 메인당직</span>
             <span className="text-red-800 font-bold">빨간 글자 = 새벽/야간 2인1조 미충족</span>

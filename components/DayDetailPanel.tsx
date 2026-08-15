@@ -42,7 +42,7 @@ export default function DayDetailPanel({
 
   return (
     <div className="space-y-4">
-      <p className="text-lg font-bold text-gray-900">
+      <p className="text-lg font-bold text-black">
         {date} ({weekdayLabel(date)}){isHoliday && <span className="text-red-700"> 공휴일</span>}
       </p>
 
@@ -62,11 +62,11 @@ export default function DayDetailPanel({
           const members = employees.filter((e) => shiftMap.get(e.id)?.shift_type === type);
           return (
             <div key={type}>
-              <p className="text-xs font-semibold text-gray-700 mb-1">
+              <p className="text-xs font-semibold text-black mb-1">
                 {SHIFT_LABELS[type]} ({members.length}명)
               </p>
               {members.length === 0 ? (
-                <p className="text-xs text-gray-300">-</p>
+                <p className="text-xs text-black">-</p>
               ) : (
                 <ul className="space-y-1">
                   {members.map((e) => {
@@ -81,14 +81,14 @@ export default function DayDetailPanel({
                         className="rounded-lg border border-gray-200 bg-white px-2 py-1.5"
                       >
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium text-gray-900">{e.name}</span>
+                          <span className="text-sm font-medium text-black">{e.name}</span>
                           {isMain && (
                             <span title={type === "dawn" ? "새벽 메인당직" : "메인당직"}>
                               ★
                             </span>
                           )}
                           {timeLabel && (
-                            <span className="text-xs text-gray-700 ml-auto whitespace-nowrap">
+                            <span className="text-xs text-black ml-auto whitespace-nowrap">
                               {timeLabel}
                             </span>
                           )}
@@ -114,10 +114,10 @@ export default function DayDetailPanel({
 
         {unassigned.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-700 mb-1">미배정</p>
+            <p className="text-xs font-semibold text-black mb-1">미배정</p>
             <ul className="space-y-1">
               {unassigned.map((e) => (
-                <li key={e.id} className="text-sm text-gray-600">
+                <li key={e.id} className="text-sm text-black">
                   {e.name}
                 </li>
               ))}
