@@ -154,6 +154,23 @@ create table if not exists shift_pattern_applications (
   applied_at timestamptz not null default now()
 );
 
+-- 근무표/공휴일/직원 정보가 언제, 누가, 무엇을 바꿨는지 남기는 변경 이력(감사 로그).
+-- 트리거로 DB 레벨에서 자동 기록한다 (아래 "감사 로그 트리거" 섹션 참고).
+create table if not exists audit_log (
+  id bigint generated always as identity primary key,
+  table_name text not null,
+  row_id text not null, -- shifts/employees는 uuid, holidays는 work_date(날짜) 문자열
+  operation text not null check (operation in ('INSERT', 'UPDATE', 'DELETE')),
+  changed_by uuid references auth.users(id) on delete set null,
+  changed_by_email text,
+  old_data jsonb,
+  new_data jsonb,
+  changed_at timestamptz not null default now()
+);
+
+create index if not exists audit_log_table_row_idx on audit_log (table_name, row_id);
+create index if not exists audit_log_changed_at_idx on audit_log (changed_at desc);
+
 -- ============================================================
 -- Row Level Security - 모든 테이블 공통: 누구나 조회, 로그인한 사용자만 편집
 -- ============================================================
@@ -170,6 +187,7 @@ alter table shift_type_defaults enable row level security;
 alter table user_preferences enable row level security;
 alter table shift_patterns enable row level security;
 alter table shift_pattern_applications enable row level security;
+alter table audit_log enable row level security;
 
 create policy "employees_select_all" on employees for select using (true);
 create policy "employees_write_authenticated" on employees
@@ -221,6 +239,76 @@ create policy "shift_pattern_applications_select_all" on shift_pattern_applicati
   for select using (true);
 create policy "shift_pattern_applications_write_authenticated" on shift_pattern_applications
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- audit_log는 로그인한 사람만 조회 가능. 쓰기는 아래 트리거(security definer)로만
+-- 이뤄지고 클라이언트가 직접 insert/update/delete 할 수 있는 정책은 일부러 안 만든다.
+create policy "audit_log_select_authenticated" on audit_log
+  for select using (auth.role() = 'authenticated');
+
+-- ============================================================
+-- 감사 로그 트리거 - shifts/holidays/employees/shift_leave_usage 변경을
+-- audit_log에 자동 기록. updated_at/created_at 말고는 실질적으로 아무 값도
+-- 안 바뀐 UPDATE(예: 부분사용만 건드리고 지나간 shifts 저장)는 건너뛴다.
+-- ============================================================
+
+create or replace function audit_log_trigger() returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  actor_email text;
+  row_id_val text;
+  old_json jsonb;
+  new_json jsonb;
+begin
+  if (tg_op = 'UPDATE') then
+    if (to_jsonb(old) - 'updated_at' - 'created_at') = (to_jsonb(new) - 'updated_at' - 'created_at') then
+      return new;
+    end if;
+  end if;
+
+  select email into actor_email from auth.users where id = auth.uid();
+
+  if (tg_op = 'DELETE') then
+    old_json := to_jsonb(old);
+    new_json := null;
+    row_id_val := coalesce(old_json->>'id', old_json->>'work_date');
+  elsif (tg_op = 'UPDATE') then
+    old_json := to_jsonb(old);
+    new_json := to_jsonb(new);
+    row_id_val := coalesce(new_json->>'id', new_json->>'work_date');
+  else
+    old_json := null;
+    new_json := to_jsonb(new);
+    row_id_val := coalesce(new_json->>'id', new_json->>'work_date');
+  end if;
+
+  insert into audit_log (table_name, row_id, operation, changed_by, changed_by_email, old_data, new_data)
+  values (tg_table_name, row_id_val, tg_op, auth.uid(), actor_email, old_json, new_json);
+
+  if (tg_op = 'DELETE') then
+    return old;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger shifts_audit
+  after insert or update or delete on shifts
+  for each row execute function audit_log_trigger();
+
+create trigger holidays_audit
+  after insert or update or delete on holidays
+  for each row execute function audit_log_trigger();
+
+create trigger employees_audit
+  after insert or update or delete on employees
+  for each row execute function audit_log_trigger();
+
+create trigger shift_leave_usage_audit
+  after insert or update or delete on shift_leave_usage
+  for each row execute function audit_log_trigger();
 
 -- ============================================================
 -- Realtime 구독 활성화
