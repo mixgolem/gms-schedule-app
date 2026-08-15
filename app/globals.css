@@ -37,9 +37,3 @@ body {
     transform: scale(1) translateY(0);
   }
 }
-
-/* 인쇄용 캡처 순간에는 색상 트랜지션이 덜 끝난 채로 찍히지 않도록 즉시 적용시킨다 */
-.print-capturing,
-.print-capturing * {
-  transition: none !important;
-}

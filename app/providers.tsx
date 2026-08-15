@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -113,5 +113,44 @@ export function GlobalLoadingProvider({ children }: { children: React.ReactNode 
 export function useGlobalLoading() {
   const ctx = useContext(GlobalLoadingContext);
   if (!ctx) throw new Error("useGlobalLoading must be used within GlobalLoadingProvider");
+  return ctx;
+}
+
+// 이미지 복사/다운로드/PDF 저장처럼 "됐는지 안 됐는지" 짧게 알려주면 되는 작업을 위한
+// 5초짜리 팝업 알림. 성공/실패 상관없이 같은 방식으로 띄운다.
+interface ToastState {
+  id: number;
+  message: string;
+  kind: "success" | "error";
+}
+
+interface ToastContextValue {
+  toast: ToastState | null;
+  showToast: (message: string, kind?: "success" | "error") => void;
+}
+
+const ToastContext = createContext<ToastContextValue | undefined>(undefined);
+
+const TOAST_DURATION_MS = 5000;
+
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((message: string, kind: "success" | "error" = "success") => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const id = Date.now();
+    setToast({ id, message, kind });
+    timerRef.current = setTimeout(() => {
+      setToast((cur) => (cur?.id === id ? null : cur));
+    }, TOAST_DURATION_MS);
+  }, []);
+
+  return <ToastContext.Provider value={{ toast, showToast }}>{children}</ToastContext.Provider>;
+}
+
+export function useToast() {
+  const ctx = useContext(ToastContext);
+  if (!ctx) throw new Error("useToast must be used within ToastProvider");
   return ctx;
 }

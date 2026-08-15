@@ -17,10 +17,11 @@ import ConfirmPhraseDialog from "@/components/ConfirmPhraseDialog";
 import { useSchedule } from "@/lib/useSchedule";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
 import { useUserPreferences } from "@/lib/useUserPreferences";
-import { useAuth, useResetMonth, useGlobalLoading } from "./providers";
+import { useAuth, useResetMonth, useGlobalLoading, useToast } from "./providers";
 import { checkPairRule } from "@/lib/validation";
 import { ShiftType, LeaveUsageInput } from "@/lib/types";
-import { captureScheduleImage, downloadBlob } from "@/lib/captureImage";
+import { captureScheduleImage, downloadBlob, canShareFile, shareFile } from "@/lib/captureImage";
+import { imageBlobToPdfBlob } from "@/lib/pdfExport";
 import Button from "@/components/ui/Button";
 
 type SidebarState =
@@ -49,6 +50,7 @@ export default function Home() {
   const { defaults: shiftDefaults } = useShiftDefaults();
   const { setInfo: setResetInfo } = useResetMonth();
   const { runWithLoading } = useGlobalLoading();
+  const { showToast } = useToast();
   const {
     showColors,
     setShowColors,
@@ -62,7 +64,6 @@ export default function Home() {
   const [filterMode, setFilterMode] = useState<EmployeeFilterMode>("highlight");
   const [erpExportOpen, setErpExportOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
-  const [printMode, setPrintMode] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   const canEdit = !!session;
@@ -155,74 +156,84 @@ export default function Home() {
 
   const handleCopyImage = async () => {
     if (!calendarRef.current) return;
-    const blob = await captureScheduleImage(calendarRef.current, scheduleTitle);
-    if (!blob) return;
+    const blob = await captureScheduleImage(calendarRef.current, scheduleTitle, { banner: true });
+    if (!blob) {
+      showToast("이미지를 만들지 못했어요. 다시 시도해주세요.", "error");
+      return;
+    }
+    const filename = `GMS_근무표_${year}년${month}월.png`;
+
+    // 모바일은 클립보드 이미지 쓰기가 잘 안 통하는 경우가 많아, 공유 시트가 되면 그걸 우선 쓴다.
+    const file = new File([blob], filename, { type: "image/png" });
+    if (canShareFile(file)) {
+      const { shared } = await shareFile(file, scheduleTitle);
+      showToast(
+        shared ? "이미지를 공유했어요" : "이미지 공유에 실패했어요. 다시 시도해주세요.",
+        shared ? "success" : "error"
+      );
+      return;
+    }
+
     // 캡처하는 동안(await) 개발자도구 등으로 포커스가 빠지면 클립보드 API가
     // "Document is not focused" 에러를 던진다 — 쓰기 직전에 포커스를 되돌려준다.
     window.focus();
     try {
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      showToast("이미지를 복사했어요");
     } catch {
-      setWarning("이미지 복사에 실패했어요. 페이지를 한 번 클릭한 뒤 다시 시도해주세요.");
+      showToast("이미지 복사에 실패했어요. 페이지를 한 번 클릭한 뒤 다시 시도해주세요.", "error");
     }
   };
 
   const handleDownloadImage = async () => {
     if (!calendarRef.current) return;
-    const blob = await captureScheduleImage(calendarRef.current, scheduleTitle);
-    if (!blob) return;
-    downloadBlob(blob, `GMS_근무표_${year}년${month}월.png`);
-  };
-
-  const handlePrint = async () => {
-    if (!calendarRef.current) return;
-    // 새 창은 클릭 시점에 바로 열어야 팝업 차단을 안 당한다 (async 이후엔 사용자 제스처가 사라짐)
-    const printWindow = window.open("", "_blank", "width=1200,height=800");
-    if (!printWindow) return;
-
-    // 인쇄는 화면 설정과 무관하게 항상 기본 정렬 + 색상 OFF로 고정해서 캡처한다.
-    // 화면 밖에 별도로 렌더링해서 캡처하면 라이브러리가 빈 이미지를 만드는 경우가 있어서,
-    // 실제 보이는 캘린더 자체를 잠깐 강제 설정으로 바꿨다가 캡처 후 되돌리는 방식을 쓴다.
-    setPrintMode(true);
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-    let blob: Blob | null = null;
-    try {
-      blob = await captureScheduleImage(calendarRef.current, scheduleTitle);
-    } finally {
-      setPrintMode(false);
-    }
-
+    const blob = await captureScheduleImage(calendarRef.current, scheduleTitle, { banner: true });
     if (!blob) {
-      printWindow.close();
-      setWarning("인쇄용 이미지를 만들지 못했어요. 다시 시도해주세요.");
+      showToast("이미지를 만들지 못했어요. 다시 시도해주세요.", "error");
       return;
     }
-    const url = URL.createObjectURL(blob);
+    const filename = `GMS_근무표_${year}년${month}월.png`;
 
-    printWindow.document.open();
-    printWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-<title>${scheduleTitle}</title>
-<style>
-  @page { size: landscape; margin: 0; }
-  html, body { height: 100%; margin: 0; }
-  body { display: flex; align-items: center; justify-content: center; }
-  img { max-width: 100%; max-height: 100vh; object-fit: contain; }
-</style>
-</head>
-<body>
-<img id="cal" src="${url}" />
-<script>
-  var img = document.getElementById('cal');
-  function doPrint() { window.focus(); window.print(); }
-  if (img.complete) { doPrint(); } else { img.onload = doPrint; }
-  window.onafterprint = function () { window.close(); };
-</script>
-</body>
-</html>`);
-    printWindow.document.close();
+    // 모바일은 <a download>가 그냥 이미지를 열어버리기만 하는 경우가 많아, 공유 시트가
+    // 되면 그걸 우선 쓴다(저장/공유를 사용자가 직접 고를 수 있어 더 확실하다).
+    const file = new File([blob], filename, { type: "image/png" });
+    if (canShareFile(file)) {
+      const { shared } = await shareFile(file, scheduleTitle);
+      showToast(
+        shared ? "이미지를 저장했어요" : "이미지 저장에 실패했어요. 다시 시도해주세요.",
+        shared ? "success" : "error"
+      );
+      return;
+    }
+
+    downloadBlob(blob, filename);
+    showToast("이미지를 다운로드했어요");
+  };
+
+  const handleSavePdf = async () => {
+    if (!calendarRef.current) return;
+    // 지금 화면에 보이는 그대로(이미지 복사/다운로드와 동일하게) 캡처한다.
+    const blob = await captureScheduleImage(calendarRef.current, scheduleTitle, { banner: true });
+    if (!blob) {
+      showToast("PDF를 만들지 못했어요. 다시 시도해주세요.", "error");
+      return;
+    }
+
+    const pdfBlob = await imageBlobToPdfBlob(blob);
+    const filename = `GMS_근무표_${year}년${month}월.pdf`;
+
+    const file = new File([pdfBlob], filename, { type: "application/pdf" });
+    if (canShareFile(file)) {
+      const { shared } = await shareFile(file, scheduleTitle);
+      showToast(
+        shared ? "PDF를 공유했어요" : "PDF 공유에 실패했어요. 다시 시도해주세요.",
+        shared ? "success" : "error"
+      );
+      return;
+    }
+
+    downloadBlob(pdfBlob, filename);
+    showToast("PDF를 다운로드했어요");
   };
 
   const activeEmployee =
@@ -253,7 +264,7 @@ export default function Home() {
           </Button>
           <Button onClick={handleCopyImage}>🖼️이미지 복사</Button>
           <Button onClick={handleDownloadImage}>🖼️이미지 다운로드</Button>
-          <Button onClick={handlePrint}>🖨인쇄</Button>
+          <Button onClick={handleSavePdf}>🖨PDF 저장</Button>
         </div>
       </div>
       {!canEdit && (
@@ -304,18 +315,18 @@ export default function Home() {
           {loading ? (
             <p className="text-sm text-black">불러오는 중...</p>
           ) : (
-            <div ref={calendarRef} className={printMode ? "print-capturing" : undefined}>
+            <div ref={calendarRef}>
               <CalendarGrid
                 employees={employees}
                 shifts={shifts}
                 leaveUsages={leaveUsages}
                 holidayDates={holidayDates}
                 weeks={weeks}
-                canEdit={printMode ? false : canEdit}
-                showColors={printMode ? false : showColors}
+                canEdit={canEdit}
+                showColors={showColors}
                 filterEmployeeIds={filterEmployeeIds}
                 filterMode={filterMode}
-                sortMode={printMode ? "default" : sortMode}
+                sortMode={sortMode}
                 onCellClick={(employeeId, date) => setSidebar({ mode: "employee", employeeId, date })}
                 onDateClick={(date) => setSidebar({ mode: "day", date })}
               />

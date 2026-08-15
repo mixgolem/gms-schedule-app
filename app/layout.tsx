@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider, ResetMonthProvider, GlobalLoadingProvider } from "./providers";
+import { AuthProvider, ResetMonthProvider, GlobalLoadingProvider, ToastProvider } from "./providers";
 import Header from "@/components/Header";
 import GlobalLoadingOverlay from "@/components/GlobalLoadingOverlay";
+import ToastPopup from "@/components/ToastPopup";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,9 +41,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider>
           <ResetMonthProvider>
             <GlobalLoadingProvider>
-              <Header />
-              {children}
-              <GlobalLoadingOverlay />
+              <ToastProvider>
+                <Header />
+                {children}
+                <GlobalLoadingOverlay />
+                <ToastPopup />
+              </ToastProvider>
             </GlobalLoadingProvider>
           </ResetMonthProvider>
         </AuthProvider>
