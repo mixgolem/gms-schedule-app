@@ -210,6 +210,24 @@ export default function Home() {
     showToast("이미지를 다운로드했어요");
   };
 
+  const handleOpenImageInNewTab = async () => {
+    if (!calendarRef.current) return;
+    // 캡처는 비동기라 그 뒤에 window.open을 부르면 팝업 차단에 걸릴 수 있어서,
+    // 클릭 즉시(동기적으로) 빈 창부터 띄워두고 이미지가 준비되면 그 창에 연결한다.
+    const win = window.open("", "_blank");
+    const blob = await captureScheduleImage(calendarRef.current, scheduleTitle, { banner: true });
+    if (!blob) {
+      win?.close();
+      showToast("이미지를 만들지 못했어요. 다시 시도해주세요.", "error");
+      return;
+    }
+    if (!win) {
+      showToast("팝업이 차단됐어요. 팝업 차단을 해제한 뒤 다시 시도해주세요.", "error");
+      return;
+    }
+    win.location.href = URL.createObjectURL(blob);
+  };
+
   const handleSavePdf = async () => {
     if (!calendarRef.current) return;
     // 지금 화면에 보이는 그대로(이미지 복사/다운로드와 동일하게) 캡처한다.
@@ -264,6 +282,7 @@ export default function Home() {
           </Button>
           <Button onClick={handleCopyImage}>🖼️이미지 복사</Button>
           <Button onClick={handleDownloadImage}>🖼️이미지 다운로드</Button>
+          <Button onClick={handleOpenImageInNewTab}>🔗(모바일)이미지 새 창에서 열기</Button>
           <Button onClick={handleSavePdf}>🖨PDF 저장</Button>
         </div>
       </div>

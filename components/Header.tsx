@@ -35,28 +35,28 @@ export default function Header() {
       {!loading && (
         <div className="text-sm">
           {session ? (
-            <div className="flex items-center gap-3">
-              <span className="text-blue-100">{session.user.email}</span>
-              <Button onClick={() => setManagerOpen(true)}>직원 관리</Button>
+            <div className="flex items-center gap-2 flex-wrap">
               <Button onClick={() => setUploadOpen(true)}>근무표 업로드</Button>
               <Button onClick={() => setPatternOpen(true)}>근무패턴 관리</Button>
               <Button onClick={() => setWeekendCompLeaveOpen(true)}>주말:대휴 연결</Button>
+              <Button onClick={() => setManagerOpen(true)}>근무자 설정</Button>
+              <Button onClick={() => setDefaultsOpen(true)}>근무시간 설정</Button>
               <Button onClick={() => setAuditLogOpen(true)}>변경 이력</Button>
+              <Button
+                onClick={handleFullBackup}
+                title="직원/근무표/공휴일/공지사항/근무시간설정 등 DB 전체를 있는 그대로 JSON으로 백업해요"
+              >
+                JSON 백업
+              </Button>
+              <Button variant="danger" onClick={() => setRestoreOpen(true)}>
+                JSON 복원
+              </Button>
               {resetInfo?.canReset && (
                 <Button variant="danger" onClick={resetInfo.onReset}>
                   이번 달 초기화
                 </Button>
               )}
-              <Button onClick={() => setDefaultsOpen(true)}>근무시간 설정</Button>
-              <Button
-                onClick={handleFullBackup}
-                title="직원/근무표/공휴일/공지사항/근무시간설정 등 DB 전체를 있는 그대로 JSON으로 백업해요"
-              >
-                전체 백업(JSON)
-              </Button>
-              <Button variant="danger" onClick={() => setRestoreOpen(true)}>
-                전체 복원
-              </Button>
+              <span className="text-blue-100 ml-1">{session.user.email}</span>
               <Button onClick={signOut}>로그아웃</Button>
             </div>
           ) : (
