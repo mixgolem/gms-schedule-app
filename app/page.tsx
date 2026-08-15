@@ -249,11 +249,11 @@ export default function Home() {
             onClick={() => setErpExportOpen(true)}
             title="선택한 근무자의 한 달치 근무를 ERP 업로드 양식 그대로 내보내요"
           >
-            ERP엑셀 다운로드
+            🖥ERP엑셀 다운로드
           </Button>
-          <Button onClick={handleCopyImage}>이미지 복사</Button>
-          <Button onClick={handleDownloadImage}>이미지 다운로드</Button>
-          <Button onClick={handlePrint}>인쇄</Button>
+          <Button onClick={handleCopyImage}>🖼️이미지 복사</Button>
+          <Button onClick={handleDownloadImage}>🖼️이미지 다운로드</Button>
+          <Button onClick={handlePrint}>🖨인쇄</Button>
         </div>
       </div>
       {!canEdit && (

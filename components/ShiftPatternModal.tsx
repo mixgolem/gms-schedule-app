@@ -13,7 +13,7 @@ import {
   PATTERN_DAYS,
 } from "@/lib/shiftPatternImport";
 import { generatePatternRows, applyPatternRows } from "@/lib/shiftPatternApply";
-import { employeeLabel } from "@/lib/types";
+import { employeeLabel, RAW_CODE_BG_CLASS } from "@/lib/types";
 import { todayStr, parseLocalDate } from "@/lib/dateUtils";
 import Button from "./ui/Button";
 
@@ -312,11 +312,21 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                         {activePattern.map((row, i) => (
                           <tr key={i} className="border-b last:border-b-0">
                             <td className="px-2 py-1 whitespace-nowrap text-black">{i + 1}</td>
-                            {row.map((cell, ci) => (
-                              <td key={ci} className="px-2 py-1 text-center">
-                                {cell ? PREVIEW_CODE[`${cell.shiftType}:${cell.isMain}`] ?? "?" : ""}
-                              </td>
-                            ))}
+                            {row.map((cell, ci) => {
+                              const code = cell
+                                ? PREVIEW_CODE[`${cell.shiftType}:${cell.isMain}`]
+                                : undefined;
+                              return (
+                                <td
+                                  key={ci}
+                                  className={`px-2 py-1 text-center ${
+                                    code ? RAW_CODE_BG_CLASS[code] ?? "" : ""
+                                  }`}
+                                >
+                                  {cell ? code ?? "?" : ""}
+                                </td>
+                              );
+                            })}
                           </tr>
                         ))}
                       </tbody>

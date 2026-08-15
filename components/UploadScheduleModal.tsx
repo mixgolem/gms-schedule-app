@@ -9,7 +9,7 @@ import {
   ParseResult,
 } from "@/lib/scheduleImport";
 import { weekdayLabel } from "@/lib/dateUtils";
-import { employeeLabel } from "@/lib/types";
+import { employeeLabel, RAW_CODE_BG_CLASS } from "@/lib/types";
 import Button from "./ui/Button";
 
 interface Props {
@@ -161,7 +161,12 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                       >
                         <td className="px-2 py-1 whitespace-nowrap">{formatDate(row.date)}</td>
                         {row.codes.map((code, i) => (
-                          <td key={i} className="px-2 py-1 text-center">
+                          <td
+                            key={i}
+                            className={`px-2 py-1 text-center ${
+                              code ? RAW_CODE_BG_CLASS[code] ?? "" : ""
+                            }`}
+                          >
                             {code ?? ""}
                           </td>
                         ))}

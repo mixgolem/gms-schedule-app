@@ -75,6 +75,18 @@ export const SHIFT_COLORS: Record<ShiftType, string> = {
   annual: "bg-gray-200 text-gray-700 border-gray-300",
 };
 
+// 근무표 업로드/근무패턴 미리보기 표에서, 원본 엑셀 한 글자 코드별로 옅게 칠할 배경색
+// (메,조: 노랑 / 야,여: 파랑 / 주: 초록 / 휴,대: 회색)
+export const RAW_CODE_BG_CLASS: Record<string, string> = {
+  메: "bg-yellow-100",
+  조: "bg-yellow-100",
+  야: "bg-blue-100",
+  여: "bg-blue-100",
+  주: "bg-green-100",
+  휴: "bg-gray-100",
+  대: "bg-gray-100",
+};
+
 export const DEFAULT_SHIFT_HOURS: Record<
   "dawn" | "day" | "night",
   { start: string; end: string }
