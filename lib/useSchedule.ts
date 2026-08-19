@@ -12,6 +12,7 @@ import {
 } from "@/lib/types";
 import { getCalendarWeeks, getMonthDates } from "@/lib/dateUtils";
 import { debounce } from "@/lib/debounce";
+import { convertDayAndLeaveShiftsToOff } from "@/lib/holidays";
 
 export function useSchedule(year: number, month: number) {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -210,39 +211,25 @@ export function useSchedule(year: number, month: number) {
   }, [year, month, fetchData]);
 
   const toggleHoliday = useCallback(
-    async (workDate: string, name?: string) => {
+    async (workDate: string, name?: string | null) => {
       const existing = holidays.find((h) => h.work_date === workDate);
       if (existing) {
         await supabase.from("holidays").delete().eq("work_date", workDate);
       } else {
         await supabase.from("holidays").insert({ work_date: workDate, name: name ?? null });
-
-        // 공휴일로 지정하면, 그날 주간·대휴로 잡혀있던 사람은 전부 휴무로 바꾼다
-        const { data: affected } = await supabase
-          .from("shifts")
-          .select("id")
-          .eq("work_date", workDate)
-          .in("shift_type", ["day", "leave"]);
-
-        if (affected && affected.length > 0) {
-          const ids = affected.map((s) => s.id);
-          await supabase.from("shift_leave_usage").delete().in("shift_id", ids);
-          await supabase
-            .from("shifts")
-            .update({
-              shift_type: "off",
-              is_main: false,
-              start_time: null,
-              end_time: null,
-              leave_for_date: null,
-              updated_at: new Date().toISOString(),
-            })
-            .in("id", ids);
-        }
+        await convertDayAndLeaveShiftsToOff(workDate);
       }
       await fetchData();
     },
     [holidays, fetchData]
+  );
+
+  const setHolidayName = useCallback(
+    async (workDate: string, name: string | null) => {
+      await supabase.from("holidays").update({ name }).eq("work_date", workDate);
+      await fetchData();
+    },
+    [fetchData]
   );
 
   return {
@@ -256,6 +243,7 @@ export function useSchedule(year: number, month: number) {
     deleteShift,
     syncLeaveUsages,
     toggleHoliday,
+    setHolidayName,
     resetMonth,
   };
 }

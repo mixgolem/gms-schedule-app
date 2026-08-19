@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useAuth, useGlobalLoading } from "@/app/providers";
 import { useEmployees } from "@/lib/useEmployees";
 import {
@@ -109,6 +110,13 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                 제한도 없어요. 아래에서 날짜·직원 매칭을 확인한 뒤 &quot;적용&quot;을 눌러야
                 실제로 반영됩니다. 칸을 비워두면 그 근무자의 그 날짜 기존 근무 기록이 삭제돼요.
               </p>
+              <Image
+                src="/schedule-upload-example.png"
+                alt="근무표 업로드 엑셀 양식 예시 (A열: 날짜, B열부터 근무자별 근무코드)"
+                width={406}
+                height={297}
+                className="w-full max-w-sm h-auto rounded-lg border"
+              />
 
               {(status === "idle" || status === "parsing" || status === "error") && (
                 <input

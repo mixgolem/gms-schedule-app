@@ -9,6 +9,7 @@ import ShiftDefaultsModal from "./ShiftDefaultsModal";
 import FullRestoreModal from "./FullRestoreModal";
 import ShiftPatternModal from "./ShiftPatternModal";
 import WeekendCompLeaveModal from "./WeekendCompLeaveModal";
+import HolidayManagerModal from "./HolidayManagerModal";
 import AuditLogModal from "./AuditLogModal";
 import Button from "./ui/Button";
 import { exportFullBackupJson } from "@/lib/fullBackupExport";
@@ -22,6 +23,7 @@ export default function Header() {
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [patternOpen, setPatternOpen] = useState(false);
   const [weekendCompLeaveOpen, setWeekendCompLeaveOpen] = useState(false);
+  const [holidayManagerOpen, setHolidayManagerOpen] = useState(false);
   const [auditLogOpen, setAuditLogOpen] = useState(false);
 
   const handleFullBackup = async () => {
@@ -41,6 +43,7 @@ export default function Header() {
               <Button onClick={() => setWeekendCompLeaveOpen(true)}>주말:대휴 연결</Button>
               <Button onClick={() => setManagerOpen(true)}>근무자 설정</Button>
               <Button onClick={() => setDefaultsOpen(true)}>근무시간 설정</Button>
+              <Button onClick={() => setHolidayManagerOpen(true)}>공휴일 관리</Button>
               <Button onClick={() => setAuditLogOpen(true)}>변경 이력</Button>
               <Button
                 onClick={handleFullBackup}
@@ -76,6 +79,11 @@ export default function Header() {
       <WeekendCompLeaveModal
         open={weekendCompLeaveOpen}
         onClose={() => setWeekendCompLeaveOpen(false)}
+        calendarYear={resetInfo?.year ?? new Date().getFullYear()}
+      />
+      <HolidayManagerModal
+        open={holidayManagerOpen}
+        onClose={() => setHolidayManagerOpen(false)}
         calendarYear={resetInfo?.year ?? new Date().getFullYear()}
       />
       <AuditLogModal open={auditLogOpen} onClose={() => setAuditLogOpen(false)} />

@@ -45,6 +45,7 @@ export default function Home() {
     deleteShift,
     syncLeaveUsages,
     toggleHoliday,
+    setHolidayName,
     resetMonth,
   } = useSchedule(year, month);
   const { defaults: shiftDefaults } = useShiftDefaults();
@@ -68,6 +69,7 @@ export default function Home() {
 
   const canEdit = !!session;
   const holidayDates = new Set(holidays.map((h) => h.work_date));
+  const holidayNames = new Map(holidays.map((h) => [h.work_date, h.name]));
 
   const handleSaveShift = async (
     employeeId: string,
@@ -340,6 +342,7 @@ export default function Home() {
                 shifts={shifts}
                 leaveUsages={leaveUsages}
                 holidayDates={holidayDates}
+                holidayNames={holidayNames}
                 weeks={weeks}
                 canEdit={canEdit}
                 showColors={showColors}
@@ -407,13 +410,16 @@ export default function Home() {
         )}
         {sidebar?.mode === "day" && (
           <DayDetailPanel
+            key={sidebar.date}
             date={sidebar.date}
             employees={employees}
             shifts={shifts}
             leaveUsages={leaveUsages}
             isHoliday={holidayDates.has(sidebar.date)}
+            holidayName={holidayNames.get(sidebar.date) ?? null}
             canEdit={canEdit}
-            onToggleHoliday={() => toggleHoliday(sidebar.date)}
+            onToggleHoliday={(name) => toggleHoliday(sidebar.date, name)}
+            onRenameHoliday={(name) => setHolidayName(sidebar.date, name)}
           />
         )}
       </ShiftSidebar>

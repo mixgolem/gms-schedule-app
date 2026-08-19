@@ -15,6 +15,7 @@ interface Props {
   shifts: Shift[];
   leaveUsages: ShiftLeaveUsage[];
   holidayDates: Set<string>;
+  holidayNames: Map<string, string | null>;
   weeks: CalendarDay[][];
   canEdit: boolean;
   showColors: boolean;
@@ -37,6 +38,7 @@ export default function CalendarGrid({
   shifts,
   leaveUsages,
   holidayDates,
+  holidayNames,
   weeks,
   canEdit,
   showColors,
@@ -115,16 +117,20 @@ export default function CalendarGrid({
                       <button
                         type="button"
                         onClick={() => onDateClick(day.date)}
-                        className={`w-full px-2 py-1.5 border-b border-black/5 text-sm font-medium flex items-baseline gap-1.5 transition-colors duration-150 ${DAY_BADGE_CLASS[dayColor]}`}
+                        className={`w-full px-2 py-1.5 border-b border-black/5 text-sm font-medium text-left transition-colors duration-150 ${DAY_BADGE_CLASS[dayColor]}`}
                       >
-                        <span className="text-base font-bold">{dayOfMonth(day.date)}</span>
-                        <span className="text-base font-bold">{weekdayLabel(day.date)}</span>
-                        {day.date === today && (
-                          <span className="text-xs font-bold text-blue-900">오늘</span>
-                        )}
-                        {holidayDates.has(day.date) && (
-                          <span className="text-xs font-bold">공휴일</span>
-                        )}
+                        <div className="flex items-baseline gap-1.5 min-w-0">
+                          <span className="text-base font-bold shrink-0">{dayOfMonth(day.date)}</span>
+                          <span className="text-base font-bold shrink-0">{weekdayLabel(day.date)}</span>
+                          {day.date === today && (
+                            <span className="text-xs font-bold text-blue-900 shrink-0">오늘</span>
+                          )}
+                          {holidayDates.has(day.date) && (
+                            <span className="text-xs font-bold truncate">
+                              {holidayNames.get(day.date) || "공휴일"}
+                            </span>
+                          )}
+                        </div>
                       </button>
                       <div className="py-1.5 space-y-1">
                         {dayEmployees.map((emp) => {

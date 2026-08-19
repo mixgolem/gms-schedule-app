@@ -12,8 +12,9 @@ interface Props {
 
 type Scope = "year" | "all";
 
-function formatDate(dateStr: string): string {
-  return `${Number(dateStr.slice(5, 7))}/${Number(dateStr.slice(8, 10))}(${weekdayLabel(dateStr)})`;
+function formatDate(dateStr: string, withYear: boolean): string {
+  const yearPrefix = withYear ? `${Number(dateStr.slice(0, 4))}/` : "";
+  return `${yearPrefix}${Number(dateStr.slice(5, 7))}/${Number(dateStr.slice(8, 10))}(${weekdayLabel(dateStr)})`;
 }
 
 export default function SpecialNotesTable({ year }: Props) {
@@ -67,11 +68,13 @@ export default function SpecialNotesTable({ year }: Props) {
                 <td className="py-1 pr-4 text-black">{employeeLabel(g.sortOrder - 1)}</td>
                 <td className="py-1 pl-2 pr-4 whitespace-nowrap">{g.employeeName}</td>
                 <td className="py-1 pl-2 pr-4 text-black">
-                  {g.dates.length > 0 ? g.dates.map(formatDate).join(", ") : ""}
+                  {g.dates.length > 0
+                    ? g.dates.map((d) => formatDate(d, scope === "all")).join(", ")
+                    : ""}
                 </td>
                 <td className="py-1 pl-2 text-blue-600">
                   {g.unassignedLeaveDates.length > 0
-                    ? g.unassignedLeaveDates.map(formatDate).join(", ")
+                    ? g.unassignedLeaveDates.map((d) => formatDate(d, scope === "all")).join(", ")
                     : ""}
                 </td>
               </tr>

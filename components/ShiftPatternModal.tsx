@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { useAuth, useGlobalLoading } from "@/app/providers";
 import { useEmployees } from "@/lib/useEmployees";
@@ -212,6 +213,13 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                   {PATTERN_DAYS}행까지 {PATTERN_DAYS}일치 패턴(메/조/야/여/주/휴/대)이 담긴 .xlsx를
                   올려주세요. 열 순서는 상관없이 1행 글자로 매칭되고, 인원수 제한도 없어요.
                 </p>
+                <Image
+                  src="/pattern-excel-example.png"
+                  alt="근무패턴 엑셀 양식 예시 (B열부터 근무자별 패턴 코드)"
+                  width={452}
+                  height={473}
+                  className="w-full max-w-[240px] h-auto rounded-lg border"
+                />
                 <div className="text-xs text-black bg-gray-50 border rounded-lg px-3 py-2 leading-relaxed">
                   <p className="font-medium text-black mb-0.5">검증 기준</p>
                   <p>· 하루(행)마다 메·조·야·여가 각각 정확히 1개씩</p>

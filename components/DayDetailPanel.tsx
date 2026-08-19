@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Employee, Shift, ShiftLeaveUsage, ShiftType, SHIFT_LABELS } from "@/lib/types";
 import { weekdayLabel } from "@/lib/dateUtils";
 import { computeShiftDisplay } from "@/lib/shiftDisplay";
@@ -10,8 +11,10 @@ interface Props {
   shifts: Shift[];
   leaveUsages: ShiftLeaveUsage[];
   isHoliday: boolean;
+  holidayName: string | null;
   canEdit: boolean;
-  onToggleHoliday: () => Promise<void>;
+  onToggleHoliday: (name: string | null) => Promise<void>;
+  onRenameHoliday: (name: string | null) => Promise<void>;
 }
 
 const GROUP_ORDER: ShiftType[] = ["dawn", "night", "day", "leave", "off"];
@@ -22,9 +25,12 @@ export default function DayDetailPanel({
   shifts,
   leaveUsages,
   isHoliday,
+  holidayName,
   canEdit,
   onToggleHoliday,
+  onRenameHoliday,
 }: Props) {
+  const [nameInput, setNameInput] = useState(holidayName ?? "");
   const shiftMap = new Map<string, Shift>();
   for (const s of shifts) {
     if (s.work_date === date) shiftMap.set(s.employee_id, s);
@@ -43,19 +49,34 @@ export default function DayDetailPanel({
   return (
     <div className="space-y-4">
       <p className="text-lg font-bold text-black">
-        {date} ({weekdayLabel(date)}){isHoliday && <span className="text-red-700"> 공휴일</span>}
+        {date} ({weekdayLabel(date)})
+        {isHoliday && (
+          <span className="text-red-700"> 공휴일{holidayName ? ` · ${holidayName}` : ""}</span>
+        )}
       </p>
 
-      <label className="flex items-center gap-2 text-sm border rounded-lg px-3 py-2 bg-gray-50 transition-colors duration-150 hover:bg-gray-100">
+      <div className="space-y-2 border rounded-lg px-3 py-2 bg-gray-50">
+        <label className="flex items-center gap-2 text-sm transition-colors duration-150 hover:bg-gray-100 -mx-1 px-1 rounded-md">
+          <input
+            type="checkbox"
+            checked={isHoliday}
+            disabled={!canEdit}
+            onChange={() => onToggleHoliday(isHoliday ? null : nameInput.trim() || null)}
+            className="accent-gray-900"
+          />
+          공휴일로 지정
+        </label>
         <input
-          type="checkbox"
-          checked={isHoliday}
+          type="text"
+          value={nameInput}
           disabled={!canEdit}
-          onChange={() => onToggleHoliday()}
-          className="accent-gray-900"
+          onChange={(e) => setNameInput(e.target.value)}
+          onBlur={() => isHoliday && onRenameHoliday(nameInput.trim() || null)}
+          onKeyDown={(e) => e.key === "Enter" && isHoliday && onRenameHoliday(nameInput.trim() || null)}
+          placeholder="공휴일 이름 (예: 설날, 추석)"
+          className="w-full border rounded-lg px-2 py-1 text-sm bg-white transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300 disabled:opacity-50"
         />
-        공휴일로 지정
-      </label>
+      </div>
 
       <div className="space-y-3">
         {GROUP_ORDER.map((type) => {

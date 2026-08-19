@@ -51,7 +51,7 @@ function hoursFor(type: ShiftType): { start: string | null; end: string | null }
 
 // 엑셀 날짜 셀을 JS Date로 바꾸면(cellDates) 브라우저 타임존에 따라 하루가 밀릴 수 있어서
 // (KST에서는 8/1 0시가 UTC로 7/31 15시가 됨), 셀의 원본 일련번호를 SSF로 직접 변환해 y/m/d를 얻는다.
-function serialToDateStr(serial: number): string | null {
+export function serialToDateStr(serial: number): string | null {
   const parsed = XLSX.SSF.parse_date_code(serial);
   if (!parsed) return null;
   const m = String(parsed.m).padStart(2, "0");
