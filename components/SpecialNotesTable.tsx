@@ -1,24 +1,53 @@
 "use client";
 
+import { useState } from "react";
 import { useSpecialNotes } from "@/lib/useSpecialNotes";
 import { weekdayLabel } from "@/lib/dateUtils";
 import { employeeLabel } from "@/lib/types";
+import Button from "./ui/Button";
+
+interface Props {
+  year: number;
+}
+
+type Scope = "year" | "all";
 
 function formatDate(dateStr: string): string {
   return `${Number(dateStr.slice(5, 7))}/${Number(dateStr.slice(8, 10))}(${weekdayLabel(dateStr)})`;
 }
 
-export default function SpecialNotesTable() {
-  const { groups, loading } = useSpecialNotes();
+export default function SpecialNotesTable({ year }: Props) {
+  const [scope, setScope] = useState<Scope>("year");
+  const { groups, loading } = useSpecialNotes(scope === "year" ? year : null);
 
   if (loading) return null;
 
   return (
     <div className="border rounded-lg p-3 transition-shadow duration-150 hover:shadow-sm">
-      <p className="text-sm font-medium text-black mb-2">
-        특이사항{" "}
-        <span className="text-xs text-black font-normal">(전체 기간)</span>
-      </p>
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+        <p className="text-sm font-medium text-black">
+          특이사항{" "}
+          <span className="text-xs text-black font-normal">
+            ({scope === "year" ? `${year}년` : "전체 기간"})
+          </span>
+        </p>
+        <div className="flex gap-1">
+          <Button
+            className="text-xs px-2 py-1"
+            active={scope === "year"}
+            onClick={() => setScope("year")}
+          >
+            당해년도 조회
+          </Button>
+          <Button
+            className="text-xs px-2 py-1"
+            active={scope === "all"}
+            onClick={() => setScope("all")}
+          >
+            전체기간 조회
+          </Button>
+        </div>
+      </div>
       <div>
         <table className="text-xs font-bold w-full">
           <thead>

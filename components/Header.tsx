@@ -76,6 +76,7 @@ export default function Header() {
       <WeekendCompLeaveModal
         open={weekendCompLeaveOpen}
         onClose={() => setWeekendCompLeaveOpen(false)}
+        calendarYear={resetInfo?.year ?? new Date().getFullYear()}
       />
       <AuditLogModal open={auditLogOpen} onClose={() => setAuditLogOpen(false)} />
       <ShiftDefaultsModal open={defaultsOpen} onClose={() => setDefaultsOpen(false)} />

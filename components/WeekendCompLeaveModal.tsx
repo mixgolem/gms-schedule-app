@@ -9,13 +9,14 @@ import Button from "./ui/Button";
 interface Props {
   open: boolean;
   onClose: () => void;
+  calendarYear: number;
 }
 
 type Status = "idle" | "linking" | "done" | "error";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
-export default function WeekendCompLeaveModal({ open, onClose }: Props) {
+export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: Props) {
   const { session } = useAuth();
   const canEdit = !!session;
   const { runWithLoading } = useGlobalLoading();
@@ -28,10 +29,8 @@ export default function WeekendCompLeaveModal({ open, onClose }: Props) {
 
   if (!open) return null;
 
-  const thisYear = new Date().getFullYear();
-
   const selectMonth = (month: number) => {
-    const dates = getMonthDates(thisYear, month);
+    const dates = getMonthDates(calendarYear, month);
     setStartDate(dates[0]);
     setEndDate(dates[dates.length - 1]);
     setErrorMsg(null);
@@ -101,7 +100,7 @@ export default function WeekendCompLeaveModal({ open, onClose }: Props) {
               </p>
 
               <div>
-                <p className="text-xs text-black mb-1">{thisYear}년 월 단위로 빠르게 선택</p>
+                <p className="text-xs text-black mb-1">{calendarYear}년 월 단위로 빠르게 선택</p>
                 <div className="grid grid-cols-6 gap-1">
                   {MONTHS.map((m) => (
                     <Button key={m} onClick={() => selectMonth(m)} className="text-xs px-1 py-1.5">

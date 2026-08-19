@@ -362,7 +362,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <SpecialNotesTable />
+            <SpecialNotesTable year={year} />
             <AnnualLeaveTable year={year} month={month} canEdit={canEdit} />
           </div>
           <CompLeaveTable year={year} month={month} canEdit={canEdit} />
