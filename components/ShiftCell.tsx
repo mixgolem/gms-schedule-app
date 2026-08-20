@@ -82,7 +82,7 @@ export default function ShiftCell({
           <span title={current === "dawn" ? "새벽 메인당직" : "야간 메인당직"}>★</span>
         )}
         {current === "annual" ? "연차사용" : current ? SHIFT_LABELS[current] : "-"}
-        {usageSuffix}
+        {usageSuffix && <span className="whitespace-normal break-words">{usageSuffix}</span>}
       </span>
     </button>
   );

@@ -67,9 +67,9 @@ export function computeShiftDisplay(
     : null;
 
   // 괄호 안 표시는 보통 사용유형 이름(연차/대휴/기타)을 쓰지만, "기타"에 사유를 적어뒀으면
-  // "기타" 대신 그 사유를 짧게(3글자) 보여준다.
+  // "기타" 대신 그 사유를 그대로 보여준다.
   const usageLabel = (u: ShiftLeaveUsage): string =>
-    u.usage_type === "other" && u.reason ? u.reason.slice(0, 3) : USAGE_SHORT_LABELS[u.usage_type];
+    u.usage_type === "other" && u.reason ? u.reason : USAGE_SHORT_LABELS[u.usage_type];
 
   const usageSuffix = hasPartialUsage
     ? `(${[...new Set(leaveUsages.map(usageLabel))].join(",")})`
