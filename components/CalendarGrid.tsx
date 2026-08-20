@@ -83,7 +83,9 @@ export default function CalendarGrid({
   return (
     <div className="space-y-3">
       {weeks.map((week, wi) => {
-        const weekDates = week.map((d) => d.date);
+        // 이번 달 앞뒤로 삐져나온 날짜(지난달/다음달)는 주간 근무시간 집계에서 빼고,
+        // 이번 달에 포함된 요일만 합산한다.
+        const weekDates = week.filter((d) => d.inMonth).map((d) => d.date);
         const weeklyHours = computeWeeklyHours(weekDates, visibleEmployees, shifts, leaveUsages);
 
         return (
