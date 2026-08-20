@@ -129,29 +129,46 @@ export async function linkWeekendCompLeave(
     return { ...emptyResult, unmatchedWorkCount, error: null };
   }
 
-  // row마다 개별 update를 보내면(과거에 겪은 문제) 요청이 몰릴 수 있어 upsert로 한 번에 묶는다.
-  const { error: upsertError } = await supabase.from("shifts").upsert(
-    toUpdate.map(({ row, matchedWorkDate }) => ({
-      employee_id: row.employee_id,
-      work_date: row.work_date,
-      shift_type: row.shift_type,
-      is_main: row.is_main,
-      start_time: row.start_time,
-      end_time: row.end_time,
-      leave_for_date: matchedWorkDate,
-      updated_at: new Date().toISOString(),
-    })),
-    { onConflict: "work_date,employee_id" }
-  );
+  const toRow = ({ row, matchedWorkDate }: (typeof toUpdate)[number]) => ({
+    employee_id: row.employee_id,
+    work_date: row.work_date,
+    shift_type: row.shift_type,
+    is_main: row.is_main,
+    start_time: row.start_time,
+    end_time: row.end_time,
+    leave_for_date: matchedWorkDate,
+    updated_at: new Date().toISOString(),
+  });
 
-  if (upsertError) {
-    // 로직상 같은 원래근무일을 두 번 짝짓지는 않지만, 혹시라도 DB의 1:1 제약에 걸리면
-    // 원인을 바로 알 수 있게 안내한다.
-    const message =
-      upsertError.code === "23505"
-        ? "대휴 원래근무일이 중복돼서 저장하지 못했어요. 다시 시도해주세요."
-        : upsertError.message;
-    return { ...emptyResult, unmatchedWorkCount, error: message };
+  // 연결 해제(null)와 새 연결(날짜 지정)을 한 번의 upsert에 같이 넣으면, 같은 원래근무일을
+  // "예전 대휴에서는 빼고 새 대휴에 붙이는" 경우 DB가 그 안에서 어떤 행부터 처리할지
+  // 보장해주지 않아 일시적으로 같은 원래근무일이 두 번 잡힌 것처럼 보여 유니크 제약(23505)에
+  // 걸릴 수 있다. 그래서 먼저 전부 해제(null)한 뒤, 그다음에 새 연결을 확정해서
+  // 저장 시점에 항상 "먼저 비우고 나서 채우는" 순서가 되도록 나눈다.
+  const clearRows = toUpdate.filter((u) => u.matchedWorkDate === null).map(toRow);
+  const assignRows = toUpdate.filter((u) => u.matchedWorkDate !== null).map(toRow);
+
+  if (clearRows.length > 0) {
+    const { error } = await supabase
+      .from("shifts")
+      .upsert(clearRows, { onConflict: "work_date,employee_id" });
+    if (error) return { ...emptyResult, unmatchedWorkCount, error: error.message };
+  }
+
+  if (assignRows.length > 0) {
+    const { error: upsertError } = await supabase
+      .from("shifts")
+      .upsert(assignRows, { onConflict: "work_date,employee_id" });
+
+    if (upsertError) {
+      // 로직상 같은 원래근무일을 두 번 짝짓지는 않지만, 혹시라도 DB의 1:1 제약에 걸리면
+      // 원인을 바로 안내한다.
+      const message =
+        upsertError.code === "23505"
+          ? "대휴 원래근무일이 중복돼서 저장하지 못했어요. 다시 시도해주세요."
+          : upsertError.message;
+      return { ...emptyResult, unmatchedWorkCount, error: message };
+    }
   }
 
   const matchedCount = toUpdate.filter((u) => u.matchedWorkDate !== null).length;
