@@ -17,6 +17,9 @@ const DELETE_ORDER = [
   "holidays",
   "shift_type_defaults",
   "notice",
+  "shift_pattern_applications",
+  "shift_patterns",
+  "user_preferences",
   "employees",
 ];
 
@@ -31,6 +34,9 @@ const INSERT_ORDER = [
   "comp_leave_summary",
   "annual_leave_allocation",
   "notice",
+  "shift_patterns",
+  "shift_pattern_applications",
+  "user_preferences",
 ];
 
 const CHUNK_SIZE = 500;

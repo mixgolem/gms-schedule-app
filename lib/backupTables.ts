@@ -15,4 +15,12 @@ export const BACKUP_TABLE_CONFIG: BackupTableConfig[] = [
   { table: "comp_leave_monthly", pk: "id", label: "대휴 월별발생(수기)" },
   { table: "comp_leave_summary", pk: "id", label: "대휴 사용누적(수기)" },
   { table: "annual_leave_allocation", pk: "id", label: "연차 할당(수기)" },
+  { table: "shift_patterns", pk: "id", label: "근무패턴" },
+  { table: "shift_pattern_applications", pk: "id", label: "근무패턴 적용이력" },
+  { table: "user_preferences", pk: "user_id", label: "사용자별 화면 설정" },
 ];
+
+// audit_log(변경 이력)는 여기 일부러 안 넣는다 — 계속 자라기만 하는 로그성 테이블이고,
+// 전체 복원 자체가 shifts/holidays/employees/shift_leave_usage에 대량 삭제·삽입을
+// 일으켜서 그 트리거로 audit_log에 새 기록이 잔뜩 쌓인다. 백업 시점 스냅샷을 다시
+// 밀어넣으면 그 사이 실제로 있었던 변경 이력과 뒤섞여 오히려 헷갈린다.
