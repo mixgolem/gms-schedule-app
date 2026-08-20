@@ -10,6 +10,31 @@ export interface WeekendCompLeaveResult {
 
 const MAX_DIFF_MS = 7 * 24 * 60 * 60 * 1000; // 기준일 앞뒤 7일까지만 연결
 
+// Supabase/PostgREST는 한 번의 select 요청에 기본 최대 1000행까지만 돌려준다. 몇 달치,
+// 특히 1년 단위로 기간을 잡으면 shifts 행 수가 쉽게 1000을 넘어서, 페이지네이션 없이
+// 조회하면 뒤쪽 데이터가 조용히 잘려나간다. 그 상태로 매칭을 돌리면 "이미 다른 대휴가
+// 찜해둔 근무일"을 못 알아채고 다시 배정하려다 유니크 제약(23505)에 걸릴 수 있었다.
+const PAGE_SIZE = 1000;
+
+async function fetchAllRows<T>(
+  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<{ rows: T[]; error: string | null }> {
+  const rows: T[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await build(from, from + PAGE_SIZE - 1);
+    if (error) return { rows, error: error.message };
+    if (!data || data.length === 0) break;
+
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return { rows, error: null };
+}
+
 // 주말(토/일)에 근무(새벽/주간/야간)한 날과 대휴(대)를 근무자별로 날짜가 가장 가까운
 // 쌍부터(단, 최대 7일 차이까지만) 순서대로 자동 연결한다.
 // - 공휴일 근무는 대체휴무시간으로 별도 관리되니 이 매핑 대상에서 제외한다.
@@ -23,41 +48,64 @@ export async function linkWeekendCompLeave(
   const emptyResult = { matchedCount: 0, unmatchedWorkCount: 0, unlinkedCount: 0 };
 
   const [
-    { data: shiftRows, error: shiftError },
-    { data: holidayRows, error: holidayError },
-    { data: externalClaimRows, error: externalClaimError },
+    { rows: shiftRows, error: shiftError },
+    { rows: holidayRows, error: holidayError },
+    { rows: externalClaimRows, error: externalClaimError },
   ] = await Promise.all([
-    supabase
-      .from("shifts")
-      .select("employee_id, work_date, shift_type, is_main, start_time, end_time, leave_for_date")
-      .gte("work_date", startDate)
-      .lte("work_date", endDate),
-    supabase
-      .from("holidays")
-      .select("work_date")
-      .gte("work_date", startDate)
-      .lte("work_date", endDate),
+    fetchAllRows<{
+      employee_id: string;
+      work_date: string;
+      shift_type: string;
+      is_main: boolean;
+      start_time: string | null;
+      end_time: string | null;
+      leave_for_date: string | null;
+    }>((from, to) =>
+      supabase
+        .from("shifts")
+        .select("employee_id, work_date, shift_type, is_main, start_time, end_time, leave_for_date")
+        .gte("work_date", startDate)
+        .lte("work_date", endDate)
+        .order("work_date", { ascending: true })
+        .order("employee_id", { ascending: true })
+        .range(from, to)
+    ),
+    fetchAllRows<{ work_date: string }>((from, to) =>
+      supabase
+        .from("holidays")
+        .select("work_date")
+        .gte("work_date", startDate)
+        .lte("work_date", endDate)
+        .order("work_date", { ascending: true })
+        .range(from, to)
+    ),
     // 이번 기간 밖에 있는(그래서 이번 계산 대상이 아닌) 대휴가 이미 찜해둔 근무일은
     // 다시 다른 대휴에 중복으로 배정되지 않도록 미리 알아둬야 한다.
-    supabase
-      .from("shifts")
-      .select("employee_id, work_date, leave_for_date")
-      .eq("shift_type", "leave")
-      .not("leave_for_date", "is", null)
-      .gte("leave_for_date", startDate)
-      .lte("leave_for_date", endDate),
+    fetchAllRows<{ employee_id: string; work_date: string; leave_for_date: string | null }>(
+      (from, to) =>
+        supabase
+          .from("shifts")
+          .select("employee_id, work_date, leave_for_date")
+          .eq("shift_type", "leave")
+          .not("leave_for_date", "is", null)
+          .gte("leave_for_date", startDate)
+          .lte("leave_for_date", endDate)
+          .order("work_date", { ascending: true })
+          .order("employee_id", { ascending: true })
+          .range(from, to)
+    ),
   ]);
 
-  if (shiftError) return { ...emptyResult, error: shiftError.message };
-  if (holidayError) return { ...emptyResult, error: holidayError.message };
-  if (externalClaimError) return { ...emptyResult, error: externalClaimError.message };
+  if (shiftError) return { ...emptyResult, error: shiftError };
+  if (holidayError) return { ...emptyResult, error: holidayError };
+  if (externalClaimError) return { ...emptyResult, error: externalClaimError };
 
-  const holidaySet = new Set((holidayRows ?? []).map((h) => h.work_date));
-  const rows = shiftRows ?? [];
+  const holidaySet = new Set(holidayRows.map((h) => h.work_date));
+  const rows = shiftRows;
   const inRangeDates = new Set(rows.map((r) => r.work_date));
 
   const externalClaims = new Set(
-    (externalClaimRows ?? [])
+    externalClaimRows
       .filter((r) => !inRangeDates.has(r.work_date)) // 자기 work_date가 이번 기간 안이면 이번에 다시 계산되니 제외
       .map((r) => `${r.employee_id}_${r.leave_for_date}`)
   );
