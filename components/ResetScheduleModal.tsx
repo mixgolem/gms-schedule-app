@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useAuth, useGlobalLoading, useToast } from "@/app/providers";
-import { linkWeekendCompLeave } from "@/lib/weekendCompLeaveLink";
+import { countScheduleRange, deleteScheduleRange } from "@/lib/resetSchedule";
 import { getMonthDates, todayStr } from "@/lib/dateUtils";
 import Button from "./ui/Button";
+import ConfirmPhraseDialog from "./ConfirmPhraseDialog";
 
 interface Props {
   open: boolean;
@@ -12,21 +13,23 @@ interface Props {
   calendarYear: number;
 }
 
-type Status = "idle" | "linking" | "done" | "error";
+type Status = "idle" | "counting" | "resetting" | "done" | "error";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
-export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: Props) {
+export default function ResetScheduleModal({ open, onClose, calendarYear }: Props) {
   const { session } = useAuth();
   const canEdit = !!session;
   const { runWithLoading } = useGlobalLoading();
   const { showToast } = useToast();
 
+  const [startDate, setStartDate] = useState(todayStr());
+  const [endDate, setEndDate] = useState(todayStr());
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState(todayStr());
-  const [endDate, setEndDate] = useState(todayStr());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   if (!open) return null;
 
@@ -39,41 +42,48 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
     setStatus("idle");
   };
 
-  const handleLink = async () => {
+  const handleStart = async () => {
     if (endDate < startDate) {
       setErrorMsg("종료일이 시작일보다 빠를 수 없어요.");
       setStatus("error");
       return;
     }
 
-    const ok = window.confirm(
-      `${startDate} ~ ${endDate} 기간에서, 주말(토/일)에 근무한 날과 대휴를 근무자별로 날짜가 가까운 순서로(최대 7일 이내만) 자동 연결할까요?\n공휴일 근무는 대상에서 제외되고, 이 기간의 대휴는 기존에 연결돼 있었더라도 이번 계산 결과로 다시 정리돼요.`
-    );
-    if (!ok) return;
-
-    setStatus("linking");
+    setStatus("counting");
     setErrorMsg(null);
     setSummary(null);
 
-    await runWithLoading("주말:대휴 연결 중...", async () => {
-      const { matchedCount, unmatchedWorkCount, unlinkedCount, error } = await linkWeekendCompLeave(
-        startDate,
-        endDate
-      );
+    const { count, error } = await countScheduleRange(startDate, endDate);
+    if (error) {
+      setStatus("error");
+      setErrorMsg(`확인 실패: ${error}`);
+      return;
+    }
+    if (count === 0) {
+      setStatus("done");
+      setSummary("이 기간에 삭제할 근무 기록이 없어요.");
+      return;
+    }
+
+    setPendingCount(count);
+    setStatus("idle");
+    setConfirmOpen(true);
+  };
+
+  const handleConfirm = async () => {
+    setConfirmOpen(false);
+    setStatus("resetting");
+
+    await runWithLoading("근무표 초기화 중...", async () => {
+      const { error } = await deleteScheduleRange(startDate, endDate);
       if (error) {
         setStatus("error");
-        setErrorMsg(`연결 실패: ${error}`);
+        setErrorMsg(`초기화 실패: ${error}`);
         return;
       }
-
-      const notes = [
-        unmatchedWorkCount > 0 ? `짝을 찾지 못한 주말근무 ${unmatchedWorkCount}건` : null,
-        unlinkedCount > 0 ? `연결 해제된 대휴 ${unlinkedCount}건` : null,
-      ].filter((n): n is string => n !== null);
-
       setStatus("done");
-      setSummary(`${matchedCount}건 연결 완료!` + (notes.length > 0 ? ` (${notes.join(", ")})` : ""));
-      showToast("연결 완료!");
+      setSummary(`${pendingCount}건 삭제 완료!`);
+      showToast("삭제 완료!");
     });
   };
 
@@ -82,7 +92,7 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="font-semibold text-sm">주말:대휴 자동 연결</h2>
+          <h2 className="font-semibold text-sm">근무표 기간 초기화</h2>
           <button
             type="button"
             onClick={onClose}
@@ -98,14 +108,8 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
           ) : (
             <>
               <p className="text-xs text-black">
-                지정한 기간에서 주말(토/일)에 근무한 날과 대휴를 근무자별로 날짜가 가까운 순서로
-                자동 연결해요. 공휴일 근무는 제외되고, 기준일로부터 앞뒤로 7일을 넘는 짝은
-                연결하지 않아요.
-              </p>
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
-                이 기간 안의 대휴는 기존에 연결돼 있었는지와 상관없이 실행할 때마다 이 기준으로
-                처음부터 다시 계산돼요. 그래서 7일을 넘어가거나 더 가까운 짝이 생기면 기존
-                연결도 바뀌거나 풀릴 수 있어요. (기간 밖에서 이미 연결된 대휴는 건드리지 않아요.)
+                지정한 기간의 근무 기록만 삭제해요. 직원·공휴일·근무패턴 등 다른 데이터는
+                그대로 남고, 삭제된 근무 기록은 되돌릴 수 없어요.
               </p>
 
               <div>
@@ -125,7 +129,11 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
                   <input
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setErrorMsg(null);
+                      setSummary(null);
+                    }}
                     className="border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
                   />
                 </div>
@@ -134,27 +142,47 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
                   <input
                     type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setErrorMsg(null);
+                      setSummary(null);
+                    }}
                     className="border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
                   />
                 </div>
               </div>
 
-              {status === "linking" && <p className="text-black">연결 중...</p>}
+              {status === "counting" && <p className="text-black">확인 중...</p>}
+              {status === "resetting" && <p className="text-black">초기화 중...</p>}
               {summary && <p className="text-green-600">{summary}</p>}
               {errorMsg && <p className="text-red-600">{errorMsg}</p>}
 
               <Button
-                onClick={handleLink}
-                disabled={status === "linking"}
+                variant="danger"
+                onClick={handleStart}
+                disabled={status === "counting" || status === "resetting"}
                 className="w-full py-2"
               >
-                {status === "linking" ? "연결 중..." : "주말:대휴 적용"}
+                {status === "counting"
+                  ? "확인 중..."
+                  : status === "resetting"
+                  ? "초기화 중..."
+                  : "이 기간 초기화"}
               </Button>
             </>
           )}
         </div>
       </div>
+
+      <ConfirmPhraseDialog
+        open={confirmOpen}
+        title={`${startDate} ~ ${endDate} 근무표 초기화`}
+        message={`이 기간의 근무 기록 ${pendingCount}건이 삭제되며 되돌릴 수 없어요.\n직원·공휴일·근무패턴 등 다른 데이터는 그대로 남아요.`}
+        phrase="근무표초기화"
+        danger
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/app/providers";
+import { useAuth, useToast } from "@/app/providers";
 import {
   parseBackupFile,
   fetchCurrentCounts,
@@ -22,6 +22,7 @@ type Status = "idle" | "parsing" | "previewing" | "restoring" | "done" | "error"
 export default function FullRestoreModal({ open, onClose }: Props) {
   const { session } = useAuth();
   const canEdit = !!session;
+  const { showToast } = useToast();
   const [status, setStatus] = useState<Status>("idle");
   const [backup, setBackup] = useState<FullBackupPayload | null>(null);
   const [counts, setCounts] = useState<Record<string, number> | null>(null);
@@ -82,13 +83,14 @@ export default function FullRestoreModal({ open, onClose }: Props) {
     }
 
     setStatus("done");
+    showToast("복원 완료!");
     setTimeout(() => window.location.reload(), 1500);
   };
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/30 animate-[fadeIn_150ms_ease-out]"
+        className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]"
         onClick={handleClose}
       />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">

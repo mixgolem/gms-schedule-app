@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useHolidayManager } from "@/lib/useHolidayManager";
 import { weekdayLabel } from "@/lib/dateUtils";
 import { parseHolidayFile, applyParsedHolidays, ParseHolidayResult } from "@/lib/holidayImport";
+import { useToast } from "@/app/providers";
 import Button from "./ui/Button";
 
 interface Props {
@@ -34,6 +35,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
   const [bulkSummary, setBulkSummary] = useState<string | null>(null);
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkInputKey, setBulkInputKey] = useState(0);
+  const { showToast } = useToast();
 
   if (!open) return null;
 
@@ -45,6 +47,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
   const commitEdit = async () => {
     if (editingDate) {
       await renameHoliday(editingDate, editingName.trim() || null);
+      showToast("변경 완료!");
     }
     setEditingDate(null);
     setEditingName("");
@@ -56,6 +59,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
     );
     if (!ok) return;
     await deleteHoliday(workDate);
+    showToast("삭제 완료!");
   };
 
   const handleAdd = async () => {
@@ -71,6 +75,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
     setNewDate("");
     setNewName("");
     setAddError(null);
+    showToast("저장 완료!");
   };
 
   const resetBulk = () => {
@@ -121,11 +126,12 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
     setBulkSummary(`${bulkParsed.rows.length}건 반영 완료`);
     setBulkStatus("done");
     setBulkParsed(null);
+    showToast("저장 완료!");
   };
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h2 className="font-semibold text-sm">공휴일 관리</h2>

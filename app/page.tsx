@@ -120,6 +120,7 @@ export default function Home() {
     const activeIds = new Set(employees.map((e) => e.id));
     const activeShifts = freshShifts.filter((s) => activeIds.has(s.employee_id));
     setWarning(checkPairRule(activeShifts, workDate, shiftType));
+    showToast("저장 완료!");
   };
 
   const handleDeleteShift = async (employeeId: string, workDate: string) => {
@@ -129,6 +130,7 @@ export default function Home() {
       return;
     }
     setSidebar(null);
+    showToast("삭제 완료!");
   };
 
   const handleResetMonth = useCallback(() => {
@@ -140,8 +142,9 @@ export default function Home() {
     await runWithLoading("이번 달 초기화 중...", async () => {
       const { error } = await resetMonth();
       setWarning(error ? `초기화 실패: ${error.message}` : null);
+      if (!error) showToast("초기화 완료!");
     });
-  }, [resetMonth, runWithLoading]);
+  }, [resetMonth, runWithLoading, showToast]);
 
   // Header에서 "이번 달 초기화" 버튼을 띄울 수 있도록 현재 연/월과 초기화 함수를 공유 슬롯에 등록
   useEffect(() => {
@@ -228,6 +231,7 @@ export default function Home() {
       return;
     }
     win.location.href = URL.createObjectURL(blob);
+    showToast("새 창에서 열었어요");
   };
 
   const handleSavePdf = async () => {
@@ -266,7 +270,7 @@ export default function Home() {
 
   return (
     <main className="p-4 max-w-[1900px] mx-auto w-full space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="sticky top-16 z-20 h-14 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
         <MonthPicker
           year={year}
           month={month}
@@ -305,7 +309,7 @@ export default function Home() {
       )}
 
       <div className="flex gap-4 items-start flex-col md:flex-row">
-        <div className="w-full md:w-36 shrink-0 space-y-3 md:sticky md:top-4 md:self-start">
+        <div className="w-full md:w-36 shrink-0 space-y-3 md:sticky md:top-[120px] md:self-start">
           <EmployeeFilter
             employees={employees}
             selectedIds={filterEmployeeIds}
@@ -334,7 +338,10 @@ export default function Home() {
 
         <div className="flex-1 min-w-0 space-y-3">
           {loading ? (
-            <p className="text-sm text-black">불러오는 중...</p>
+            <div className="flex items-center gap-2 text-sm text-black py-8 justify-center">
+              <div className="h-4 w-4 rounded-full border-2 border-gray-200 border-t-blue-900 animate-spin" />
+              불러오는 중...
+            </div>
           ) : (
             <div ref={calendarRef}>
               <CalendarGrid
@@ -418,8 +425,14 @@ export default function Home() {
             isHoliday={holidayDates.has(sidebar.date)}
             holidayName={holidayNames.get(sidebar.date) ?? null}
             canEdit={canEdit}
-            onToggleHoliday={(name) => toggleHoliday(sidebar.date, name)}
-            onRenameHoliday={(name) => setHolidayName(sidebar.date, name)}
+            onToggleHoliday={async (name) => {
+              await toggleHoliday(sidebar.date, name);
+              showToast("변경 완료!");
+            }}
+            onRenameHoliday={async (name) => {
+              await setHolidayName(sidebar.date, name);
+              showToast("변경 완료!");
+            }}
           />
         )}
       </ShiftSidebar>

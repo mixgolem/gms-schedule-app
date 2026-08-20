@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
-import { useAuth, useGlobalLoading } from "@/app/providers";
+import { useAuth, useGlobalLoading, useToast } from "@/app/providers";
 import { useEmployees } from "@/lib/useEmployees";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
 import { useShiftPattern } from "@/lib/useShiftPattern";
@@ -45,6 +45,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
   const { defaults: shiftDefaults } = useShiftDefaults();
   const { current, latestApplication, uploadPattern, recordApplication } = useShiftPattern();
   const { runWithLoading } = useGlobalLoading();
+  const { showToast } = useToast();
 
   const [status, setStatus] = useState<Status>("idle");
   const [parsedDays, setParsedDays] = useState<PatternDays | null>(null);
@@ -111,6 +112,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
     setParsedFilename("");
     setStatus("idle");
     setSummary("패턴이 저장됐어요. 아래에서 적용할 날짜를 선택해주세요.");
+    showToast("저장 완료!");
   };
 
   const totalDays = Math.max(1, cycles) * PATTERN_DAYS;
@@ -153,12 +155,13 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
       setStatus("done");
       const clearedNote = clearedCells.length > 0 ? ` (빈칸 ${clearedCells.length}건 삭제)` : "";
       setSummary(`${startDate} ~ ${endDate} 기간에 ${rows.length}건 적용 완료!${clearedNote}`);
+      showToast("적용 완료!");
     });
   };
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h2 className="font-semibold text-sm">근무패턴 관리</h2>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from "@/app/providers";
 
 interface Props {
   value: number;
@@ -12,6 +13,7 @@ interface Props {
 export default function EditableNumberCell({ value, canEdit, onCommit, unit }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
+  const { showToast } = useToast();
 
   if (!canEdit)
     return (
@@ -32,7 +34,10 @@ export default function EditableNumberCell({ value, canEdit, onCommit, unit }: P
         onBlur={() => {
           setEditing(false);
           const n = Number(draft);
-          if (!Number.isNaN(n) && n !== value) onCommit(n);
+          if (!Number.isNaN(n) && n !== value) {
+            onCommit(n);
+            showToast("변경 완료!");
+          }
         }}
         onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
         className="w-16 border rounded-md px-1 py-0.5 text-xs text-right transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Employee, Shift, employeeLabel } from "@/lib/types";
 import { ShiftDefaultsMap } from "@/lib/useShiftDefaults";
 import { exportErpExcel } from "@/lib/erpExport";
+import { useToast } from "@/app/providers";
 import Button from "./ui/Button";
 
 interface Props {
@@ -28,6 +29,7 @@ export default function ErpExportModal({
   onClose,
 }: Props) {
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   if (!open) return null;
 
@@ -39,11 +41,12 @@ export default function ErpExportModal({
     }
     setError(null);
     onClose();
+    showToast("다운로드 완료!");
   };
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm max-h-[80vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h2 className="font-semibold text-sm">ERP 엑셀 다운로드 — 근무자 선택</h2>

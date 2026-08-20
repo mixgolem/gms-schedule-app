@@ -2,7 +2,7 @@
 
 import { useToast } from "@/app/providers";
 
-// 화면 정중앙에 5초간 떴다 사라지는 성공/실패 알림 팝업.
+// 화면 정중앙에 3초간 떴다 사라지는 성공/실패 알림 팝업.
 export default function ToastPopup() {
   const { toast } = useToast();
   if (!toast) return null;

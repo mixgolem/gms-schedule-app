@@ -21,7 +21,7 @@ export default function MonthlyStatsTable({ year, month, employees, shifts, leav
       <p className="text-sm font-medium text-black mb-2">
         {month}월 근무시간 통계{" "}
         <span className="text-xs text-black font-normal">
-          (일 기준 8시간, 연차·대휴 사용시간 차감)
+          (일 기준 8시간, 본인대휴 사용시간만 차감 · 연차·기타는 차감 없이 업무일 그대로 인정)
         </span>
       </p>
       <div>

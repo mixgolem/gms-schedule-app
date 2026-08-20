@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useNotice } from "@/lib/useNotice";
+import { useToast } from "@/app/providers";
 import Button from "./ui/Button";
 
 interface Props {
@@ -13,6 +14,7 @@ export default function NoticeBox({ canEdit }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const { showToast } = useToast();
 
   const startEdit = () => {
     setDraft(content);
@@ -24,6 +26,7 @@ export default function NoticeBox({ canEdit }: Props) {
     await updateNotice(draft);
     setSaving(false);
     setEditing(false);
+    showToast("저장 완료!");
   };
 
   if (loading) return null;

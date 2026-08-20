@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { useAuth, useGlobalLoading } from "@/app/providers";
+import { useAuth, useGlobalLoading, useToast } from "@/app/providers";
 import { useEmployees } from "@/lib/useEmployees";
 import {
   parseScheduleFile,
@@ -29,6 +29,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
   const canEdit = !!session;
   const { employees } = useEmployees();
   const { runWithLoading } = useGlobalLoading();
+  const { showToast } = useToast();
   const [status, setStatus] = useState<Status>("idle");
   const [parsed, setParsed] = useState<ParseResult | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
@@ -81,12 +82,13 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
       setSummary(`${dates.size}일 · ${parsed.rows.length}건 반영 완료${clearedNote}`);
       setStatus("done");
       setParsed(null);
+      showToast("저장 완료!");
     });
   };
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h2 className="font-semibold text-sm">근무표 업로드</h2>

@@ -116,8 +116,8 @@ export function useGlobalLoading() {
   return ctx;
 }
 
-// 이미지 복사/다운로드/PDF 저장처럼 "됐는지 안 됐는지" 짧게 알려주면 되는 작업을 위한
-// 5초짜리 팝업 알림. 성공/실패 상관없이 같은 방식으로 띄운다.
+// 저장/삭제/변경/다운로드처럼 "됐는지 안 됐는지" 짧게 알려주면 되는 작업을 위한
+// 3초짜리 팝업 알림. 성공/실패 상관없이 같은 방식으로 띄운다.
 interface ToastState {
   id: number;
   message: string;
@@ -131,7 +131,7 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
-const TOAST_DURATION_MS = 5000;
+const TOAST_DURATION_MS = 3000;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<ToastState | null>(null);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
 import { SHIFT_LABELS } from "@/lib/types";
+import { useToast } from "@/app/providers";
 import TimeInput24 from "./ui/TimeInput24";
 import Button from "./ui/Button";
 
@@ -25,6 +26,7 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
   const { defaults, loading, setShiftDefault } = useShiftDefaults();
   const [draft, setDraft] = useState(defaults);
   const [saving, setSaving] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -40,11 +42,12 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
     }
     setSaving(false);
     onClose();
+    showToast("저장 완료!");
   };
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h2 className="font-semibold text-sm">근무시간 설정</h2>

@@ -21,7 +21,9 @@ export default function ShiftSidebar({ open, title, onClose, children }: Props) 
   return (
     <div className={`fixed inset-0 z-30 ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
       <div
-        className={`absolute inset-0 bg-black/30 transition-opacity duration-200 ease-out ${
+        // 근무 편집/일자 상세 사이드바는 뒤 근무표를 보면서 편집할 수 있어야 해서
+        // 다른 모달과 달리 흐림 효과 없이 살짝 어둡게만 처리한다.
+        className={`absolute inset-0 bg-black/20 transition-opacity duration-200 ease-out ${
           open ? "opacity-100" : "opacity-0"
         }`}
         onClick={onClose}

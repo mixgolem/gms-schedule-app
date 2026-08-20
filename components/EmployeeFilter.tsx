@@ -59,9 +59,7 @@ export default function EmployeeFilter({ employees, selectedIds, mode, onSelect 
         </Button>
       ))}
       <p className="text-[11px] text-black px-1 pt-1 leading-snug">
-        근무자를 누르면 전체보기에서 그 사람 근무가 색으로 강조돼요(여러 명 동시에 가능). 강조된
-        사람을 한 번 더 누르면 그 사람 근무만 보이고, 이때 다른 강조는 풀려요. 다시 누르면
-        전체보기로 돌아가요.
+        클릭: 강조(다중 가능) → 강조된 사람 재클릭: 그 사람만 보기 → 다시 클릭: 전체보기
       </p>
     </div>
   );

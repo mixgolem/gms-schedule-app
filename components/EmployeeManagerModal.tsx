@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useEmployees } from "@/lib/useEmployees";
 import { employeeLabel } from "@/lib/types";
+import { useToast } from "@/app/providers";
 import Button from "./ui/Button";
 
 interface Props {
@@ -26,6 +27,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingNumber, setEditingNumber] = useState("");
+  const { showToast } = useToast();
 
   if (!open) return null;
 
@@ -37,6 +39,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
     await addEmployee(name, newNumber.trim() || null);
     setNewName("");
     setNewNumber("");
+    showToast("저장 완료!");
   };
 
   const startEdit = (id: string, name: string, employeeNumber: string | null) => {
@@ -49,6 +52,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
     if (editingId && editingName.trim()) {
       await renameEmployee(editingId, editingName.trim());
       await setEmployeeNumber(editingId, editingNumber.trim() || null);
+      showToast("변경 완료!");
     }
     setEditingId(null);
     setEditingName("");
@@ -61,11 +65,12 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
     );
     if (!ok) return;
     await deleteEmployee(id);
+    showToast("삭제 완료!");
   };
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h2 className="font-semibold text-sm">직원 관리</h2>
