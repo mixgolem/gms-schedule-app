@@ -193,6 +193,28 @@ export async function applyParsedSchedule(
             : r
         );
 
+  // 대휴 원래근무일(leave_for_date) 연결도 메인당직과 같은 문제가 있다: 이번 업로드에 없는
+  // 다른 날짜의 기존 기록이 같은 (직원, 원래근무일) 조합을 이미 붙잡고 있으면, 이번에 그
+  // 조합으로 새로 연결하려는 순간 유니크 제약(shifts_leave_for_date_unique)에 걸린다.
+  // 그래서 새로 연결하기 전에 그 조합을 붙잡고 있는 기존 연결을 먼저 풀어준다.
+  const leaveLinkKeys = [
+    ...new Set(
+      finalRows
+        .filter((r) => r.shift_type === "leave" && r.leave_for_date)
+        .map((r) => `${r.employee_id}|${r.leave_for_date}`)
+    ),
+  ];
+  for (const key of leaveLinkKeys) {
+    const [employeeId, leaveForDate] = key.split("|");
+    const { error: clearLinkError } = await supabase
+      .from("shifts")
+      .update({ leave_for_date: null })
+      .eq("employee_id", employeeId)
+      .eq("leave_for_date", leaveForDate)
+      .eq("shift_type", "leave");
+    if (clearLinkError) return { error: clearLinkError.message };
+  }
+
   // 1단계: 전부 is_main=false로 업서트 (메인당직 유니크 제약 충돌 방지)
   const { error: upsertError } = await supabase.from("shifts").upsert(
     finalRows.map((r) => ({
