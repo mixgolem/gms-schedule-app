@@ -162,58 +162,62 @@ export default function Home() {
 
   const handleCopyImage = async () => {
     if (!calendarRef.current) return;
-    const blob = await captureScheduleImage(calendarRef.current, scheduleTitle, { banner: true });
-    if (!blob) {
-      showToast("이미지를 만들지 못했어요. 다시 시도해주세요.", "error");
-      return;
-    }
-    const filename = `GMS_근무표_${year}년${month}월.png`;
+    await runWithLoading("이미지 만드는 중...", async () => {
+      const blob = await captureScheduleImage(calendarRef.current!, scheduleTitle, { banner: true });
+      if (!blob) {
+        showToast("이미지를 만들지 못했어요. 다시 시도해주세요.", "error");
+        return;
+      }
+      const filename = `GMS_근무표_${year}년${month}월.png`;
 
-    // 모바일은 클립보드 이미지 쓰기가 잘 안 통하는 경우가 많아, 공유 시트가 되면 그걸 우선 쓴다.
-    const file = new File([blob], filename, { type: "image/png" });
-    if (canShareFile(file)) {
-      const { shared } = await shareFile(file, scheduleTitle);
-      showToast(
-        shared ? "이미지를 공유했어요" : "이미지 공유에 실패했어요. 다시 시도해주세요.",
-        shared ? "success" : "error"
-      );
-      return;
-    }
+      // 모바일은 클립보드 이미지 쓰기가 잘 안 통하는 경우가 많아, 공유 시트가 되면 그걸 우선 쓴다.
+      const file = new File([blob], filename, { type: "image/png" });
+      if (canShareFile(file)) {
+        const { shared } = await shareFile(file, scheduleTitle);
+        showToast(
+          shared ? "이미지를 공유했어요" : "이미지 공유에 실패했어요. 다시 시도해주세요.",
+          shared ? "success" : "error"
+        );
+        return;
+      }
 
-    // 캡처하는 동안(await) 개발자도구 등으로 포커스가 빠지면 클립보드 API가
-    // "Document is not focused" 에러를 던진다 — 쓰기 직전에 포커스를 되돌려준다.
-    window.focus();
-    try {
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      showToast("이미지를 복사했어요");
-    } catch {
-      showToast("이미지 복사에 실패했어요. 페이지를 한 번 클릭한 뒤 다시 시도해주세요.", "error");
-    }
+      // 캡처하는 동안(await) 개발자도구 등으로 포커스가 빠지면 클립보드 API가
+      // "Document is not focused" 에러를 던진다 — 쓰기 직전에 포커스를 되돌려준다.
+      window.focus();
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        showToast("이미지를 복사했어요");
+      } catch {
+        showToast("이미지 복사에 실패했어요. 페이지를 한 번 클릭한 뒤 다시 시도해주세요.", "error");
+      }
+    });
   };
 
   const handleDownloadImage = async () => {
     if (!calendarRef.current) return;
-    const blob = await captureScheduleImage(calendarRef.current, scheduleTitle, { banner: true });
-    if (!blob) {
-      showToast("이미지를 만들지 못했어요. 다시 시도해주세요.", "error");
-      return;
-    }
-    const filename = `GMS_근무표_${year}년${month}월.png`;
+    await runWithLoading("이미지 만드는 중...", async () => {
+      const blob = await captureScheduleImage(calendarRef.current!, scheduleTitle, { banner: true });
+      if (!blob) {
+        showToast("이미지를 만들지 못했어요. 다시 시도해주세요.", "error");
+        return;
+      }
+      const filename = `GMS_근무표_${year}년${month}월.png`;
 
-    // 모바일은 <a download>가 그냥 이미지를 열어버리기만 하는 경우가 많아, 공유 시트가
-    // 되면 그걸 우선 쓴다(저장/공유를 사용자가 직접 고를 수 있어 더 확실하다).
-    const file = new File([blob], filename, { type: "image/png" });
-    if (canShareFile(file)) {
-      const { shared } = await shareFile(file, scheduleTitle);
-      showToast(
-        shared ? "이미지를 저장했어요" : "이미지 저장에 실패했어요. 다시 시도해주세요.",
-        shared ? "success" : "error"
-      );
-      return;
-    }
+      // 모바일은 <a download>가 그냥 이미지를 열어버리기만 하는 경우가 많아, 공유 시트가
+      // 되면 그걸 우선 쓴다(저장/공유를 사용자가 직접 고를 수 있어 더 확실하다).
+      const file = new File([blob], filename, { type: "image/png" });
+      if (canShareFile(file)) {
+        const { shared } = await shareFile(file, scheduleTitle);
+        showToast(
+          shared ? "이미지를 저장했어요" : "이미지 저장에 실패했어요. 다시 시도해주세요.",
+          shared ? "success" : "error"
+        );
+        return;
+      }
 
-    downloadBlob(blob, filename);
-    showToast("이미지를 다운로드했어요");
+      downloadBlob(blob, filename);
+      showToast("이미지를 다운로드했어요");
+    });
   };
 
   const handleOpenImageInNewTab = async () => {
@@ -221,44 +225,48 @@ export default function Home() {
     // 캡처는 비동기라 그 뒤에 window.open을 부르면 팝업 차단에 걸릴 수 있어서,
     // 클릭 즉시(동기적으로) 빈 창부터 띄워두고 이미지가 준비되면 그 창에 연결한다.
     const win = window.open("", "_blank");
-    const blob = await captureScheduleImage(calendarRef.current, scheduleTitle, { banner: true });
-    if (!blob) {
-      win?.close();
-      showToast("이미지를 만들지 못했어요. 다시 시도해주세요.", "error");
-      return;
-    }
-    if (!win) {
-      showToast("팝업이 차단됐어요. 팝업 차단을 해제한 뒤 다시 시도해주세요.", "error");
-      return;
-    }
-    win.location.href = URL.createObjectURL(blob);
-    showToast("새 창에서 열었어요");
+    await runWithLoading("이미지 만드는 중...", async () => {
+      const blob = await captureScheduleImage(calendarRef.current!, scheduleTitle, { banner: true });
+      if (!blob) {
+        win?.close();
+        showToast("이미지를 만들지 못했어요. 다시 시도해주세요.", "error");
+        return;
+      }
+      if (!win) {
+        showToast("팝업이 차단됐어요. 팝업 차단을 해제한 뒤 다시 시도해주세요.", "error");
+        return;
+      }
+      win.location.href = URL.createObjectURL(blob);
+      showToast("새 창에서 열었어요");
+    });
   };
 
   const handleSavePdf = async () => {
     if (!calendarRef.current) return;
-    // 지금 화면에 보이는 그대로(이미지 복사/다운로드와 동일하게) 캡처한다.
-    const blob = await captureScheduleImage(calendarRef.current, scheduleTitle, { banner: true });
-    if (!blob) {
-      showToast("PDF를 만들지 못했어요. 다시 시도해주세요.", "error");
-      return;
-    }
+    await runWithLoading("PDF 만드는 중...", async () => {
+      // 지금 화면에 보이는 그대로(이미지 복사/다운로드와 동일하게) 캡처한다.
+      const blob = await captureScheduleImage(calendarRef.current!, scheduleTitle, { banner: true });
+      if (!blob) {
+        showToast("PDF를 만들지 못했어요. 다시 시도해주세요.", "error");
+        return;
+      }
 
-    const pdfBlob = await imageBlobToPdfBlob(blob);
-    const filename = `GMS_근무표_${year}년${month}월.pdf`;
+      const pdfBlob = await imageBlobToPdfBlob(blob);
+      const filename = `GMS_근무표_${year}년${month}월.pdf`;
 
-    const file = new File([pdfBlob], filename, { type: "application/pdf" });
-    if (canShareFile(file)) {
-      const { shared } = await shareFile(file, scheduleTitle);
-      showToast(
-        shared ? "PDF를 공유했어요" : "PDF 공유에 실패했어요. 다시 시도해주세요.",
-        shared ? "success" : "error"
-      );
-      return;
-    }
+      const file = new File([pdfBlob], filename, { type: "application/pdf" });
+      if (canShareFile(file)) {
+        const { shared } = await shareFile(file, scheduleTitle);
+        showToast(
+          shared ? "PDF를 공유했어요" : "PDF 공유에 실패했어요. 다시 시도해주세요.",
+          shared ? "success" : "error"
+        );
+        return;
+      }
 
-    downloadBlob(pdfBlob, filename);
-    showToast("PDF를 다운로드했어요");
+      downloadBlob(pdfBlob, filename);
+      showToast("PDF를 다운로드했어요");
+    });
   };
 
   const activeEmployee =

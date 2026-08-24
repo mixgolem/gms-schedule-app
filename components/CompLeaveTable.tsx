@@ -13,7 +13,14 @@ interface Props {
 export default function CompLeaveTable({ year, month, canEdit }: Props) {
   const { rows, loading, setMonthlyHours, setUsedHours } = useCompLeaveLedger(year, month);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="border rounded-lg p-3 flex items-center gap-2 text-sm text-black justify-center">
+        <div className="h-4 w-4 rounded-full border-2 border-gray-200 border-t-blue-900 animate-spin" />
+        불러오는 중...
+      </div>
+    );
+  }
 
   return (
     <div className="border rounded-lg p-3 transition-shadow duration-150 hover:shadow-sm">

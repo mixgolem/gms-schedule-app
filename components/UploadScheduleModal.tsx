@@ -146,6 +146,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
               <LinkButton
                 href="/templates/schedule-upload-template.xlsx"
                 download="GMS스케줄앱_양식_근무표업로드.xlsx"
+                onClick={() => showToast("다운로드 완료!")}
                 className="text-xs px-2 py-1"
               >
                 양식 다운로드
@@ -155,6 +156,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
               <LinkButton
                 href="/templates/legacy-schedule-example.xlsx"
                 download="GMS스케줄앱_양식_이전근무표변환.xlsx"
+                onClick={() => showToast("다운로드 완료!")}
                 className="text-xs px-2 py-1"
               >
                 양식 예시 다운로드

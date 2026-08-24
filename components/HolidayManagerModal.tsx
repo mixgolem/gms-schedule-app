@@ -141,6 +141,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
               <LinkButton
                 href="/templates/holiday-template.xlsx"
                 download="GMS스케줄앱_양식_법정공휴일.xlsx"
+                onClick={() => showToast("다운로드 완료!")}
                 className="text-xs px-2 py-1"
               >
                 양식 다운로드

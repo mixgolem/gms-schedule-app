@@ -115,6 +115,9 @@ export function useAnnualLeaveLedger(year: number, month: number) {
       .on("postgres_changes", { event: "*", schema: "public", table: "shift_leave_usage" }, () => {
         debounced.run();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "employees" }, () => {
+        debounced.run();
+      })
       .subscribe();
 
     return () => {

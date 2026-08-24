@@ -21,7 +21,14 @@ export default function SpecialNotesTable({ year }: Props) {
   const [scope, setScope] = useState<Scope>("year");
   const { groups, loading } = useSpecialNotes(scope === "year" ? year : null);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="border rounded-lg p-3 flex items-center gap-2 text-sm text-black justify-center">
+        <div className="h-4 w-4 rounded-full border-2 border-gray-200 border-t-blue-900 animate-spin" />
+        불러오는 중...
+      </div>
+    );
+  }
 
   return (
     <div className="border rounded-lg p-3 transition-shadow duration-150 hover:shadow-sm">

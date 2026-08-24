@@ -175,6 +175,9 @@ export function useCompLeaveLedger(year: number, month: number) {
       .on("postgres_changes", { event: "*", schema: "public", table: "holidays" }, () => {
         debounced.run();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "employees" }, () => {
+        debounced.run();
+      })
       .subscribe();
 
     return () => {

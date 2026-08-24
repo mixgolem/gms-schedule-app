@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Employee, Shift, employeeLabel } from "@/lib/types";
 import { ShiftDefaultsMap } from "@/lib/useShiftDefaults";
 import { exportErpExcel } from "@/lib/erpExport";
-import { useToast } from "@/app/providers";
+import { useToast, useGlobalLoading } from "@/app/providers";
 import Button from "./ui/Button";
 
 interface Props {
@@ -30,18 +30,24 @@ export default function ErpExportModal({
 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
+  const { runWithLoading } = useGlobalLoading();
 
   if (!open) return null;
 
-  const handleSelect = (employee: Employee) => {
-    const result = exportErpExcel(employee, year, month, shifts, holidayDates, shiftDefaults);
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-    setError(null);
-    onClose();
-    showToast("다운로드 완료!");
+  const handleSelect = async (employee: Employee) => {
+    await runWithLoading("엑셀 만드는 중...", async () => {
+      // exportErpExcel 자체는 동기 함수라, 곧바로 부르면 로딩창이 뜨기도 전에 끝나버린다.
+      // 다음 프레임까지 한 번 양보해서 로딩창이 먼저 화면에 그려지게 한다.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const result = exportErpExcel(employee, year, month, shifts, holidayDates, shiftDefaults);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
+      onClose();
+      showToast("다운로드 완료!");
+    });
   };
 
   return (
