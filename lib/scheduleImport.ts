@@ -20,6 +20,9 @@ export interface ParsedRow {
   is_main: boolean;
   start_time: string | null;
   end_time: string | null;
+  // 대휴(leave)가 보상하는 원래근무일. 표준 양식 업로드에서는 안 쓰고(항상 null),
+  // 이전근무표 변환처럼 원본에 이미 연결 정보가 있는 경우에만 채워서 넘긴다.
+  leave_for_date?: string | null;
 }
 
 // 빈칸으로 둔 근무자·날짜 - 기존에 있던 근무 기록을 지운다
@@ -41,7 +44,7 @@ export interface ParseResult {
   employeeNames: (string | null)[]; // A,B,C... 순서, 매칭된 직원 없으면 null
 }
 
-function hoursFor(type: ShiftType): { start: string | null; end: string | null } {
+export function hoursFor(type: ShiftType): { start: string | null; end: string | null } {
   if (type === "dawn" || type === "day" || type === "night") {
     const h = DEFAULT_SHIFT_HOURS[type];
     return { start: h.start, end: h.end === "24:00" ? "00:00" : h.end };
@@ -127,6 +130,7 @@ export async function parseScheduleFile(
         is_main: mapping.main,
         start_time: hours.start,
         end_time: hours.end,
+        leave_for_date: null,
       });
     }
 
@@ -178,25 +182,61 @@ export async function applyParsedSchedule(
       ? rows
       : rows.map((r) =>
           holidaySet.has(r.work_date) && (r.shift_type === "day" || r.shift_type === "leave")
-            ? { ...r, shift_type: "off", is_main: false, start_time: null, end_time: null }
+            ? {
+                ...r,
+                shift_type: "off",
+                is_main: false,
+                start_time: null,
+                end_time: null,
+                leave_for_date: null,
+              }
             : r
         );
 
   // 1단계: 전부 is_main=false로 업서트 (메인당직 유니크 제약 충돌 방지)
   const { error: upsertError } = await supabase.from("shifts").upsert(
-    finalRows.map((r) => ({ ...r, is_main: false, updated_at: new Date().toISOString() })),
+    finalRows.map((r) => ({
+      ...r,
+      is_main: false,
+      leave_for_date: r.leave_for_date ?? null,
+      updated_at: new Date().toISOString(),
+    })),
     { onConflict: "work_date,employee_id" }
   );
   if (upsertError) return { error: upsertError.message };
 
-  // 2단계: 메인당직자만 true로 (1단계에서 이미 전부 false라 서로 충돌 없음)
+  const mainRows = finalRows.filter((r) => r.is_main);
+
+  // 1단계는 "이번 업로드에 포함된" 행만 false로 바꾼다. 그런데 이름 매칭이 안 돼 건너뛴
+  // 직원처럼 이번 업로드에 아예 포함되지 않은 사람이 같은 날짜·근무형태에 예전부터
+  // 메인으로 남아있으면, 2단계에서 다른 사람을 새 메인으로 지정하는 순간 두 명이 동시에
+  // 메인이 되어 유니크 제약(one_main_per_shift)에 걸린다. 그래서 2단계 전에 이번에 새로
+  // 메인으로 지정할 날짜·근무형태 조합은 (직원 상관없이) 기존 메인 표시를 먼저 지운다.
+  const mainKeys = [...new Set(mainRows.map((r) => `${r.work_date}|${r.shift_type}`))];
+  for (const key of mainKeys) {
+    const [workDate, shiftType] = key.split("|");
+    const { error: clearMainError } = await supabase
+      .from("shifts")
+      .update({ is_main: false })
+      .eq("work_date", workDate)
+      .eq("shift_type", shiftType)
+      .eq("is_main", true);
+    if (clearMainError) return { error: clearMainError.message };
+  }
+
+  // 2단계: 메인당직자만 true로 (여기까지 오면 같은 날짜·근무형태에 메인이 아무도 없는
+  // 상태라 서로 충돌 없음)
   // row마다 개별 요청을 보내면 근무패턴처럼 건수가 많을 때 동시 요청이 폭증해
   // (realtime 변경 이벤트까지 겹치면) 브라우저가 ERR_INSUFFICIENT_RESOURCES로 죽을 수 있어
   // 한 번의 upsert로 묶어 보낸다.
-  const mainRows = finalRows.filter((r) => r.is_main);
   if (mainRows.length > 0) {
     const { error: mainError } = await supabase.from("shifts").upsert(
-      mainRows.map((r) => ({ ...r, is_main: true, updated_at: new Date().toISOString() })),
+      mainRows.map((r) => ({
+        ...r,
+        is_main: true,
+        leave_for_date: r.leave_for_date ?? null,
+        updated_at: new Date().toISOString(),
+      })),
       { onConflict: "work_date,employee_id" }
     );
     if (mainError) return { error: mainError.message };

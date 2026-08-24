@@ -23,6 +23,8 @@ interface Props {
   shift: Shift | null;
   canEdit: boolean;
   shiftDefaults: ShiftDefaultsMap;
+  // 이 날짜가 이미 어떤 대휴의 "보상 원래근무일"로 연결돼 있다면 그 대휴 날짜 (없으면 null)
+  linkedCompLeaveDate: string | null;
   onSave: (
     shiftType: ShiftType,
     isMain: boolean,
@@ -32,6 +34,8 @@ interface Props {
     subEntries: LeaveUsageInput[]
   ) => Promise<void>;
   onDelete: () => Promise<void>;
+  // 대휴 연결을 즉시 걸거나(leaveWorkDate가 이 대휴 날짜, workDate가 보상 원래근무일) 풀 때(workDate=null) 사용
+  onSetCompLeaveLink: (leaveWorkDate: string, workDate: string | null) => Promise<void>;
   onClose: () => void;
 }
 
@@ -121,8 +125,10 @@ export default function EmployeeShiftEditor({
   shift,
   canEdit,
   shiftDefaults,
+  linkedCompLeaveDate,
   onSave,
   onDelete,
+  onSetCompLeaveLink,
   onClose,
 }: Props) {
   const initialType = shift?.shift_type ?? "day";
@@ -143,11 +149,22 @@ export default function EmployeeShiftEditor({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [linkTargetDate, setLinkTargetDate] = useState(linkedCompLeaveDate ?? "");
+  const [linking, setLinking] = useState(false);
+  const [unlinkingLeave, setUnlinkingLeave] = useState(false);
+  const [unlinkingWork, setUnlinkingWork] = useState(false);
   const { groups: specialNoteGroups } = useSpecialNotes();
   const myUnresolvedDates =
     specialNoteGroups.find((g) => g.employeeId === employee.id)?.dates ?? [];
 
   const shiftId = shift?.id;
+
+  // 다른 브라우저에서 연결을 바꾸거나, 이 화면에서 직접 연결/해제한 뒤에도 입력칸이 최신
+  // 연결 상태를 따라가도록 동기화 (사이드바를 닫지 않고 계속 편집하는 경우가 있어서 필요함)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLinkTargetDate(linkedCompLeaveDate ?? "");
+  }, [linkedCompLeaveDate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -252,6 +269,31 @@ export default function EmployeeShiftEditor({
     setDeleting(false);
   };
 
+  // 대휴(leave) 날짜 쪽에서 연결 해제: 이 근무 기록(대휴) 자체의 보상 원래근무일을 즉시 비운다.
+  const handleUnlinkFromLeaveSide = async () => {
+    setUnlinkingLeave(true);
+    await onSetCompLeaveLink(date, null);
+    setLeaveForDate("");
+    setUnlinkingLeave(false);
+  };
+
+  // 원래근무일(주말) 쪽에서 새 대휴 날짜로 연결
+  const handleLinkFromWorkSide = async () => {
+    if (!linkTargetDate) return;
+    setLinking(true);
+    await onSetCompLeaveLink(linkTargetDate, date);
+    setLinking(false);
+  };
+
+  // 원래근무일(주말) 쪽에서 연결 해제
+  const handleUnlinkFromWorkSide = async () => {
+    if (!linkedCompLeaveDate) return;
+    setUnlinkingWork(true);
+    await onSetCompLeaveLink(linkedCompLeaveDate, null);
+    setLinkTargetDate("");
+    setUnlinkingWork(false);
+  };
+
   const currentDefault = hasHours(type)
     ? { start: shiftDefaults[type].start, end: timeForInput(shiftDefaults[type].end) }
     : null;
@@ -299,13 +341,29 @@ export default function EmployeeShiftEditor({
         <div className="space-y-2">
           <div className="space-y-1">
             <label className="text-xs text-blue-900 block">이 대휴가 보상하는 날짜</label>
-            <input
-              type="date"
-              value={leaveForDate}
-              disabled={!canEdit}
-              onChange={(e) => setLeaveForDate(e.target.value)}
-              className="w-full border rounded-lg px-2 py-1 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
-            />
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={leaveForDate}
+                disabled={!canEdit}
+                onChange={(e) => setLeaveForDate(e.target.value)}
+                className="flex-1 border rounded-lg px-2 py-1 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+              {canEdit && shift?.leave_for_date && (
+                <Button
+                  variant="danger"
+                  onClick={handleUnlinkFromLeaveSide}
+                  disabled={unlinkingLeave}
+                  className="text-xs px-2 py-1 shrink-0"
+                >
+                  {unlinkingLeave ? "해제 중..." : "연결 해제"}
+                </Button>
+              )}
+            </div>
+            <p className="text-[11px] text-black">
+              날짜만 바꾸고 싶으면 입력 후 저장, 연결 자체를 끊고 싶으면 연결 해제를 눌러주세요
+              (연결 해제는 저장 없이 바로 반영돼요)
+            </p>
           </div>
 
           {myUnresolvedDates.length > 0 && (
@@ -326,6 +384,52 @@ export default function EmployeeShiftEditor({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {hasHours(type) && (
+        <div className="space-y-1 border rounded-lg p-2 bg-gray-50">
+          <label className="text-xs text-blue-900 block">연결된 대휴 사용일</label>
+          {linkedCompLeaveDate ? (
+            <div className="flex items-center gap-1.5">
+              <span className="flex-1 text-sm text-black">
+                {linkedCompLeaveDate} ({weekdayLabel(linkedCompLeaveDate)})
+              </span>
+              {canEdit && (
+                <Button
+                  variant="danger"
+                  onClick={handleUnlinkFromWorkSide}
+                  disabled={unlinkingWork}
+                  className="text-xs px-2 py-1 shrink-0"
+                >
+                  {unlinkingWork ? "해제 중..." : "연결 해제"}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-black">연결된 대휴 없음</p>
+          )}
+          {canEdit && (
+            <div className="flex items-center gap-1.5 pt-1">
+              <input
+                type="date"
+                value={linkTargetDate}
+                onChange={(e) => setLinkTargetDate(e.target.value)}
+                className="flex-1 border rounded-lg px-2 py-1 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+              <Button
+                onClick={handleLinkFromWorkSide}
+                disabled={linking || !linkTargetDate}
+                className="text-xs px-2 py-1 shrink-0"
+              >
+                {linking ? "연결 중..." : linkedCompLeaveDate ? "다른 날로 연결" : "연결"}
+              </Button>
+            </div>
+          )}
+          <p className="text-[11px] text-black">
+            이 날짜를 보상해주는 대휴 날짜를 직접 지정하거나 풀 수 있어요 (그 날짜에 이미 대휴
+            근무가 등록돼 있어야 해요, 저장 없이 바로 반영돼요)
+          </p>
         </div>
       )}
 

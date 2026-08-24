@@ -46,6 +46,7 @@ export default function Home() {
     syncLeaveUsages,
     toggleHoliday,
     setHolidayName,
+    setCompLeaveLink,
     resetMonth,
   } = useSchedule(year, month);
   const { defaults: shiftDefaults } = useShiftDefaults();
@@ -267,6 +268,49 @@ export default function Home() {
       ? shifts.find((s) => s.employee_id === sidebar.employeeId && s.work_date === sidebar.date) ??
         null
       : null;
+  // 지금 편집 중인 날짜가 어떤 대휴의 "보상 원래근무일"로 이미 연결돼 있는지 (있다면 그 대휴 날짜)
+  const activeLinkedCompLeaveDate =
+    sidebar?.mode === "employee"
+      ? shifts.find(
+          (s) =>
+            s.employee_id === sidebar.employeeId &&
+            s.shift_type === "leave" &&
+            s.leave_for_date === sidebar.date
+        )?.work_date ?? null
+      : null;
+
+  // 대휴 연결을 근무편집 화면에서 직접 걸거나(workDate 지정) 풀 때(null) 쓰는 핸들러.
+  // 근무편집 쪽(주말)에서 새 대휴 날짜로 연결하는 경우, 그 원래근무일을 이미 다른 대휴가
+  // 찜하고 있으면 먼저 풀어줘야 유니크 제약(23505)에 걸리지 않는다.
+  const handleSetCompLeaveLink = async (
+    employeeId: string,
+    leaveWorkDate: string,
+    workDate: string | null
+  ) => {
+    if (workDate) {
+      const conflicting = shifts.find(
+        (s) =>
+          s.employee_id === employeeId &&
+          s.shift_type === "leave" &&
+          s.leave_for_date === workDate &&
+          s.work_date !== leaveWorkDate
+      );
+      if (conflicting) {
+        const { error: clearError } = await setCompLeaveLink(employeeId, conflicting.work_date, null);
+        if (clearError) {
+          setWarning(`대휴 연결 실패: ${clearError.message}`);
+          return;
+        }
+      }
+    }
+
+    const { error } = await setCompLeaveLink(employeeId, leaveWorkDate, workDate);
+    if (error) {
+      setWarning(`대휴 연결 실패: ${error.message}`);
+      return;
+    }
+    showToast(workDate ? "연결 완료!" : "연결 해제 완료!");
+  };
 
   return (
     <main className="p-4 max-w-[1900px] mx-auto w-full space-y-4">
@@ -399,6 +443,7 @@ export default function Home() {
             shift={activeShift}
             canEdit={canEdit}
             shiftDefaults={shiftDefaults}
+            linkedCompLeaveDate={activeLinkedCompLeaveDate}
             onSave={(shiftType, isMain, startTime, endTime, leaveForDate, subEntries) =>
               handleSaveShift(
                 sidebar.employeeId,
@@ -412,6 +457,9 @@ export default function Home() {
               )
             }
             onDelete={() => handleDeleteShift(sidebar.employeeId, sidebar.date)}
+            onSetCompLeaveLink={(leaveWorkDate, workDate) =>
+              handleSetCompLeaveLink(sidebar.employeeId, leaveWorkDate, workDate)
+            }
             onClose={() => setSidebar(null)}
           />
         )}

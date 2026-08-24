@@ -1,14 +1,44 @@
+import { addDays, format, startOfWeek } from "date-fns";
 import { supabase } from "./supabaseClient";
 import { isWeekend, parseLocalDate } from "./dateUtils";
 
 export interface WeekendCompLeaveResult {
   matchedCount: number;
   unmatchedWorkCount: number; // 짝이 되는 대휴를 못 찾은 주말근무일 수
-  unlinkedCount: number; // 이번 계산으로 연결이 풀린(7일 초과 등) 대휴 건수
+  unlinkedCount: number; // 이번 계산으로 연결이 풀린(주 범위 밖 등) 대휴 건수
   error: string | null;
 }
 
-const MAX_DIFF_MS = 7 * 24 * 60 * 60 * 1000; // 기준일 앞뒤 7일까지만 연결
+// 주말 근무일 기준으로 "해당 주(월~금)"와 "다음 주(월~금)" 범위를 'yyyy-MM-dd' 문자열로 반환.
+// 주는 월요일 시작 기준(startOfWeek weekStartsOn:1)으로 계산한다.
+function weekdayRange(workDate: Date, weekOffset: 0 | 1): { start: string; end: string } {
+  const monday = addDays(startOfWeek(workDate, { weekStartsOn: 1 }), weekOffset * 7);
+  const friday = addDays(monday, 4);
+  return { start: format(monday, "yyyy-MM-dd"), end: format(friday, "yyyy-MM-dd") };
+}
+
+// candidates 중 [start, end] 범위(문자열 비교, 'yyyy-MM-dd'라 사전순=날짜순) 안에 있으면서
+// workDate와 날짜 차이가 가장 작은 것의 인덱스. 없으면 -1.
+function findClosestInRange<T extends { work_date: string }>(
+  candidates: T[],
+  start: string,
+  end: string,
+  workDate: string
+): number {
+  let bestIdx = -1;
+  let bestDiff = Infinity;
+  const workTime = parseLocalDate(workDate).getTime();
+  for (let i = 0; i < candidates.length; i++) {
+    const d = candidates[i].work_date;
+    if (d < start || d > end) continue;
+    const diff = Math.abs(parseLocalDate(d).getTime() - workTime);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
 
 // Supabase/PostgREST는 한 번의 select 요청에 기본 최대 1000행까지만 돌려준다. 몇 달치,
 // 특히 1년 단위로 기간을 잡으면 shifts 행 수가 쉽게 1000을 넘어서, 페이지네이션 없이
@@ -35,11 +65,12 @@ async function fetchAllRows<T>(
   return { rows, error: null };
 }
 
-// 주말(토/일)에 근무(새벽/주간/야간)한 날과 대휴(대)를 근무자별로 날짜가 가장 가까운
-// 쌍부터(단, 최대 7일 차이까지만) 순서대로 자동 연결한다.
+// 주말(토/일)에 근무(새벽/주간/야간)한 날과 대휴(대)를 근무자별로 날짜가 이른 순서대로
+// 하나씩 연결한다. 각 주말근무일마다: ① 해당 주(월~금)에 대휴가 있으면 그중 날짜가 가장
+// 가까운 것으로, ② 없으면 다음 주(월~금)에서 같은 방식으로, ③ 그래도 없으면 연결하지 않는다.
 // - 공휴일 근무는 대체휴무시간으로 별도 관리되니 이 매핑 대상에서 제외한다.
 // - 지정한 기간 안의 대휴는 이미 연결돼 있었는지 상관없이 매번 처음부터 다시 계산한다.
-//   그래서 7일을 넘거나 더 가까운 짝이 생기면 기존 연결도 바뀌거나 풀릴 수 있다.
+//   그래서 이번 기준으로 짝이 안 맞으면 기존 연결도 바뀌거나 풀릴 수 있다.
 // - 기간 밖에서(이전 실행이나 수동으로) 이미 대휴가 찜해둔 근무일은 건드리지 않는다.
 export async function linkWeekendCompLeave(
   startDate: string,
@@ -132,38 +163,31 @@ export async function linkWeekendCompLeave(
     // 이번 기간의 대휴는 기존 연결 여부와 상관없이 전부 다시 계산 대상이다.
     const leaveDays = empRows.filter((r) => r.shift_type === "leave");
 
-    const remainingWork = [...workDays];
     const remainingLeave = [...leaveDays];
     const matchedLeaveRows = new Set<Row>();
 
-    // 남은 후보 중 7일 이내로 날짜 차이가 가장 작은 쌍부터 하나씩 확정해 나간다.
-    while (remainingWork.length > 0 && remainingLeave.length > 0) {
-      let bestWorkIdx = -1;
-      let bestLeaveIdx = -1;
-      let bestDiff = Infinity;
-      for (let wi = 0; wi < remainingWork.length; wi++) {
-        for (let li = 0; li < remainingLeave.length; li++) {
-          const diff = Math.abs(
-            parseLocalDate(remainingWork[wi].work_date).getTime() -
-              parseLocalDate(remainingLeave[li].work_date).getTime()
-          );
-          if (diff <= MAX_DIFF_MS && diff < bestDiff) {
-            bestDiff = diff;
-            bestWorkIdx = wi;
-            bestLeaveIdx = li;
-          }
-        }
+    // workDays는 이미 work_date 오름차순이라(원본 조회 정렬 유지), 이른 주말근무일부터
+    // 순서대로 그 주 → 다음 주 순으로 대휴 후보를 찾아 하나씩 확정해 나간다.
+    for (const work of workDays) {
+      const workDateObj = parseLocalDate(work.work_date);
+      const sameWeek = weekdayRange(workDateObj, 0);
+      const nextWeek = weekdayRange(workDateObj, 1);
+
+      let idx = findClosestInRange(remainingLeave, sameWeek.start, sameWeek.end, work.work_date);
+      if (idx === -1) {
+        idx = findClosestInRange(remainingLeave, nextWeek.start, nextWeek.end, work.work_date);
       }
-      if (bestWorkIdx === -1) break; // 7일 이내로 남은 짝이 더 없음
 
-      const leaveRow = remainingLeave[bestLeaveIdx];
-      toUpdate.push({ row: leaveRow, matchedWorkDate: remainingWork[bestWorkIdx].work_date });
+      if (idx === -1) {
+        unmatchedWorkCount += 1;
+        continue;
+      }
+
+      const leaveRow = remainingLeave[idx];
+      toUpdate.push({ row: leaveRow, matchedWorkDate: work.work_date });
       matchedLeaveRows.add(leaveRow);
-      remainingWork.splice(bestWorkIdx, 1);
-      remainingLeave.splice(bestLeaveIdx, 1);
+      remainingLeave.splice(idx, 1);
     }
-
-    unmatchedWorkCount += remainingWork.length;
 
     // 이번에 짝을 못 찾은 대휴는(예전엔 연결돼 있었더라도) 연결을 해제한다.
     for (const leaveRow of leaveDays) {
@@ -222,4 +246,30 @@ export async function linkWeekendCompLeave(
   const matchedCount = toUpdate.filter((u) => u.matchedWorkDate !== null).length;
   const unlinkedCount = toUpdate.filter((u) => u.matchedWorkDate === null).length;
   return { matchedCount, unmatchedWorkCount, unlinkedCount, error: null };
+}
+
+export interface UnlinkWeekendCompLeaveResult {
+  unlinkedCount: number;
+  error: string | null;
+}
+
+// 지정한 기간 안에서 대휴로 사용된(work_date 기준) 근무 기록의 "보상 원래근무일" 연결을
+// 전부 해제한다. null로 비우는 건 유니크 제약(employee_id, leave_for_date)과 절대
+// 충돌하지 않으니(그 인덱스가 leave_for_date is not null인 행만 대상) 굳이 미리 조회해서
+// 매칭할 필요 없이 조건에 맞는 행을 한 번의 update로 바로 처리하면 된다.
+export async function unlinkWeekendCompLeave(
+  startDate: string,
+  endDate: string
+): Promise<UnlinkWeekendCompLeaveResult> {
+  const { data, error } = await supabase
+    .from("shifts")
+    .update({ leave_for_date: null, updated_at: new Date().toISOString() })
+    .eq("shift_type", "leave")
+    .not("leave_for_date", "is", null)
+    .gte("work_date", startDate)
+    .lte("work_date", endDate)
+    .select("id");
+
+  if (error) return { unlinkedCount: 0, error: error.message };
+  return { unlinkedCount: data?.length ?? 0, error: null };
 }

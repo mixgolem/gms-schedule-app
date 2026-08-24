@@ -7,6 +7,7 @@ import { weekdayLabel } from "@/lib/dateUtils";
 import { parseHolidayFile, applyParsedHolidays, ParseHolidayResult } from "@/lib/holidayImport";
 import { useToast } from "@/app/providers";
 import Button from "./ui/Button";
+import LinkButton from "./ui/LinkButton";
 
 interface Props {
   open: boolean;
@@ -135,13 +136,24 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
           <h2 className="font-semibold text-sm">공휴일 관리</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-black text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            {mode === "bulk" && (
+              <LinkButton
+                href="/templates/holiday-template.xlsx"
+                download="GMS스케줄앱_양식_법정공휴일.xlsx"
+                className="text-xs px-2 py-1"
+              >
+                양식 다운로드
+              </LinkButton>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-black text-lg leading-none rounded-md p-1 transition-all duration-150 hover:bg-gray-100 hover:scale-110"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {mode === "list" ? (

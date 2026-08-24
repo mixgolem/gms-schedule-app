@@ -224,6 +224,31 @@ export function useSchedule(year: number, month: number) {
     [holidays, fetchData]
   );
 
+  // 대휴가 보상하는 원래근무일 연결을 개별로 수동 지정/해제.
+  // leaveEmployeeId/leaveWorkDate: 대휴(leave) 근무 기록 쪽 식별자, workDate: 이 대휴가
+  // 보상하는 원래근무일 (null이면 연결 해제). 해당 날짜에 그 사람의 대휴 근무가 없으면
+  // update가 아무 행도 건드리지 못하고 조용히 끝나버리니 .select()로 실제 반영 여부를 확인한다.
+  const setCompLeaveLink = useCallback(
+    async (leaveEmployeeId: string, leaveWorkDate: string, workDate: string | null) => {
+      const { data, error } = await supabase
+        .from("shifts")
+        .update({ leave_for_date: workDate, updated_at: new Date().toISOString() })
+        .eq("employee_id", leaveEmployeeId)
+        .eq("work_date", leaveWorkDate)
+        .eq("shift_type", "leave")
+        .select("id");
+
+      await fetchData();
+
+      if (error) return { error };
+      if (!data || data.length === 0) {
+        return { error: { message: "해당 날짜에 대휴 근무 기록이 없어요." } };
+      }
+      return { error: null };
+    },
+    [fetchData]
+  );
+
   const setHolidayName = useCallback(
     async (workDate: string, name: string | null) => {
       await supabase.from("holidays").update({ name }).eq("work_date", workDate);
@@ -244,6 +269,7 @@ export function useSchedule(year: number, month: number) {
     syncLeaveUsages,
     toggleHoliday,
     setHolidayName,
+    setCompLeaveLink,
     resetMonth,
   };
 }
