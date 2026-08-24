@@ -2,9 +2,10 @@ import * as XLSX from "xlsx";
 import { Employee, ShiftType } from "./types";
 import { parseLocalDate, isWeekend } from "./dateUtils";
 import { ParseResult, ParsePreviewRow, hoursFor, serialToDateStr } from "./scheduleImport";
+import { letterToSlotIndex } from "./employeeColumns";
 
 export interface LegacyParseResult extends ParseResult {
-  // 범례에는 있지만 지금 직원 목록에서 이름이 매칭 안 된 것들 (중복 제거된 이름 목록).
+  // 코드 글자 자리(정렬순서)에 매칭되는 직원이 없는 범례 항목들 (중복 제거된 원본 이름 목록).
   // 업로드 화면에서 이 이름들을 직접 특정 직원으로 지정해 다시 매칭할 수 있게 노출한다.
   unmatchedLegendNames: string[];
   // 이번에 실제로 반영 대상이 된 월('yyyy-MM'). 파일에 여러 달이 섞여 있어도 이 근무표는
@@ -18,6 +19,10 @@ export interface LegacyParseResult extends ParseResult {
 // 레이아웃(사용자 확인 완료):
 // - 1행 어딘가에 "A : 이름(전화)" 같은 범례가 직원 수만큼, 왼쪽부터 코드 순서(A,B,C...)로 있다.
 //   → 이 순서가 곧 각 요일 블록 안에서 그 직원이 몇 번째 열인지를 정한다.
+// - 직원 매칭은 범례의 이름이 아니라 코드 글자로 한다: A=지금 직원 목록 정렬순서 1번째,
+//   B=2번째... (표준 근무표 업로드와 같은 방식). 그래서 원본 파일 이름과 지금 직원 이름이
+//   달라도(개명·오타·예시파일의 이름 가림 등) 자리만 맞으면 매칭되고, 자리에 해당하는
+//   직원이 없으면 업로드 화면에서 직접 어느 직원인지 골라 다시 매칭할 수 있다.
 // - 날짜 행(“일자”)마다 요일 7개(월~일) 블록이 가로로 있고, 블록 너비 = 직원 수.
 // - 맨 처음 날짜 블록 바로 아래에만 "당직자"(A,B,C...) 헤더 행이 한 번 있고, 그다음부터는 없다.
 // - 그 아래 8개 슬롯 행(새벽/오전1/오전2/오후1/오후2/오후3/야간1/야간2)에 O가 찍혀 있으면
@@ -142,17 +147,23 @@ export async function parseLegacyScheduleFile(
   }
   const employeeCount = legend.length;
 
+  // 이름이 아니라 코드 글자(A,B,C...)로 매칭한다 — 표준 근무표 업로드와 같은 방식.
+  // A=지금 직원 목록에서 정렬순서 1번째, B=2번째... 식이라, 원본 파일의 이름과 지금
+  // 직원 이름이 달라도(개명·오타·예시파일처럼 이름을 가려놓은 경우 등) 자리만 맞으면 매칭된다.
   const idToEmployee = new Map(employees.map((e) => [e.id, e]));
-  const nameToEmployee = new Map(employees.map((e) => [e.name.trim(), e]));
+  const bySortOrder = new Map(employees.map((e) => [e.sort_order, e]));
   const matchedEmployees: (Employee | null)[] = legend.map((l) => {
     const overrideId = nameOverrides?.[l.name];
     if (overrideId) return idToEmployee.get(overrideId) ?? null;
-    return nameToEmployee.get(l.name) ?? null;
+    const slot = letterToSlotIndex(l.code);
+    if (slot === null) return null;
+    return bySortOrder.get(slot + 1) ?? null;
   });
   const employeeNames: (string | null)[] = legend.map((l, i) => matchedEmployees[i]?.name ?? l.name);
   const unmatchedLegendNames = [...new Set(legend.filter((l, i) => !matchedEmployees[i]).map((l) => l.name))];
   legend.forEach((l, i) => {
-    if (!matchedEmployees[i]) warnings.push(`${l.code}(${l.name}): 매칭되는 직원을 찾지 못했어요`);
+    if (!matchedEmployees[i])
+      warnings.push(`${l.code}(원본 이름: ${l.name}): ${l.code} 자리에 해당하는 직원이 없어요`);
   });
 
   const firstDateRow = findFirstDateRow(raw);
