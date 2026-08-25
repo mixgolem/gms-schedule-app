@@ -1,4 +1,5 @@
-import { Shift, ShiftType, ShiftLeaveUsage } from "./types";
+import { addDays, format } from "date-fns";
+import { Employee, Shift, ShiftType, ShiftLeaveUsage } from "./types";
 import { parseLocalDate } from "./dateUtils";
 import { computeShiftDisplay } from "./shiftDisplay";
 
@@ -135,4 +136,108 @@ export function checkPairRule(
     return `${workDate} ${label} 근무자가 ${count}명입니다. (2인1조 원칙 미충족)`;
   }
   return null;
+}
+
+function shiftDateStr(dateStr: string, days: number): string {
+  return format(addDays(parseLocalDate(dateStr), days), "yyyy-MM-dd");
+}
+
+export type SwapCandidateStatus = "day" | "leave" | "off" | "unassigned";
+
+export interface SwapCandidate {
+  employee: Employee;
+  status: SwapCandidateStatus;
+  // 대휴인데 원래근무일(leave_for_date)이 이미 연결돼 있는 경우 — 이 사람을 당직으로
+  // 다시 끌어오면 그 연결이 끊겨서 원래근무일이 다시 미보상 상태가 된다는 걸 알려준다.
+  hasLinkedCompLeave: boolean;
+}
+
+const STATUS_LABEL: Record<SwapCandidateStatus, string> = {
+  day: "주간",
+  leave: "대휴",
+  off: "휴무",
+  unassigned: "미배정",
+};
+
+export function swapCandidateStatusLabel(status: SwapCandidateStatus): string {
+  return STATUS_LABEL[status];
+}
+
+// 새벽/야간 당직을 대신 서줄 수 있는 사람 후보를 찾는다.
+// - 그날 이미 주간/대휴/휴무/미배정인 사람만 (이미 새벽·야간이면 당연히 제외)
+// - 그 사람이 이 날짜에 새벽/야간을 대신 서도 7일 연속 근무가 되지 않을 것
+// - 새벽 대타면 전날 야간이 아니었을 것, 야간 대타면 다음날 새벽이 아닐 것 (휴식시간 확보)
+export function findSwapCandidates(
+  targetDate: string,
+  targetType: "dawn" | "night",
+  currentEmployeeId: string,
+  employees: Employee[],
+  shifts: Shift[],
+  leaveUsages: ShiftLeaveUsage[]
+): SwapCandidate[] {
+  const prevDate = shiftDateStr(targetDate, -1);
+  const nextDate = shiftDateStr(targetDate, 1);
+
+  const shiftByEmployeeDate = new Map<string, Shift>();
+  for (const s of shifts) {
+    shiftByEmployeeDate.set(`${s.employee_id}_${s.work_date}`, s);
+  }
+
+  const candidates: SwapCandidate[] = [];
+
+  for (const employee of employees) {
+    if (employee.id === currentEmployeeId) continue;
+
+    const todayShift = shiftByEmployeeDate.get(`${employee.id}_${targetDate}`) ?? null;
+    let status: SwapCandidateStatus;
+    if (!todayShift) status = "unassigned";
+    else if (todayShift.shift_type === "day") status = "day";
+    else if (todayShift.shift_type === "leave") status = "leave";
+    else if (todayShift.shift_type === "off") status = "off";
+    else continue; // 새벽/야간/연차(레거시) 등은 그날 이미 다른 근무라 제외
+
+    // 휴식시간: 새벽 대타는 전날 야간이면 안 되고, 야간 대타는 다음날 새벽이면 안 된다.
+    if (targetType === "dawn") {
+      const prevShift = shiftByEmployeeDate.get(`${employee.id}_${prevDate}`);
+      if (prevShift?.shift_type === "night") continue;
+    } else {
+      const nextShift = shiftByEmployeeDate.get(`${employee.id}_${nextDate}`);
+      if (nextShift?.shift_type === "dawn") continue;
+    }
+
+    // 연속근무: 이 사람의 기존 근무에 이 날짜만 targetType으로 바꿔치기해서 시뮬레이션.
+    const ownOtherShifts = shifts.filter(
+      (s) => s.employee_id === employee.id && s.work_date !== targetDate
+    );
+    const syntheticShift: Shift = {
+      id: "__synthetic__",
+      employee_id: employee.id,
+      work_date: targetDate,
+      shift_type: targetType,
+      is_main: false,
+      start_time: null,
+      end_time: null,
+      leave_for_date: null,
+      is_personal_leave: false,
+      leave_hours: null,
+      annual_hours: null,
+      updated_at: "",
+    };
+    const ownLeaveUsages = leaveUsages.filter(
+      (u) => u.employee_id === employee.id && u.work_date !== targetDate
+    );
+    const streakFlags = findConsecutiveWorkStreaks(
+      [...ownOtherShifts, syntheticShift],
+      ownLeaveUsages
+    );
+    if (streakFlags.has(`${employee.id}_${targetDate}`)) continue;
+
+    candidates.push({
+      employee,
+      status,
+      hasLinkedCompLeave: status === "leave" && !!todayShift?.leave_for_date,
+    });
+  }
+
+  return candidates.sort((a, b) => a.employee.sort_order - b.employee.sort_order);
 }

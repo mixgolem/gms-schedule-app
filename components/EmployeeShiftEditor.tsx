@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Employee,
   Shift,
+  ShiftLeaveUsage,
   ShiftType,
   SHIFT_LABELS,
   LeaveUsageInput,
@@ -14,6 +15,7 @@ import { weekdayLabel } from "@/lib/dateUtils";
 import { useSpecialNotes } from "@/lib/useSpecialNotes";
 import { supabase } from "@/lib/supabaseClient";
 import { validateSubRanges } from "@/lib/timeRanges";
+import { findSwapCandidates, swapCandidateStatusLabel } from "@/lib/validation";
 import Button from "./ui/Button";
 import TimeInput24 from "./ui/TimeInput24";
 
@@ -23,6 +25,10 @@ interface Props {
   shift: Shift | null;
   canEdit: boolean;
   shiftDefaults: ShiftDefaultsMap;
+  // 새벽/야간 당직을 대신 서줄 수 있는 사람을 보여주기 위한 이번 달 전체 데이터
+  employees: Employee[];
+  shifts: Shift[];
+  leaveUsages: ShiftLeaveUsage[];
   // 이 날짜가 이미 어떤 대휴의 "보상 원래근무일"로 연결돼 있다면 그 대휴 날짜 (없으면 null)
   linkedCompLeaveDate: string | null;
   onSave: (
@@ -125,6 +131,9 @@ export default function EmployeeShiftEditor({
   shift,
   canEdit,
   shiftDefaults,
+  employees,
+  shifts,
+  leaveUsages,
   linkedCompLeaveDate,
   onSave,
   onDelete,
@@ -297,6 +306,14 @@ export default function EmployeeShiftEditor({
   const currentDefault = hasHours(type)
     ? { start: shiftDefaults[type].start, end: timeForInput(shiftDefaults[type].end) }
     : null;
+
+  // 지금 이 사람이 실제로 서 있는(저장된) 근무가 새벽/야간일 때만 대타 후보를 보여준다
+  // (지금 화면에서 만지고 있는 type이 아니라, 원래 배정된 shift 기준).
+  const swapTargetType =
+    shift?.shift_type === "dawn" || shift?.shift_type === "night" ? shift.shift_type : null;
+  const swapCandidates = swapTargetType
+    ? findSwapCandidates(date, swapTargetType, employee.id, employees, shifts, leaveUsages)
+    : [];
 
   return (
     <div className="space-y-4">
@@ -557,6 +574,43 @@ export default function EmployeeShiftEditor({
         >
           {deleting ? "삭제 중..." : "근무 삭제"}
         </Button>
+      )}
+
+      {swapTargetType && (
+        <div className="space-y-1.5 border rounded-lg p-2 bg-gray-50">
+          <p className="text-xs font-medium text-black">
+            근무 변경을 원할 경우 — {SHIFT_LABELS[swapTargetType]} 대타 가능한 사람
+          </p>
+          {swapCandidates.length === 0 ? (
+            <p className="text-xs text-black">오늘은 대신 서줄 수 있는 사람이 없어요.</p>
+          ) : (
+            <ul className="space-y-1">
+              {swapCandidates.map((c) => (
+                <li
+                  key={c.employee.id}
+                  className="flex items-center gap-1.5 text-sm bg-white border rounded-lg px-2 py-1"
+                >
+                  <span className="font-medium text-black">{c.employee.name}</span>
+                  <span className="text-xs text-black">
+                    ({swapCandidateStatusLabel(c.status)})
+                  </span>
+                  {c.hasLinkedCompLeave && (
+                    <span
+                      className="ml-auto text-xs text-amber-700"
+                      title="이 사람의 대휴는 이미 다른 주말근무일을 보상하도록 연결돼 있어요. 대타로 들어가면 그 연결이 풀려요."
+                    >
+                      ⚠️ 대휴 연결 있음
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-[11px] text-black">
+            그날 주간·대휴·휴무·미배정이면서, 대신 서도 7일 연속 근무가 안 되고 휴식시간도
+            충분한 사람만 보여줘요. 실제로 바꾸려면 두 사람 각자 근무편집에서 직접 반영해주세요.
+          </p>
+        </div>
       )}
     </div>
   );

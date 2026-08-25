@@ -189,39 +189,50 @@ alter table shift_patterns enable row level security;
 alter table shift_pattern_applications enable row level security;
 alter table audit_log enable row level security;
 
-create policy "employees_select_all" on employees for select using (true);
+-- 모든 테이블은 조회(select)도 로그인한(authenticated) 사용자만 가능하다 — 비로그인
+-- 사용자는 프론트엔드는 물론 API를 직접 불러도 아무 데이터도 못 본다.
+create policy "employees_select_authenticated" on employees
+  for select using (auth.role() = 'authenticated');
 create policy "employees_write_authenticated" on employees
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
-create policy "shifts_select_all" on shifts for select using (true);
+create policy "shifts_select_authenticated" on shifts
+  for select using (auth.role() = 'authenticated');
 create policy "shifts_write_authenticated" on shifts
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
-create policy "holidays_select_all" on holidays for select using (true);
+create policy "holidays_select_authenticated" on holidays
+  for select using (auth.role() = 'authenticated');
 create policy "holidays_write_authenticated" on holidays
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
-create policy "notice_select_all" on notice for select using (true);
+create policy "notice_select_authenticated" on notice
+  for select using (auth.role() = 'authenticated');
 create policy "notice_write_authenticated" on notice
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
-create policy "comp_leave_monthly_select_all" on comp_leave_monthly for select using (true);
+create policy "comp_leave_monthly_select_authenticated" on comp_leave_monthly
+  for select using (auth.role() = 'authenticated');
 create policy "comp_leave_monthly_write_authenticated" on comp_leave_monthly
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
-create policy "comp_leave_summary_select_all" on comp_leave_summary for select using (true);
+create policy "comp_leave_summary_select_authenticated" on comp_leave_summary
+  for select using (auth.role() = 'authenticated');
 create policy "comp_leave_summary_write_authenticated" on comp_leave_summary
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
-create policy "annual_leave_allocation_select_all" on annual_leave_allocation for select using (true);
+create policy "annual_leave_allocation_select_authenticated" on annual_leave_allocation
+  for select using (auth.role() = 'authenticated');
 create policy "annual_leave_allocation_write_authenticated" on annual_leave_allocation
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
-create policy "shift_leave_usage_select_all" on shift_leave_usage for select using (true);
+create policy "shift_leave_usage_select_authenticated" on shift_leave_usage
+  for select using (auth.role() = 'authenticated');
 create policy "shift_leave_usage_write_authenticated" on shift_leave_usage
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
-create policy "shift_type_defaults_select_all" on shift_type_defaults for select using (true);
+create policy "shift_type_defaults_select_authenticated" on shift_type_defaults
+  for select using (auth.role() = 'authenticated');
 create policy "shift_type_defaults_write_authenticated" on shift_type_defaults
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
@@ -231,12 +242,13 @@ create policy "user_preferences_select_own" on user_preferences
 create policy "user_preferences_write_own" on user_preferences
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy "shift_patterns_select_all" on shift_patterns for select using (true);
+create policy "shift_patterns_select_authenticated" on shift_patterns
+  for select using (auth.role() = 'authenticated');
 create policy "shift_patterns_write_authenticated" on shift_patterns
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
-create policy "shift_pattern_applications_select_all" on shift_pattern_applications
-  for select using (true);
+create policy "shift_pattern_applications_select_authenticated" on shift_pattern_applications
+  for select using (auth.role() = 'authenticated');
 create policy "shift_pattern_applications_write_authenticated" on shift_pattern_applications
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 

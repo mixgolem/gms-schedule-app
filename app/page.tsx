@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import MonthPicker from "@/components/MonthPicker";
 import CalendarGrid from "@/components/CalendarGrid";
 import EmployeeFilter, { EmployeeFilterMode } from "@/components/EmployeeFilter";
@@ -33,7 +34,7 @@ export default function Home() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const {
     employees,
     shifts,
@@ -132,6 +133,64 @@ export default function Home() {
     }
     setSidebar(null);
     showToast("삭제 완료!");
+  };
+
+  // 일자 상세 패널에서 근무형태만 빠르게 바꿀 때 쓴다. handleSaveShift/handleDeleteShift와
+  // 달리 사이드바를 닫지 않아서, 같은 날짜의 다른 직원을 이어서 바꿀 수 있다. 여러 명을
+  // 한꺼번에 적용하는 배치 작업 중 일부만 실패할 수 있어서, 성공 여부를 boolean으로
+  // 돌려줘 실패한 것만 대기 목록에 남겨둘 수 있게 한다(토스트는 배치 단위로 한 번만 띄움).
+  const handleQuickChangeShift = async (
+    employeeId: string,
+    workDate: string,
+    newType: ShiftType | "unassigned"
+  ): Promise<boolean> => {
+    if (newType === "unassigned") {
+      const { error } = await deleteShift(employeeId, workDate);
+      if (error) {
+        setWarning(`삭제 실패: ${error.message}`);
+        return false;
+      }
+      return true;
+    }
+
+    const hasHours = newType === "dawn" || newType === "day" || newType === "night";
+    const startTime = hasHours ? shiftDefaults[newType].start : null;
+    const endTime = hasHours
+      ? shiftDefaults[newType].end === "24:00"
+        ? "00:00"
+        : shiftDefaults[newType].end
+      : null;
+
+    const { error, shifts: freshShifts } = await upsertShift(
+      employeeId,
+      workDate,
+      newType,
+      false,
+      startTime,
+      endTime,
+      null
+    );
+    if (error) {
+      const message =
+        error.code === "23505"
+          ? "이미 다른 대휴가 같은 날짜를 원래근무일로 쓰고 있어요."
+          : error.message;
+      setWarning(`저장 실패: ${message}`);
+      return false;
+    }
+
+    // 근무형태가 바뀌면 기존 부분사용(연차/대휴 등) 항목은 더 이상 유효하지 않으니 비운다.
+    const savedShift = freshShifts.find(
+      (s) => s.employee_id === employeeId && s.work_date === workDate
+    );
+    if (savedShift) {
+      await syncLeaveUsages(savedShift.id, employeeId, workDate, []);
+    }
+
+    const activeIds = new Set(employees.map((e) => e.id));
+    const activeShifts = freshShifts.filter((s) => activeIds.has(s.employee_id));
+    setWarning(checkPairRule(activeShifts, workDate, newType));
+    return true;
   };
 
   const handleResetMonth = useCallback(() => {
@@ -320,6 +379,37 @@ export default function Home() {
     showToast(workDate ? "연결 완료!" : "연결 해제 완료!");
   };
 
+  // 로그인 여부를 확인하는 동안은 아무것도 보여주지 않는다(비로그인 화면이 잠깐
+  // 깜빡였다 사라지는 걸 막기 위해).
+  if (authLoading) {
+    return (
+      <main className="p-4 max-w-[1900px] mx-auto w-full flex items-center justify-center min-h-[50vh]">
+        <div className="flex items-center gap-2 text-sm text-black">
+          <div className="h-4 w-4 rounded-full border-2 border-gray-200 border-t-blue-900 animate-spin" />
+          확인 중...
+        </div>
+      </main>
+    );
+  }
+
+  // 근무표는 로그인한 사용자만 조회할 수 있다. RLS도 같이 authenticated 전용으로
+  // 막아뒀으니(마이그레이션 018), 여기서는 UI만 안내로 대체한다.
+  if (!session) {
+    return (
+      <main className="p-4 max-w-[1900px] mx-auto w-full flex items-center justify-center min-h-[50vh]">
+        <div className="text-center space-y-3">
+          <p className="text-sm text-black">로그인해야 근무표를 볼 수 있어요.</p>
+          <Link
+            href="/login"
+            className="inline-flex items-center rounded-lg border border-blue-900 bg-white px-4 py-2 text-sm font-medium text-blue-900 transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-sm active:translate-y-0"
+          >
+            로그인하러 가기
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="p-4 max-w-[1900px] mx-auto w-full space-y-4">
       <div className="sticky top-16 z-20 h-14 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
@@ -344,9 +434,6 @@ export default function Home() {
           <Button onClick={handleSavePdf}>🖨PDF 저장</Button>
         </div>
       </div>
-      {!canEdit && (
-        <p className="text-xs text-black -mt-2">조회 전용입니다. 로그인하면 편집할 수 있어요.</p>
-      )}
 
       {warning && (
         <div className="bg-amber-50 border border-amber-300 text-amber-800 text-sm rounded-lg px-3 py-2 flex justify-between items-center animate-[popIn_150ms_ease-out]">
@@ -455,6 +542,9 @@ export default function Home() {
             shift={activeShift}
             canEdit={canEdit}
             shiftDefaults={shiftDefaults}
+            employees={employees}
+            shifts={shifts}
+            leaveUsages={leaveUsages}
             linkedCompLeaveDate={activeLinkedCompLeaveDate}
             onSave={(shiftType, isMain, startTime, endTime, leaveForDate, subEntries) =>
               handleSaveShift(
@@ -494,6 +584,9 @@ export default function Home() {
               await setHolidayName(sidebar.date, name);
               showToast("변경 완료!");
             }}
+            onQuickChangeShift={(employeeId, newType) =>
+              handleQuickChangeShift(employeeId, sidebar.date, newType)
+            }
           />
         )}
       </ShiftSidebar>
