@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Employee, Shift, ShiftLeaveUsage, ShiftType, SHIFT_LABELS } from "@/lib/types";
+import { Employee, Shift, ShiftLeaveUsage, ShiftType, SHIFT_LABELS, SHIFT_COLORS } from "@/lib/types";
 import { weekdayLabel } from "@/lib/dateUtils";
 import { computeShiftDisplay } from "@/lib/shiftDisplay";
 
@@ -13,6 +13,7 @@ interface Props {
   isHoliday: boolean;
   holidayName: string | null;
   canEdit: boolean;
+  showColors: boolean; // 근무형태별 색상 표시 on/off (캘린더 표와 동일한 설정을 따른다)
   onToggleHoliday: (name: string | null) => Promise<void>;
   onRenameHoliday: (name: string | null) => Promise<void>;
 }
@@ -27,6 +28,7 @@ export default function DayDetailPanel({
   isHoliday,
   holidayName,
   canEdit,
+  showColors,
   onToggleHoliday,
   onRenameHoliday,
 }: Props) {
@@ -94,13 +96,23 @@ export default function DayDetailPanel({
                     const shift = shiftMap.get(e.id) ?? null;
                     const isMain = shift?.is_main ?? false;
                     const usages = leaveUsageMap.get(e.id) ?? [];
-                    const { timeLabel, usageDetails } = computeShiftDisplay(shift, usages);
+                    const { timeLabel, usageDetails, isFullyOnLeave } = computeShiftDisplay(
+                      shift,
+                      usages
+                    );
+
+                    // 근무시간 전체를 연차/대휴/기타로 써서 실제로는 출근하지 않은 날은
+                    // 대휴/휴무와 같은 회색으로 (캘린더 셀과 동일한 규칙).
+                    const colorKey = isFullyOnLeave ? "off" : type;
+                    const blockClass = showColors
+                      ? SHIFT_COLORS[colorKey]
+                          .split(" ")
+                          .filter((c) => !c.startsWith("text-"))
+                          .join(" ")
+                      : "bg-white border-gray-200";
 
                     return (
-                      <li
-                        key={e.id}
-                        className="rounded-lg border border-gray-200 bg-white px-2 py-1.5"
-                      >
+                      <li key={e.id} className={`rounded-lg border px-2 py-1.5 ${blockClass}`}>
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-medium text-black">{e.name}</span>
                           {isMain && (

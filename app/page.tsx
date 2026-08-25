@@ -485,6 +485,7 @@ export default function Home() {
             isHoliday={holidayDates.has(sidebar.date)}
             holidayName={holidayNames.get(sidebar.date) ?? null}
             canEdit={canEdit}
+            showColors={showColors}
             onToggleHoliday={async (name) => {
               await toggleHoliday(sidebar.date, name);
               showToast("변경 완료!");
