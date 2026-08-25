@@ -2,7 +2,7 @@
 
 import { Employee, Shift, ShiftLeaveUsage } from "@/lib/types";
 import { CalendarDay, weekdayLabel, dayOfMonth, getDayColor, todayStr } from "@/lib/dateUtils";
-import { countByTypeForDate } from "@/lib/validation";
+import { countByTypeForDate, findConsecutiveWorkStreaks, findNightThenDawnPairs } from "@/lib/validation";
 import { computeWeeklyHours } from "@/lib/workStats";
 import { shiftPriority } from "@/lib/shiftDisplay";
 import ShiftCell from "./ShiftCell";
@@ -72,6 +72,12 @@ export default function CalendarGrid({
   // (직원 필터와는 별개로 항상 전체 활성 직원 기준으로 계산해야 정확하다)
   const activeIds = new Set(employees.map((e) => e.id));
   const activeShifts = shifts.filter((s) => activeIds.has(s.employee_id));
+
+  // 새벽/주간/야간이 하루도 안 빠지고 7일 이상 이어지는 근무자·날짜 조합(지금 화면에 로드된
+  // 범위 기준)을 미리 계산해, 셀 하나하나 반복문 안에서 매번 다시 계산하지 않는다.
+  const consecutiveWorkFlags = findConsecutiveWorkStreaks(activeShifts, leaveUsages);
+  // 야간 근무 다음날 바로 새벽 근무로 이어지는(쉬는 시간 부족) 근무자·날짜 조합도 미리 계산.
+  const nightThenDawnFlags = findNightThenDawnPairs(activeShifts, leaveUsages);
 
   const visibleEmployees =
     filterEmployeeIds.length > 0 && filterMode === "only"
@@ -146,11 +152,23 @@ export default function CalendarGrid({
                             shift.shift_type === "leave" &&
                             !!shift.leave_for_date &&
                             holidayDates.has(shift.leave_for_date);
-                          const invalidReason = pairInvalid
-                            ? "2인1조 원칙 미충족"
-                            : compOnHoliday
-                            ? "대휴 원래근무일이 공휴일이에요 (공휴일 근무는 대체휴무시간으로 처리해야 해요)"
-                            : null;
+                          const consecutiveWorkInvalid = consecutiveWorkFlags.has(
+                            `${emp.id}_${day.date}`
+                          );
+                          const nightThenDawnInvalid = nightThenDawnFlags.has(`${emp.id}_${day.date}`);
+                          const invalidReasons = [
+                            pairInvalid ? "2인1조 원칙 미충족" : null,
+                            compOnHoliday
+                              ? "대휴 원래근무일이 공휴일이에요 (공휴일 근무는 대체휴무시간으로 처리해야 해요)"
+                              : null,
+                            consecutiveWorkInvalid ? "연속 7일 이상 근무" : null,
+                            nightThenDawnInvalid ? "야간 근무 다음날 새벽 근무 (휴식시간 부족)" : null,
+                          ].filter((r): r is string => r !== null);
+                          const invalidReason =
+                            invalidReasons.length > 0 ? invalidReasons.join(" / ") : null;
+                          // 연속 7일 이상 근무·야간→새벽 연속은 근무자 건강에 직접 영향을 주는
+                          // 문제라 2인1조 미충족 같은 일반 경고보다 더 눈에 띄게 표시한다.
+                          const severeInvalid = consecutiveWorkInvalid || nightThenDawnInvalid;
                           const cellShowColors =
                             filterEmployeeIds.length > 0 && filterMode === "highlight"
                               ? filterEmployeeIds.includes(emp.id)
@@ -165,6 +183,7 @@ export default function CalendarGrid({
                               compLeaveDate={compLeaveDateByWork.get(`${emp.id}_${day.date}`) ?? null}
                               canEdit={canEdit}
                               invalidReason={invalidReason}
+                              severeInvalid={severeInvalid}
                               showColors={cellShowColors}
                               onClick={() => onCellClick(emp.id, day.date)}
                             />

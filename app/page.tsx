@@ -417,7 +417,11 @@ export default function Home() {
           <div className="flex gap-4 text-xs text-black pt-2 flex-wrap">
             <span className="text-blue-900 font-bold">테두리 강조 = 오늘</span>
             <span>★ = 메인당직</span>
-            <span className="text-red-800 font-bold">빨간 글자 = 새벽/야간 2인1조 미충족</span>
+            <span className="text-red-800 font-bold">빨간 글자 = 2인1조 미충족</span>
+            <span className="text-red-700 bg-red-50 border-2 border-red-400 rounded px-1 font-bold">
+              ⚠️ 빨간 테두리 칸 = 연속 7일 이상 근무 / 야간→새벽 연속
+            </span>
+            <span className="text-black">(셀에 마우스를 올리면 사유 출력)</span>
             <span className="text-sky-600">토요일</span>
             <span className="text-red-400">일요일</span>
             <span className="text-red-600">공휴일</span>
