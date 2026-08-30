@@ -11,7 +11,7 @@ import {
   LeaveUsageType,
 } from "@/lib/types";
 import { ShiftDefaultsMap } from "@/lib/useShiftDefaults";
-import { weekdayLabel } from "@/lib/dateUtils";
+import { weekdayLabel, isWeekend } from "@/lib/dateUtils";
 import { useSpecialNotes } from "@/lib/useSpecialNotes";
 import { supabase } from "@/lib/supabaseClient";
 import { validateSubRanges } from "@/lib/timeRanges";
@@ -404,7 +404,7 @@ export default function EmployeeShiftEditor({
         </div>
       )}
 
-      {hasHours(type) && (
+      {hasHours(type) && isWeekend(date) && (
         <div className="space-y-1 border rounded-lg p-2 bg-gray-50">
           <label className="text-xs text-blue-900 block">연결된 대휴 사용일</label>
           {linkedCompLeaveDate ? (
