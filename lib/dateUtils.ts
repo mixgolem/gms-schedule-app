@@ -13,6 +13,13 @@ export function getMonthDates(year: number, month: number): string[] {
   return eachDayOfInterval({ start, end }).map((d) => format(d, "yyyy-MM-dd"));
 }
 
+// 해당 연도 1/1~12/31 전체 날짜. 연간 통계 집계에 쓴다.
+export function getYearDates(year: number): string[] {
+  const start = new Date(year, 0, 1);
+  const end = new Date(year, 11, 31);
+  return eachDayOfInterval({ start, end }).map((d) => format(d, "yyyy-MM-dd"));
+}
+
 // 오늘 날짜를 'yyyy-MM-dd'로. 캘린더에서 오늘 칸을 강조할 때 쓴다.
 export function todayStr(): string {
   return format(new Date(), "yyyy-MM-dd");

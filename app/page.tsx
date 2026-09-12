@@ -10,6 +10,7 @@ import SpecialNotesTable from "@/components/SpecialNotesTable";
 import CompLeaveTable from "@/components/CompLeaveTable";
 import AnnualLeaveTable from "@/components/AnnualLeaveTable";
 import MonthlyStatsTable from "@/components/MonthlyStatsTable";
+import YearlyStatsTable from "@/components/YearlyStatsTable";
 import ShiftSidebar from "@/components/ShiftSidebar";
 import EmployeeShiftEditor from "@/components/EmployeeShiftEditor";
 import DayDetailPanel from "@/components/DayDetailPanel";
@@ -528,6 +529,8 @@ export default function Home() {
           />
         </div>
       </div>
+
+      <YearlyStatsTable defaultYear={year} defaultMonth={month} />
 
       <ShiftSidebar
         open={sidebar !== null}
