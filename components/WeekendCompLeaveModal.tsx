@@ -17,8 +17,7 @@ type Status = "idle" | "linking" | "done" | "error";
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: Props) {
-  const { session } = useAuth();
-  const canEdit = !!session;
+  const { canEdit } = useAuth();
   const { runWithLoading } = useGlobalLoading();
   const { showToast } = useToast();
 

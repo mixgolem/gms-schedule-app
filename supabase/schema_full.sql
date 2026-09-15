@@ -189,54 +189,66 @@ alter table shift_patterns enable row level security;
 alter table shift_pattern_applications enable row level security;
 alter table audit_log enable row level security;
 
--- 모든 테이블은 조회(select)도 로그인한(authenticated) 사용자만 가능하다 — 비로그인
--- 사용자는 프론트엔드는 물론 API를 직접 불러도 아무 데이터도 못 본다.
+-- 모든 테이블은 조회(select)는 로그인한(authenticated) 사용자면 누구나 가능하지만,
+-- 쓰기(all)는 계정의 app_metadata.role이 'admin'인 사람만 가능하다 — 로그인은 했지만
+-- 관리자로 지정 안 된 계정은 조회 전용이 된다. role은 본인이 못 바꾸는 app_metadata에
+-- 저장하고(Supabase 대시보드에서만 부여), 비로그인 사용자는 API를 직접 불러도 아무
+-- 데이터도 못 본다.
 create policy "employees_select_authenticated" on employees
   for select using (auth.role() = 'authenticated');
-create policy "employees_write_authenticated" on employees
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "employees_write_admin" on employees
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 create policy "shifts_select_authenticated" on shifts
   for select using (auth.role() = 'authenticated');
-create policy "shifts_write_authenticated" on shifts
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "shifts_write_admin" on shifts
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 create policy "holidays_select_authenticated" on holidays
   for select using (auth.role() = 'authenticated');
-create policy "holidays_write_authenticated" on holidays
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "holidays_write_admin" on holidays
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 create policy "notice_select_authenticated" on notice
   for select using (auth.role() = 'authenticated');
-create policy "notice_write_authenticated" on notice
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "notice_write_admin" on notice
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 create policy "comp_leave_monthly_select_authenticated" on comp_leave_monthly
   for select using (auth.role() = 'authenticated');
-create policy "comp_leave_monthly_write_authenticated" on comp_leave_monthly
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "comp_leave_monthly_write_admin" on comp_leave_monthly
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 create policy "comp_leave_summary_select_authenticated" on comp_leave_summary
   for select using (auth.role() = 'authenticated');
-create policy "comp_leave_summary_write_authenticated" on comp_leave_summary
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "comp_leave_summary_write_admin" on comp_leave_summary
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 create policy "annual_leave_allocation_select_authenticated" on annual_leave_allocation
   for select using (auth.role() = 'authenticated');
-create policy "annual_leave_allocation_write_authenticated" on annual_leave_allocation
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "annual_leave_allocation_write_admin" on annual_leave_allocation
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 create policy "shift_leave_usage_select_authenticated" on shift_leave_usage
   for select using (auth.role() = 'authenticated');
-create policy "shift_leave_usage_write_authenticated" on shift_leave_usage
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "shift_leave_usage_write_admin" on shift_leave_usage
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 create policy "shift_type_defaults_select_authenticated" on shift_type_defaults
   for select using (auth.role() = 'authenticated');
-create policy "shift_type_defaults_write_authenticated" on shift_type_defaults
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "shift_type_defaults_write_admin" on shift_type_defaults
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- user_preferences는 다른 테이블과 달리 본인 설정만 보고 고칠 수 있음
+-- user_preferences는 다른 테이블과 달리 관리자 여부와 상관없이 본인 설정만 보고 고칠 수 있음
 create policy "user_preferences_select_own" on user_preferences
   for select using (auth.uid() = user_id);
 create policy "user_preferences_write_own" on user_preferences
@@ -244,13 +256,15 @@ create policy "user_preferences_write_own" on user_preferences
 
 create policy "shift_patterns_select_authenticated" on shift_patterns
   for select using (auth.role() = 'authenticated');
-create policy "shift_patterns_write_authenticated" on shift_patterns
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "shift_patterns_write_admin" on shift_patterns
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 create policy "shift_pattern_applications_select_authenticated" on shift_pattern_applications
   for select using (auth.role() = 'authenticated');
-create policy "shift_pattern_applications_write_authenticated" on shift_pattern_applications
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "shift_pattern_applications_write_admin" on shift_pattern_applications
+  for all using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- audit_log는 로그인한 사람만 조회 가능. 쓰기는 아래 트리거(security definer)로만
 -- 이뤄지고 클라이언트가 직접 insert/update/delete 할 수 있는 정책은 일부러 안 만든다.

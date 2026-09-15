@@ -7,6 +7,11 @@ import { supabase } from "@/lib/supabaseClient";
 interface AuthContextValue {
   session: Session | null;
   loading: boolean;
+  // 로그인은 누구나 할 수 있지만, 편집(근무표 수정·직원 관리·초기화·복원 등)은 관리자
+  // 계정만 가능하다. 관리자 여부는 계정의 app_metadata.role(본인은 못 바꾸고 Supabase
+  // 대시보드에서만 부여 가능)로 판단 — 그래서 일반 로그인 계정은 조회 전용이 된다.
+  isAdmin: boolean;
+  canEdit: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -39,8 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const isAdmin = session?.user?.app_metadata?.role === "admin";
+
   return (
-    <AuthContext.Provider value={{ session, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, loading, isAdmin, canEdit: isAdmin, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

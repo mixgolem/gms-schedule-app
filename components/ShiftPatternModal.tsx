@@ -39,8 +39,7 @@ const PREVIEW_CODE: Record<string, string> = {
 const DEFAULT_CYCLES = 1; // 49일 × 1회
 
 export default function ShiftPatternModal({ open, onClose }: Props) {
-  const { session } = useAuth();
-  const canEdit = !!session;
+  const { canEdit } = useAuth();
   const { employees } = useEmployees();
   const { defaults: shiftDefaults } = useShiftDefaults();
   const { current, latestApplication, uploadPattern, recordApplication } = useShiftPattern();

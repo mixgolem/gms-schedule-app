@@ -35,7 +35,7 @@ export default function Home() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, canEdit } = useAuth();
   const {
     employees,
     shifts,
@@ -70,7 +70,6 @@ export default function Home() {
   const calendarRef = useRef<HTMLDivElement>(null);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
-  const canEdit = !!session;
   const holidayDates = new Set(holidays.map((h) => h.work_date));
   const holidayNames = new Map(holidays.map((h) => [h.work_date, h.name]));
 

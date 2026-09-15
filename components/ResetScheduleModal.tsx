@@ -18,8 +18,7 @@ type Status = "idle" | "counting" | "resetting" | "done" | "error";
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 export default function ResetScheduleModal({ open, onClose, calendarYear }: Props) {
-  const { session } = useAuth();
-  const canEdit = !!session;
+  const { canEdit } = useAuth();
   const { runWithLoading } = useGlobalLoading();
   const { showToast } = useToast();
 

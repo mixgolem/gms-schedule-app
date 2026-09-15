@@ -20,8 +20,7 @@ interface Props {
 type Status = "idle" | "parsing" | "previewing" | "restoring" | "done" | "error";
 
 export default function FullRestoreModal({ open, onClose }: Props) {
-  const { session } = useAuth();
-  const canEdit = !!session;
+  const { canEdit } = useAuth();
   const { showToast } = useToast();
   const [status, setStatus] = useState<Status>("idle");
   const [backup, setBackup] = useState<FullBackupPayload | null>(null);

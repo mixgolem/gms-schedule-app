@@ -28,8 +28,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function UploadScheduleModal({ open, onClose }: Props) {
-  const { session } = useAuth();
-  const canEdit = !!session;
+  const { canEdit } = useAuth();
   const { employees } = useEmployees();
   const { runWithLoading } = useGlobalLoading();
   const { showToast } = useToast();
