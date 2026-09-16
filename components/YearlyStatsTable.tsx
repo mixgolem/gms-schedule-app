@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useYearlyStats } from "@/lib/useYearlyStats";
-import { getYearDates } from "@/lib/dateUtils";
-import { computeMonthlyStats } from "@/lib/workStats";
-import StatsTable from "./StatsTable";
-import MonthlyStatsTable from "./MonthlyStatsTable";
+import { getYearDates, getMonthDates } from "@/lib/dateUtils";
+import { computeWorkSummaryStats } from "@/lib/workStats";
+import WorkSummaryTable from "./WorkSummaryTable";
 import Button from "./ui/Button";
 
 interface Props {
@@ -22,7 +21,13 @@ export default function YearlyStatsTable({ defaultYear, defaultMonth }: Props) {
   const [month, setMonth] = useState(defaultMonth);
   const { employees, shifts, leaveUsages, loading } = useYearlyStats(year);
 
-  const yearRows = computeMonthlyStats(getYearDates(year), employees, shifts, leaveUsages);
+  const yearRows = computeWorkSummaryStats(getYearDates(year), employees, shifts, leaveUsages);
+  const monthRows = computeWorkSummaryStats(
+    getMonthDates(year, month),
+    employees,
+    shifts,
+    leaveUsages
+  );
 
   return (
     <div className="border rounded-lg p-3 space-y-4 transition-shadow duration-150 hover:shadow-sm">
@@ -46,9 +51,9 @@ export default function YearlyStatsTable({ defaultYear, defaultMonth }: Props) {
         </div>
       ) : (
         <>
-          <StatsTable
-            title={`${year}년 전체 근무시간 통계`}
-            caption="(1/1~12/31 전체 합계 · 일 기준 8시간, 본인대휴 사용시간만 차감 · 연차·기타는 차감 없이 업무일 그대로 인정)"
+          <WorkSummaryTable
+            title={`${year}년 전체 근무 통계`}
+            caption="(1/1~12/31 기준 · 근무일=새벽/주간/야간으로 잡힌 날 전체, 실근무일=그중 연차·본인대휴로 하루 전체 쉰 날 제외 · 근무시간합계는 본인대휴만 차감·연차는 그대로 인정 · 대휴·연차는 8시간=1일 기준)"
             rows={yearRows}
           />
 
@@ -68,12 +73,10 @@ export default function YearlyStatsTable({ defaultYear, defaultMonth }: Props) {
                 ))}
               </select>
             </div>
-            <MonthlyStatsTable
-              year={year}
-              month={month}
-              employees={employees}
-              shifts={shifts}
-              leaveUsages={leaveUsages}
+            <WorkSummaryTable
+              title={`${month}월 근무 통계`}
+              caption="(근무일=새벽/주간/야간으로 잡힌 날 전체, 실근무일=그중 연차·본인대휴로 하루 전체 쉰 날 제외 · 근무시간합계는 본인대휴만 차감·연차는 그대로 인정 · 대휴·연차는 8시간=1일 기준)"
+              rows={monthRows}
             />
           </div>
         </>
