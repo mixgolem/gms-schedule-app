@@ -91,7 +91,7 @@ export default function ResetScheduleModal({ open, onClose, calendarYear }: Prop
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="font-semibold text-sm">근무표 기간 초기화</h2>
+          <h2 className="font-semibold text-base">근무표 기간 초기화</h2>
           <button
             type="button"
             onClick={onClose}
@@ -106,16 +106,20 @@ export default function ResetScheduleModal({ open, onClose, calendarYear }: Prop
             <p className="text-red-500">로그인한 사용자만 사용할 수 있어요.</p>
           ) : (
             <>
-              <p className="text-xs text-black">
-                지정한 기간의 근무 기록만 삭제해요. 직원·공휴일·근무패턴 등 다른 데이터는
-                그대로 남고, 삭제된 근무 기록은 되돌릴 수 없어요.
-              </p>
+              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 leading-relaxed">
+                <p className="font-semibold flex items-center gap-1.5 mb-0.5">
+                  <span aria-hidden>⚠️</span> 함부로 실행하면 안 돼요
+                </p>
+                <p>· 대상: 지정 기간의 근무 기록만</p>
+                <p>· 직원·공휴일·근무패턴 등 다른 데이터는 유지</p>
+                <p>· 삭제 후 복구 불가</p>
+              </div>
 
               <div>
-                <p className="text-xs text-black mb-1">{calendarYear}년 월 단위로 빠르게 선택</p>
+                <p className="text-sm text-black mb-1">{calendarYear}년 월 단위로 빠르게 선택</p>
                 <div className="grid grid-cols-6 gap-1">
                   {MONTHS.map((m) => (
-                    <Button key={m} onClick={() => selectMonth(m)} className="text-xs px-1 py-1.5">
+                    <Button key={m} onClick={() => selectMonth(m)} className="text-sm px-1 py-1.5">
                       {m}월
                     </Button>
                   ))}
@@ -124,7 +128,7 @@ export default function ResetScheduleModal({ open, onClose, calendarYear }: Prop
 
               <div className="flex items-center gap-2 flex-wrap">
                 <div>
-                  <label className="text-xs text-blue-900 block mb-0.5">시작일</label>
+                  <label className="text-sm text-blue-900 block mb-0.5">시작일</label>
                   <input
                     type="date"
                     value={startDate}
@@ -137,7 +141,7 @@ export default function ResetScheduleModal({ open, onClose, calendarYear }: Prop
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-blue-900 block mb-0.5">종료일</label>
+                  <label className="text-sm text-blue-900 block mb-0.5">종료일</label>
                   <input
                     type="date"
                     value={endDate}

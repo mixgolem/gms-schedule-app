@@ -115,7 +115,7 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="font-semibold text-sm">주말:대휴 자동 연결</h2>
+          <h2 className="font-semibold text-base">주말:대휴 자동 연결</h2>
           <button
             type="button"
             onClick={onClose}
@@ -130,22 +130,23 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
             <p className="text-red-500">로그인한 사용자만 사용할 수 있어요.</p>
           ) : (
             <>
-              <p className="text-xs text-black">
-                지정한 기간에서 주말(토/일)에 근무한 날마다, 그 주(월~금) 안의 대휴를 먼저
-                찾아 연결하고, 없으면 다음 주(월~금)에서 찾아 연결해요. 그래도 없으면
-                연결하지 않아요. 공휴일 근무는 대상에서 제외돼요.
-              </p>
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
-                이 기간 안의 대휴는 기존에 연결돼 있었는지와 상관없이 실행할 때마다 이 기준으로
-                처음부터 다시 계산돼요. 그래서 이번 기준으로 짝이 안 맞으면 기존 연결도 바뀌거나
-                풀릴 수 있어요. (기간 밖에서 이미 연결된 대휴는 건드리지 않아요.)
-              </p>
+              <div className="text-sm text-black leading-relaxed">
+                <p>· 대상: 지정 기간 내 주말(토/일) 근무일</p>
+                <p>· 연결 순서: 해당 주(월~금) 대휴 우선 → 없으면 다음 주(월~금)</p>
+                <p>· 둘 다 없으면 연결 안 함</p>
+                <p>· 공휴일 근무는 제외</p>
+              </div>
+              <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 leading-relaxed">
+                <p>· 실행할 때마다 이 기간 전체 재계산(기존 연결 여부 무관)</p>
+                <p>· 기준이 안 맞으면 기존 연결도 변경·해제될 수 있음</p>
+                <p>· 기간 밖 기존 연결은 건드리지 않음</p>
+              </div>
 
               <div>
-                <p className="text-xs text-black mb-1">{calendarYear}년 월 단위로 빠르게 선택</p>
+                <p className="text-sm text-black mb-1">{calendarYear}년 월 단위로 빠르게 선택</p>
                 <div className="grid grid-cols-6 gap-1">
                   {MONTHS.map((m) => (
-                    <Button key={m} onClick={() => selectMonth(m)} className="text-xs px-1 py-1.5">
+                    <Button key={m} onClick={() => selectMonth(m)} className="text-sm px-1 py-1.5">
                       {m}월
                     </Button>
                   ))}
@@ -154,7 +155,7 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
 
               <div className="flex items-center gap-2 flex-wrap">
                 <div>
-                  <label className="text-xs text-blue-900 block mb-0.5">시작일</label>
+                  <label className="text-sm text-blue-900 block mb-0.5">시작일</label>
                   <input
                     type="date"
                     value={startDate}
@@ -163,7 +164,7 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-blue-900 block mb-0.5">종료일</label>
+                  <label className="text-sm text-blue-900 block mb-0.5">종료일</label>
                   <input
                     type="date"
                     value={endDate}
@@ -186,10 +187,10 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
               </Button>
 
               <div className="border-t pt-3 space-y-2">
-                <p className="text-xs text-black">
-                  위에서 선택한 시작일~종료일 기간에 사용된 대휴의 연결을 통째로 해제해요. 대휴
-                  사용 기록 자체는 남고 보상 원래근무일 연결만 풀려요.
-                </p>
+                <div className="text-sm text-black leading-relaxed">
+                  <p>· 대상: 선택한 기간에 사용된 대휴 전체</p>
+                  <p>· 대휴 사용 기록은 유지, 원래근무일 연결만 해제</p>
+                </div>
 
                 {unlinkStatus === "linking" && <p className="text-black">연결 해제 중...</p>}
                 {unlinkSummary && <p className="text-green-600">{unlinkSummary}</p>}

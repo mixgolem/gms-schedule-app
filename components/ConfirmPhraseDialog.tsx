@@ -49,12 +49,25 @@ export default function ConfirmPhraseDialog({
       />
       <form
         onSubmit={handleSubmit}
-        className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 animate-[popIn_150ms_ease-out]"
+        className={`relative bg-white rounded-xl shadow-xl w-full max-w-sm p-4 space-y-3 animate-[popIn_150ms_ease-out] ${
+          danger ? "border-2 border-red-300" : ""
+        }`}
       >
-        <p className="font-semibold text-sm text-black">{title}</p>
-        <p className="text-xs text-black whitespace-pre-line">{message}</p>
+        <p className="font-semibold text-sm text-black flex items-center gap-1.5">
+          {danger && <span aria-hidden>⚠️</span>}
+          {title}
+        </p>
+        <p
+          className={`text-sm whitespace-pre-line rounded-lg px-3 py-2 ${
+            danger
+              ? "text-red-700 bg-red-50 border border-red-200 font-medium"
+              : "text-black"
+          }`}
+        >
+          {message}
+        </p>
         <div>
-          <label className="text-xs text-black block mb-1">
+          <label className="text-sm text-black block mb-1">
             계속하려면 <span className="font-bold">{phrase}</span>을(를) 입력하고 Enter를
             누르세요
           </label>

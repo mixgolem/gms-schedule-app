@@ -73,7 +73,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="font-semibold text-sm">직원 관리</h2>
+          <h2 className="font-semibold text-base">직원 관리</h2>
           <button
             type="button"
             onClick={onClose}
@@ -94,7 +94,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                   emp.active ? "bg-white" : "bg-gray-50 opacity-60"
                 }`}
               >
-                <span className="w-5 text-xs font-semibold text-black shrink-0">
+                <span className="w-6 text-sm font-semibold text-black shrink-0">
                   {employeeLabel(emp.sort_order - 1)}
                 </span>
 
@@ -129,7 +129,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                   >
                     <span className="truncate">{emp.name}</span>
                     {emp.employee_number && (
-                      <span className="text-xs text-black font-normal shrink-0">
+                      <span className="text-sm text-black font-normal shrink-0">
                         #{emp.employee_number}
                       </span>
                     )}
@@ -142,7 +142,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                     title="위로"
                     onClick={() => moveEmployee(emp.id, "up")}
                     disabled={i === 0}
-                    className="w-6 h-6 text-xs border rounded-md transition-all duration-150 hover:bg-gray-100 hover:shadow-sm hover:-translate-y-0.5 disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                    className="w-7 h-7 text-sm border rounded-md transition-all duration-150 hover:bg-gray-100 hover:shadow-sm hover:-translate-y-0.5 disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                   >
                     ▲
                   </button>
@@ -151,17 +151,17 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                     title="아래로"
                     onClick={() => moveEmployee(emp.id, "down")}
                     disabled={i === sorted.length - 1}
-                    className="w-6 h-6 text-xs border rounded-md transition-all duration-150 hover:bg-gray-100 hover:shadow-sm hover:-translate-y-0.5 disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                    className="w-7 h-7 text-sm border rounded-md transition-all duration-150 hover:bg-gray-100 hover:shadow-sm hover:-translate-y-0.5 disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                   >
                     ▼
                   </button>
-                  <Button onClick={() => setActive(emp.id, !emp.active)} className="text-xs px-2 py-1">
+                  <Button onClick={() => setActive(emp.id, !emp.active)} className="text-sm px-2.5 py-1">
                     {emp.active ? "비활성화" : "활성화"}
                   </Button>
                   <Button
                     variant="danger"
                     onClick={() => handleDelete(emp.id, emp.name)}
-                    className="text-xs px-2 py-1"
+                    className="text-sm px-2.5 py-1"
                   >
                     삭제
                   </Button>

@@ -111,18 +111,18 @@ export default function Header() {
                     </Button>
                     <Button
                       variant="danger"
-                      className={MENU_ITEM_CLASS}
+                      className={`${MENU_ITEM_CLASS} !bg-red-50 gap-1.5`}
                       onClick={() => setResetScheduleOpen(true)}
                     >
-                      기간 초기화
+                      <span aria-hidden>⚠️</span> 기간 초기화
                     </Button>
                     {resetInfo?.canReset && (
                       <Button
                         variant="danger"
-                        className={MENU_ITEM_CLASS}
+                        className={`${MENU_ITEM_CLASS} !bg-red-50 gap-1.5`}
                         onClick={resetInfo.onReset}
                       >
-                        이번 달 초기화
+                        <span aria-hidden>⚠️</span> 이번 달 초기화
                       </Button>
                     )}
                   </DangerMenu>

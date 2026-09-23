@@ -35,7 +35,7 @@ export default function AnnualLeaveTable({ year, month, canEdit }: Props) {
           <span className="inline-block rounded px-1 bg-blue-50/30 border border-dashed border-blue-100 mr-1">
             숫자 ✎
           </span>
-          표시된 칸은 클릭해서 직접 수정할 수 있어요. 나머지는 자동 계산된 값이에요.
+          표시된 칸: 직접 수정 가능 · 나머지: 자동 계산값
         </p>
       )}
       <div>

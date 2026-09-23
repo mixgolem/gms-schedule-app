@@ -139,14 +139,14 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="font-semibold text-sm">근무표 업로드</h2>
+          <h2 className="font-semibold text-base">근무표 업로드</h2>
           <div className="flex items-center gap-2">
             {canEdit && mode === "standard" && (
               <LinkButton
                 href="/templates/schedule-upload-template.xlsx"
                 download="GMS스케줄앱_양식_근무표업로드.xlsx"
                 onClick={() => showToast("다운로드 완료!")}
-                className="text-xs px-2 py-1"
+                className="text-sm px-2.5 py-1"
               >
                 양식 다운로드
               </LinkButton>
@@ -156,9 +156,9 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                 href="/templates/legacy-schedule-example.xlsx"
                 download="GMS스케줄앱_양식_이전근무표변환.xlsx"
                 onClick={() => showToast("다운로드 완료!")}
-                className="text-xs px-2 py-1"
+                className="text-sm px-2.5 py-1"
               >
-                양식 예시 다운로드
+                양식 다운로드
               </LinkButton>
             )}
             <button
@@ -180,14 +180,14 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                 <Button
                   active={mode === "standard"}
                   onClick={() => switchMode("standard")}
-                  className="text-xs px-2 py-1"
+                  className="text-sm px-2.5 py-1"
                 >
                   표준 양식
                 </Button>
                 <Button
                   active={mode === "legacy"}
                   onClick={() => switchMode("legacy")}
-                  className="text-xs px-2 py-1"
+                  className="text-sm px-2.5 py-1"
                 >
                   이전 근무표 변환
                 </Button>
@@ -195,13 +195,12 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
 
               {mode === "standard" ? (
                 <>
-                  <p className="text-xs text-black">
-                    A열: 날짜, B열부터 1행에 근무자 글자(A,B,C...)를 적고 그 아래
-                    근무코드(메/조/야/여/주/휴/대)를 채운 .xlsx 양식을 올려주세요. 열 순서는
-                    상관없이 1행 글자로 매칭되고, 인원수 제한도 없어요. 아래에서 날짜·직원
-                    매칭을 확인한 뒤 &quot;적용&quot;을 눌러야 실제로 반영됩니다. 칸을 비워두면
-                    그 근무자의 그 날짜 기존 근무 기록이 삭제돼요.
-                  </p>
+                  <div className="text-sm text-black leading-relaxed">
+                    <p>· A열: 날짜, B열~: 1행 근무자 글자(A,B,C...), 그 아래 근무코드(메/조/야/여/주/휴/대)</p>
+                    <p>· 열 순서 무관, 인원수 제한 없음 (1행 글자로 매칭)</p>
+                    <p>· 날짜·직원 매칭 확인 후 &quot;적용&quot; 클릭 시 반영</p>
+                    <p>· 빈 칸 = 해당 근무자·날짜 기존 기록 삭제</p>
+                  </div>
                   <Image
                     src="/schedule-upload-example.png"
                     alt="근무표 업로드 엑셀 양식 예시 (A열: 날짜, B열부터 근무자별 근무코드)"
@@ -211,15 +210,18 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                   />
                 </>
               ) : (
-                <p className="text-xs text-black">
-                  예전에 쓰던 엑셀 근무표(요일 블록 + 06:30~24:00 슬롯 표시 방식) 파일을 그대로
-                  올려주세요. 새벽/주간/야간은 슬롯 표시로, 대휴는 &quot;적용 일자&quot; 칸의
-                  M/D 날짜로 자동 인식하고(그 날짜가 보상하는 원래근무일이 돼요), 연차·건강검진
-                  같은 그 외 텍스트는 주간근무로 반영돼요. 인원수·이름·날짜 범위는 파일 안
-                  내용으로 자동 인식해요. 이 근무표는 월 단위로만 올리는 거라, 파일에 여러 달이
-                  섞여 있어도 건수가 가장 많은 달 하나만 반영되고 나머지는 자동으로 빠져요.
-                  아래에서 미리보기를 꼭 확인한 뒤 &quot;적용&quot;을 눌러주세요.
-                </p>
+                <div className="text-sm text-black leading-relaxed">
+                  <p className="font-semibold text-blue-900">
+                    · 위 &quot;양식 다운로드&quot;로 받은 파일에 기존 GMS근무표를 그대로 붙여넣고 업로드하면 적용 가능
+                  </p>
+                  <p>· 예전 엑셀 근무표(요일 블록 + 06:30~24:00 슬롯 표시) 그대로 업로드</p>
+                  <p>· 새벽/주간/야간: 슬롯 표시로 인식</p>
+                  <p>· 대휴: &quot;적용 일자&quot; 칸 M/D → 원래근무일로 자동 연결</p>
+                  <p>· 연차·건강검진 등 기타 텍스트 → 주간근무로 반영</p>
+                  <p>· 인원수·이름·날짜 범위: 파일 내용에서 자동 인식</p>
+                  <p>· 월 단위 업로드 — 여러 달 섞이면 최다 건수 달만 반영</p>
+                  <p>· 미리보기 확인 후 &quot;적용&quot; 클릭</p>
+                </div>
               )}
 
               {(status === "idle" || status === "parsing" || status === "error") && (
@@ -241,7 +243,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
           {status === "error" && errorMsg && <p className="text-red-600">{errorMsg}</p>}
 
           {status === "done" && (
-            <Button onClick={reset} className="text-xs px-2 py-1">
+            <Button onClick={reset} className="text-sm px-2.5 py-1">
               다른 파일 업로드
             </Button>
           )}
@@ -250,13 +252,13 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
             unmatchedNames.length > 0 &&
             (status === "parsed" || status === "saving") && (
               <div className="border border-amber-300 bg-amber-50 rounded-lg p-2 space-y-2">
-                <p className="text-xs font-medium text-amber-800">
+                <p className="text-sm font-medium text-amber-800">
                   매칭 안 된 이름 {unmatchedNames.length}건 — 지금 직원 중 누구인지 골라주면
                   그 사람 근무로 반영돼요
                 </p>
                 <div className="space-y-1.5">
                   {unmatchedNames.map((name) => (
-                    <div key={name} className="flex items-center gap-2 text-xs">
+                    <div key={name} className="flex items-center gap-2 text-sm">
                       <span className="w-20 shrink-0 truncate font-medium">{name}</span>
                       <span className="text-black">→</span>
                       <select
@@ -264,7 +266,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                         onChange={(e) =>
                           setNameOverrides((prev) => ({ ...prev, [name]: e.target.value }))
                         }
-                        className="flex-1 border rounded-lg px-2 py-1 text-xs bg-white"
+                        className="flex-1 border rounded-lg px-2 py-1 text-sm bg-white"
                       >
                         <option value="">건너뛰기</option>
                         {employees.map((emp) => (
@@ -279,7 +281,7 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
                 <Button
                   onClick={handleRematch}
                   disabled={status === "saving"}
-                  className="text-xs px-2 py-1"
+                  className="text-sm px-2.5 py-1"
                 >
                   다시 매칭
                 </Button>
@@ -289,15 +291,15 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
           {parsed && (status === "parsed" || status === "saving") && (
             <div className="space-y-2">
               {mode === "legacy" && keptMonth && (
-                <p className="text-xs font-medium text-blue-900">
+                <p className="text-sm font-medium text-blue-900">
                   반영 대상 월: {keptMonth} (다른 달 기록은 자동으로 제외돼요)
                 </p>
               )}
-              <p className="text-xs font-medium text-black">
+              <p className="text-sm font-medium text-black">
                 미리보기 — 날짜와 직원 매칭을 확인해주세요
               </p>
               <div className="border rounded-lg overflow-auto max-h-64">
-                <table className="text-xs w-full">
+                <table className="text-sm w-full">
                   <thead className="sticky top-0 bg-gray-50">
                     <tr>
                       <th className="px-2 py-1 text-left border-b whitespace-nowrap">날짜</th>
@@ -351,10 +353,10 @@ export default function UploadScheduleModal({ open, onClose }: Props) {
 
           {parsed && parsed.warnings.length > 0 && (
             <div className="border border-amber-300 bg-amber-50 rounded-lg p-2 max-h-40 overflow-y-auto">
-              <p className="text-xs font-medium text-amber-800 mb-1">
+              <p className="text-sm font-medium text-amber-800 mb-1">
                 건너뛴 항목 {parsed.warnings.length}건
               </p>
-              <ul className="text-xs text-amber-700 space-y-0.5">
+              <ul className="text-sm text-amber-700 space-y-0.5">
                 {parsed.warnings.slice(0, 30).map((w, i) => (
                   <li key={i}>{w}</li>
                 ))}

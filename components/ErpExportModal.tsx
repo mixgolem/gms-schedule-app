@@ -55,7 +55,7 @@ export default function ErpExportModal({
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm max-h-[80vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="font-semibold text-sm">ERP 엑셀 다운로드 — 근무자 선택</h2>
+          <h2 className="font-semibold text-base">ERP 엑셀 다운로드 — 근무자 선택</h2>
           <button
             type="button"
             onClick={onClose}
@@ -66,7 +66,7 @@ export default function ErpExportModal({
         </div>
 
         {error && (
-          <p className="mx-4 mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-2 py-1.5">
+          <p className="mx-4 mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-2 py-1.5">
             {error}
           </p>
         )}
@@ -77,7 +77,7 @@ export default function ErpExportModal({
               <span className="mr-1 text-black">{employeeLabel(emp.sort_order - 1)}</span>
               {emp.name}
               {emp.employee_number && (
-                <span className="ml-auto text-xs text-black">#{emp.employee_number}</span>
+                <span className="ml-auto text-sm text-black">#{emp.employee_number}</span>
               )}
             </Button>
           ))}

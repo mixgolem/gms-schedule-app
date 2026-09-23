@@ -50,7 +50,7 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b">
-          <h2 className="font-semibold text-sm">근무시간 설정</h2>
+          <h2 className="font-semibold text-base">근무시간 설정</h2>
           <button
             type="button"
             onClick={onClose}
@@ -61,7 +61,7 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
         </div>
 
         <div className="p-4 space-y-3">
-          <p className="text-xs text-black">
+          <p className="text-sm text-black">
             새벽/주간/야간 근무를 새로 등록할 때 기본으로 채워질 출근·퇴근 시각이에요. 이미 저장된
             근무 기록에는 영향을 주지 않아요.
           </p>
@@ -76,7 +76,7 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
                     value={draft[type].start}
                     onChange={(v) => setDraft((prev) => ({ ...prev, [type]: { ...prev[type], start: v } }))}
                   />
-                  <span className="text-black text-xs">~</span>
+                  <span className="text-black text-sm">~</span>
                   <TimeInput24
                     value={toDisplay(draft[type].end)}
                     onChange={(v) => setDraft((prev) => ({ ...prev, [type]: { ...prev[type], end: v } }))}

@@ -93,7 +93,7 @@ export default function AuditLogModal({ open, onClose }: Props) {
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="font-semibold text-sm">변경 이력</h2>
+          <h2 className="font-semibold text-base">변경 이력</h2>
           <button
             type="button"
             onClick={onClose}
@@ -108,10 +108,10 @@ export default function AuditLogModal({ open, onClose }: Props) {
             <p className="text-red-500">로그인한 사용자만 볼 수 있어요.</p>
           ) : (
             <>
-              <p className="text-xs text-black">
-                근무표/공휴일/직원/부분사용 정보가 언제, 누가, 무엇을 바꿨는지 최근 300건까지
-                보여줘요. 같은 사람이 짧은 시간 안에 한꺼번에 바꾼 건 하나로 묶어서 보여줘요.
-              </p>
+              <div className="text-sm text-black leading-relaxed">
+                <p>· 근무표/공휴일/직원/부분사용 변경 이력 최근 300건 (언제·누가·무엇을)</p>
+                <p>· 동일인의 단시간 일괄 변경은 하나로 묶어서 표시</p>
+              </div>
 
               <div className="flex gap-1 flex-wrap">
                 {TABLE_FILTERS.map((t) => (
@@ -119,7 +119,7 @@ export default function AuditLogModal({ open, onClose }: Props) {
                     key={t}
                     type="button"
                     onClick={() => setTableFilter(t)}
-                    className={`text-xs px-2.5 py-1 rounded-lg border transition-colors duration-150 ${
+                    className={`text-sm px-2.5 py-1.5 rounded-lg border transition-colors duration-150 ${
                       tableFilter === t
                         ? "bg-blue-900 text-white border-blue-900"
                         : "bg-white text-black border-gray-300 hover:bg-gray-100"
@@ -135,7 +135,7 @@ export default function AuditLogModal({ open, onClose }: Props) {
 
               {!loading && !errorMsg && (
                 <div className="border rounded-lg overflow-hidden">
-                  <table className="text-xs w-full">
+                  <table className="text-sm w-full">
                     <thead className="sticky top-0 bg-gray-50">
                       <tr>
                         <th className="px-2 py-1.5 text-left border-b whitespace-nowrap">시각</th>

@@ -94,7 +94,7 @@ export default function FullRestoreModal({ open, onClose }: Props) {
       />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="font-semibold text-sm">전체 복원</h2>
+          <h2 className="font-semibold text-base">전체 복원</h2>
           <button
             type="button"
             onClick={handleClose}
@@ -109,8 +109,8 @@ export default function FullRestoreModal({ open, onClose }: Props) {
           <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-sm">
             <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-blue-900 animate-spin" />
             <p className="text-black font-medium">{progress ?? "복원 중..."}</p>
-            <p className="text-xs text-black text-center">
-              데이터를 지우고 다시 채우는 중이에요. 창을 닫거나 새로고침하지 마세요.
+            <p className="text-sm text-black text-center">
+              데이터 삭제 후 재입력 중 — 창 닫기·새로고침 금지
             </p>
           </div>
         ) : (
@@ -119,12 +119,11 @@ export default function FullRestoreModal({ open, onClose }: Props) {
               <p className="text-red-500">로그인한 사용자만 복원할 수 있어요.</p>
             ) : (
               <>
-                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-2 py-1.5">
-                  ⚠️ &quot;전체 백업(JSON)&quot;으로 받은 파일을 그대로 다시 올려서 지금 DB
-                  내용을 그 시점 상태로 되돌리는 기능이에요. 적용하는 순간 현재 모든
-                  데이터(직원/근무표/공휴일/수기입력 값 등)가 지워지고 백업 시점 데이터로 완전히
-                  대체돼요. 되돌릴 수 없으니 신중하게 사용해주세요.
-                </p>
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-2 py-1.5 leading-relaxed">
+                  <p>⚠️ · &quot;전체 백업(JSON)&quot; 파일로 DB를 그 시점 상태로 되돌림</p>
+                  <p>· 적용 즉시 현재 모든 데이터(직원/근무표/공휴일/수기입력 등) 삭제 후 백업 데이터로 전체 교체</p>
+                  <p>· 복구 불가 — 신중히 사용</p>
+                </div>
 
                 {(status === "idle" || status === "parsing" || status === "error") && (
                   <input
@@ -151,7 +150,7 @@ export default function FullRestoreModal({ open, onClose }: Props) {
             )}
 
             {status === "error" && (
-              <Button onClick={reset} className="text-xs px-2 py-1">
+              <Button onClick={reset} className="text-sm px-2.5 py-1">
                 다시 시도
               </Button>
             )}
@@ -159,7 +158,7 @@ export default function FullRestoreModal({ open, onClose }: Props) {
             {backup && counts && status === "previewing" && (
               <div className="space-y-3">
                 <div className="border rounded-lg overflow-auto max-h-64">
-                  <table className="text-xs w-full">
+                  <table className="text-sm w-full">
                     <thead className="sticky top-0 bg-gray-50">
                       <tr>
                         <th className="px-2 py-1 text-left border-b whitespace-nowrap">테이블</th>
@@ -181,7 +180,7 @@ export default function FullRestoreModal({ open, onClose }: Props) {
                   </table>
                 </div>
                 {backup.exportedAt && (
-                  <p className="text-xs text-black">
+                  <p className="text-sm text-black">
                     백업 생성 시각: {new Date(backup.exportedAt).toLocaleString("ko-KR")}
                   </p>
                 )}

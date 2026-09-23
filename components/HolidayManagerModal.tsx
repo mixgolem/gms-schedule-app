@@ -135,14 +135,14 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px] animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col animate-[popIn_150ms_ease-out]">
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <h2 className="font-semibold text-sm">공휴일 관리</h2>
+          <h2 className="font-semibold text-base">공휴일 관리</h2>
           <div className="flex items-center gap-2">
             {mode === "bulk" && (
               <LinkButton
                 href="/templates/holiday-template.xlsx"
                 download="GMS스케줄앱_양식_법정공휴일.xlsx"
                 onClick={() => showToast("다운로드 완료!")}
-                className="text-xs px-2 py-1"
+                className="text-sm px-2.5 py-1"
               >
                 양식 다운로드
               </LinkButton>
@@ -168,7 +168,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
                 >
                   ◀
                 </button>
-                <span className="font-semibold text-sm text-black w-16 text-center">{year}년</span>
+                <span className="font-semibold text-base text-black w-16 text-center">{year}년</span>
                 <button
                   type="button"
                   onClick={() => setYear((y) => y + 1)}
@@ -177,7 +177,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
                   ▶
                 </button>
               </div>
-              <Button onClick={switchToBulk} className="text-xs px-2 py-1">
+              <Button onClick={switchToBulk} className="text-sm px-2.5 py-1">
                 엑셀 일괄 등록
               </Button>
             </div>
@@ -193,7 +193,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
                     key={h.work_date}
                     className="flex items-center gap-2 border rounded-lg px-2 py-2 transition-all duration-150 hover:shadow-sm"
                   >
-                    <span className="w-20 text-xs font-semibold text-black shrink-0">
+                    <span className="w-24 text-sm font-semibold text-black shrink-0">
                       {formatDate(h.work_date)}
                     </span>
 
@@ -220,7 +220,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
                     <Button
                       variant="danger"
                       onClick={() => handleDelete(h.work_date, h.name)}
-                      className="text-xs px-2 py-1 shrink-0"
+                      className="text-sm px-2.5 py-1 shrink-0"
                     >
                       삭제
                     </Button>
@@ -230,8 +230,8 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
             </div>
 
             <div className="border-t p-3 space-y-2 shrink-0">
-              <p className="text-xs text-black">
-                추가하면 그 날짜에 주간/대휴로 잡힌 근무는 자동으로 휴무로 바뀌어요.
+              <p className="text-sm text-black">
+                · 추가 시 해당 날짜 주간/대휴 근무 → 자동 휴무 전환
               </p>
               <div className="flex gap-2">
                 <input
@@ -256,7 +256,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
                   추가
                 </Button>
               </div>
-              {addError && <p className="text-red-600 text-xs">{addError}</p>}
+              {addError && <p className="text-red-600 text-sm">{addError}</p>}
             </div>
           </>
         ) : (
@@ -264,16 +264,17 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
             <button
               type="button"
               onClick={switchToList}
-              className="text-xs text-blue-900 font-medium hover:underline"
+              className="text-sm text-blue-900 font-medium hover:underline"
             >
               ◀ 목록으로
             </button>
 
-            <p className="text-xs text-black">
-              A열: 날짜, B열: 공휴일 이름을 적은 .xlsx 파일을 올려주세요. 1행은 제목행으로 보고
-              2행부터 읽어요. 이름은 비워도 되고, 이미 등록된 날짜는 새 이름으로 덮어써요. 그
-              날짜에 이미 주간/대휴로 잡힌 근무가 있으면 자동으로 휴무로 바뀌어요.
-            </p>
+            <div className="text-sm text-black leading-relaxed">
+              <p>· A열: 날짜, B열: 공휴일 이름</p>
+              <p>· 1행 제목행, 2행부터 읽음 (이름 비움 가능)</p>
+              <p>· 기존 등록 날짜는 새 이름으로 덮어씀</p>
+              <p>· 해당 날짜 주간/대휴 근무 → 자동 휴무 전환</p>
+            </div>
             <Image
               src="/holiday-excel-example.png"
               alt="공휴일 엑셀 양식 예시 (A열: 날짜, B열: 이름)"
@@ -299,18 +300,18 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
             {bulkStatus === "error" && bulkError && <p className="text-red-600">{bulkError}</p>}
 
             {bulkStatus === "done" && (
-              <Button onClick={resetBulk} className="text-xs px-2 py-1">
+              <Button onClick={resetBulk} className="text-sm px-2.5 py-1">
                 다른 파일 업로드
               </Button>
             )}
 
             {bulkParsed && (bulkStatus === "parsed" || bulkStatus === "saving") && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-black">
+                <p className="text-sm font-medium text-black">
                   미리보기 — {bulkParsed.rows.length}건
                 </p>
                 <div className="border rounded-lg overflow-auto max-h-64">
-                  <table className="text-xs w-full">
+                  <table className="text-sm w-full">
                     <thead className="sticky top-0 bg-gray-50">
                       <tr>
                         <th className="px-2 py-1 text-left border-b whitespace-nowrap">날짜</th>
@@ -349,10 +350,10 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
 
             {bulkParsed && bulkParsed.warnings.length > 0 && (
               <div className="border border-amber-300 bg-amber-50 rounded-lg p-2 max-h-40 overflow-y-auto">
-                <p className="text-xs font-medium text-amber-800 mb-1">
+                <p className="text-sm font-medium text-amber-800 mb-1">
                   건너뛴 항목 {bulkParsed.warnings.length}건
                 </p>
-                <ul className="text-xs text-amber-700 space-y-0.5">
+                <ul className="text-sm text-amber-700 space-y-0.5">
                   {bulkParsed.warnings.slice(0, 30).map((w, i) => (
                     <li key={i}>{w}</li>
                   ))}
