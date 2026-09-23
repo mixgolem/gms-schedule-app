@@ -12,8 +12,6 @@ const CODE_MAP: Record<string, { type: ShiftType; main: boolean }> = {
   대: { type: "leave", main: false },
 };
 
-export const PATTERN_DAYS = 49;
-
 export interface PatternCell {
   shiftType: ShiftType;
   isMain: boolean;
@@ -33,8 +31,9 @@ export interface ParsedPattern {
   warnings: string[];
 }
 
-// 양식: 1행은 헤더(직원 순번 글자 A,B,C...), 2행부터 49일치. A열(날짜)은 참고용일 뿐이라
-// 순서만 쓰고 무시한다. 헤더 글자로 직원을 매칭하므로 열 순서가 달라도, 직원이 몇 명이든 된다.
+// 양식: 1행은 헤더(직원 순번 글자 A,B,C...), 2행부터 파일에 있는 만큼 며칠치든 그대로 읽는다.
+// A열(날짜)은 참고용일 뿐이라 순서만 쓰고 무시한다. 헤더 글자로 직원을 매칭하므로 열 순서가
+// 달라도, 직원이 몇 명이든·패턴이 며칠짜리든 그대로 올릴 수 있다(근무표 업로드와 동일한 방식).
 export async function parsePatternFile(
   file: File,
   employees: Employee[]
@@ -50,7 +49,7 @@ export async function parsePatternFile(
   const warnings: string[] = [];
   const days: PatternDays = [];
 
-  for (let r = 1; r < raw.length && days.length < PATTERN_DAYS; r++) {
+  for (let r = 1; r < raw.length; r++) {
     const line = raw[r] ?? [];
     const rowCells: (PatternCell | null)[] = new Array(columns.length).fill(null);
 
@@ -73,10 +72,8 @@ export async function parsePatternFile(
     days.push(rowCells);
   }
 
-  if (days.length < PATTERN_DAYS) {
-    warnings.unshift(
-      `${PATTERN_DAYS}일치 데이터가 필요한데 ${days.length}일치만 읽었어요. 2행부터 ${PATTERN_DAYS + 1}행까지 채워주세요.`
-    );
+  if (days.length === 0) {
+    warnings.unshift("읽을 수 있는 패턴 데이터가 없어요. 2행부터 근무코드를 채워주세요.");
   }
 
   return { days, presentSlots, warnings };
@@ -98,25 +95,78 @@ function cellCode(cell: PatternCell | null): string | null {
   return CODE_BY_KEY[`${cell.shiftType}:${cell.isMain}`] ?? null;
 }
 
+// 근무표 업로드 양식(헤더 남색 바탕 흰 글씨 + 근무형태별 색칠)과 같은 모양으로 꾸며서
+// 내려받는다. sheetjs(xlsx) 무료판은 셀 스타일을 저장하지 못해서(써봐도 그냥 사라짐),
+// 이 함수만 스타일 저장이 되는 exceljs를 번들 크기 때문에 그때그때 동적 import해서 쓴다.
+const CODE_FILL_ARGB: Record<string, string> = {
+  메: "FFFEF08A", // 새벽(메인) - 노랑, 실제 근무표와 동일
+  조: "FFFEF08A", // 새벽(보조)
+  야: "FFBFDBFE", // 야간(메인) - 파랑
+  여: "FFBFDBFE", // 야간(보조)
+  주: "FFC6D59F", // 주간 - 초록
+  휴: "FFE5E7EB", // 휴무 - 회색
+  대: "FFE5E7EB", // 대휴 - 회색
+};
+
+const PATTERN_WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+
+export async function downloadPatternExcel(
+  days: PatternDays,
+  presentSlots: boolean[],
+  filename: string
+): Promise<void> {
+  const ExcelJS = (await import("exceljs")).default;
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("패턴");
+
+  const slotCount = days[0]?.length ?? 0;
+  const headerRow = sheet.addRow([
+    "일차",
+    ...Array.from({ length: slotCount }, (_, i) => employeeLabel(i)),
+  ]);
+  headerRow.eachCell((cell) => {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } };
+    cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+  });
+
+  days.forEach((row, dayIdx) => {
+    const line = [`${dayIdx + 1}(${PATTERN_WEEKDAY_LABELS[dayIdx % 7]})`];
+    for (let slot = 0; slot < slotCount; slot++) {
+      line.push(presentSlots[slot] ? cellCode(row[slot]) ?? "" : "");
+    }
+    const excelRow = sheet.addRow(line);
+    excelRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      if (colNumber === 1) return; // 일차 열은 색칠하지 않음
+      const fill = CODE_FILL_ARGB[String(cell.value ?? "")];
+      if (fill) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
+    });
+  });
+
+  sheet.getColumn(1).width = 10;
+  for (let i = 0; i < slotCount; i++) sheet.getColumn(i + 2).width = 6;
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // 하루(행)에 정확히 1개씩 있어야 하는 코드 - 새벽/야간 각각 메인+보조 1명씩
 const REQUIRED_DAILY_ONCE = ["메", "조", "야", "여"] as const;
 
-// 한 명(열)의 49일 동안 코드별로 정확히 몇 번씩 있어야 하는지
-const EXPECTED_COLUMN_COUNTS: Record<string, number> = {
-  메: 7,
-  조: 7,
-  야: 7,
-  여: 7,
-  주: 7,
-  대: 8,
-  휴: 6,
-};
-
-// 근무패턴이 실제로 돌아가는 규칙(하루 새벽/야간 2인1조, 사람별 근무 배분)에 맞는지 검증한다.
-// 어긋나는 게 있으면 이유를 사람이 읽을 수 있는 문장으로 돌려준다. 헤더에 없던 슬롯(열)은
-// 이 패턴이 아예 다루지 않는 자리라 검증 대상에서 뺀다.
-export function validatePattern(days: PatternDays, presentSlots: boolean[]): string[] {
-  const errors: string[] = [];
+// 근무패턴이 며칠짜리든·몇 명이든 상관없이 지켜야 하는 하루 단위 규칙(새벽/야간 2인1조)만
+// 확인한다. 인원수·일수별 개수 총합은 패턴마다 다를 수 있어 검증 대상이 아니다 — 저장을
+// 막지 않는 참고용 안내이며, 헤더에 없던 슬롯(열)은 검증 대상에서 뺀다.
+export function validatePattern(days: PatternDays): string[] {
+  const warnings: string[] = [];
 
   days.forEach((row, dayIdx) => {
     const counts: Record<string, number> = {};
@@ -128,30 +178,10 @@ export function validatePattern(days: PatternDays, presentSlots: boolean[]): str
     for (const code of REQUIRED_DAILY_ONCE) {
       const count = counts[code] ?? 0;
       if (count !== 1) {
-        errors.push(`${dayIdx + 1}일차: '${code}'가 ${count}개예요 (하루에 정확히 1개씩 있어야 해요)`);
+        warnings.push(`${dayIdx + 1}일차: '${code}'가 ${count}개예요 (하루에 정확히 1개씩 있는 게 보통이에요)`);
       }
     }
   });
 
-  const columnCount = days[0]?.length ?? 0;
-  for (let col = 0; col < columnCount; col++) {
-    if (!presentSlots[col]) continue; // 이 패턴에 없는 자리는 건너뜀
-
-    const counts: Record<string, number> = {};
-    for (const row of days) {
-      const code = cellCode(row[col]);
-      if (!code) continue;
-      counts[code] = (counts[code] ?? 0) + 1;
-    }
-    for (const [code, expected] of Object.entries(EXPECTED_COLUMN_COUNTS)) {
-      const count = counts[code] ?? 0;
-      if (count !== expected) {
-        errors.push(
-          `${employeeLabel(col)}열: '${code}'가 ${count}개예요 (${expected}개여야 해요)`
-        );
-      }
-    }
-  }
-
-  return errors;
+  return warnings;
 }
