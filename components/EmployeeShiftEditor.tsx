@@ -315,14 +315,34 @@ export default function EmployeeShiftEditor({
     ? findSwapCandidates(date, swapTargetType, employee.id, employees, shifts, leaveUsages)
     : [];
 
+  const header = (
+    <div>
+      <p className="text-base font-semibold text-black">
+        {date} ({weekdayLabel(date)})
+      </p>
+      <p className="text-lg font-bold text-black">{employee.name}</p>
+      {!canEdit && (
+        <p className="mt-1 text-xs text-black bg-gray-50 border rounded-lg px-2 py-1">
+          조회 전용 · 편집은 관리자만 가능해요
+        </p>
+      )}
+    </div>
+  );
+
+  // 조회 전용인데 배정된 근무가 없으면, 편집용 기본값(주간·기본 시간)을 그대로 보여주면
+  // 실제 근무처럼 오해할 수 있어서 따로 안내만 한다.
+  if (!canEdit && !shift) {
+    return (
+      <div className="space-y-4">
+        {header}
+        <p className="text-sm text-black">이 날은 배정된 근무가 없어요.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-base font-semibold text-black">
-          {date} ({weekdayLabel(date)})
-        </p>
-        <p className="text-lg font-bold text-black">{employee.name}</p>
-      </div>
+      {header}
 
       <div>
         <p className="text-xs text-black mb-1">근무형태</p>
@@ -377,13 +397,15 @@ export default function EmployeeShiftEditor({
                 </Button>
               )}
             </div>
-            <p className="text-[11px] text-black">
-              날짜만 바꾸고 싶으면 입력 후 저장, 연결 자체를 끊고 싶으면 연결 해제를 눌러주세요
-              (연결 해제는 저장 없이 바로 반영돼요)
-            </p>
+            {canEdit && (
+              <p className="text-[11px] text-black">
+                날짜만 바꾸고 싶으면 입력 후 저장, 연결 자체를 끊고 싶으면 연결 해제를 눌러주세요
+                (연결 해제는 저장 없이 바로 반영돼요)
+              </p>
+            )}
           </div>
 
-          {myUnresolvedDates.length > 0 && (
+          {canEdit && myUnresolvedDates.length > 0 && (
             <div className="space-y-1">
               <p className="text-xs text-black">대휴 미지정 근무일</p>
               <div className="flex flex-wrap gap-1">
@@ -443,10 +465,12 @@ export default function EmployeeShiftEditor({
               </Button>
             </div>
           )}
-          <p className="text-[11px] text-black">
-            이 날짜를 보상해주는 대휴 날짜를 직접 지정하거나 풀 수 있어요 (그 날짜에 이미 대휴
-            근무가 등록돼 있어야 해요, 저장 없이 바로 반영돼요)
-          </p>
+          {canEdit && (
+            <p className="text-[11px] text-black">
+              이 날짜를 보상해주는 대휴 날짜를 직접 지정하거나 풀 수 있어요 (그 날짜에 이미 대휴
+              근무가 등록돼 있어야 해요, 저장 없이 바로 반영돼요)
+            </p>
+          )}
         </div>
       )}
 
@@ -469,10 +493,10 @@ export default function EmployeeShiftEditor({
         </div>
       )}
 
-      {hasHours(type) && (
+      {hasHours(type) && (canEdit || subEntries.length > 0) && (
         <div className="space-y-2">
           <p className="text-xs text-black">
-            근무 중 부분 연차/대휴 사용 (기본 근무시간 안에서만 지정 가능)
+            근무 중 부분 연차/대휴 사용{canEdit && " (기본 근무시간 안에서만 지정 가능)"}
           </p>
 
           {subEntries.length > 0 && (
@@ -608,7 +632,8 @@ export default function EmployeeShiftEditor({
           )}
           <p className="text-[11px] text-black">
             그날 주간·대휴·휴무·미배정이면서, 대신 서도 7일 연속 근무가 안 되고 휴식시간도
-            충분한 사람만 보여줘요. 실제로 바꾸려면 두 사람 각자 근무편집에서 직접 반영해주세요.
+            충분한 사람만 보여줘요.
+            {canEdit && " 실제로 바꾸려면 두 사람 각자 근무편집에서 직접 반영해주세요."}
           </p>
         </div>
       )}

@@ -67,9 +67,9 @@ export const SHIFT_LABELS: Record<ShiftType, string> = {
 };
 
 export const SHIFT_COLORS: Record<ShiftType, string> = {
-  dawn: "bg-yellow-200 text-yellow-900 border-yellow-400",
-  day: "bg-[#C6D59F] text-[#4B5233] border-[#9EAA7F]",
-  night: "bg-blue-200 text-blue-900 border-blue-400",
+  dawn: "bg-[#F1E69D] text-yellow-900 border-[#D8C66E]",
+  day: "bg-[#C7D3A6] text-[#4B5233] border-[#A3AC86]",
+  night: "bg-[#C4D9F3] text-blue-900 border-[#8FB1DB]",
   off: "bg-gray-200 text-gray-700 border-gray-300",
   leave: "bg-gray-200 text-gray-700 border-gray-300",
   annual: "bg-gray-200 text-gray-700 border-gray-300",

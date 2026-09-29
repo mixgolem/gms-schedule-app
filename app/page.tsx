@@ -24,6 +24,7 @@ import { checkPairRule } from "@/lib/validation";
 import { ShiftType, LeaveUsageInput } from "@/lib/types";
 import { captureScheduleImage, downloadBlob, canShareFile, shareFile } from "@/lib/captureImage";
 import { imageBlobToPdfBlob } from "@/lib/pdfExport";
+import { computeTimeAxis, formatAxisTime } from "@/lib/timeBar";
 import Button from "@/components/ui/Button";
 
 type SidebarState =
@@ -60,8 +61,11 @@ export default function Home() {
     setShowColors,
     sortMode,
     setSortMode,
+    showTimeBar,
+    setShowTimeBar,
     error: preferencesError,
   } = useUserPreferences();
+  const timeAxis = computeTimeAxis(shiftDefaults);
   const [warning, setWarning] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState<SidebarState>(null);
   const [filterEmployeeIds, setFilterEmployeeIds] = useState<string[]>([]);
@@ -472,6 +476,13 @@ export default function Home() {
           >
             {sortMode === "byShiftType" ? "시간대 정렬" : "기본 정렬"}
           </Button>
+          <Button
+            onClick={() => setShowTimeBar(!showTimeBar)}
+            active={showTimeBar}
+            className="w-full justify-center"
+          >
+            시간 막대 {showTimeBar ? "ON" : "OFF"}
+          </Button>
           <NoticeBox canEdit={canEdit} />
         </div>
 
@@ -490,11 +501,11 @@ export default function Home() {
                 holidayDates={holidayDates}
                 holidayNames={holidayNames}
                 weeks={weeks}
-                canEdit={canEdit}
                 showColors={showColors}
                 filterEmployeeIds={filterEmployeeIds}
                 filterMode={filterMode}
                 sortMode={sortMode}
+                timeAxis={showTimeBar ? timeAxis : null}
                 onCellClick={(employeeId, date) => setSidebar({ mode: "employee", employeeId, date })}
                 onDateClick={(date) => setSidebar({ mode: "day", date })}
               />
@@ -509,9 +520,15 @@ export default function Home() {
               ⚠️ 빨간 테두리 칸 = 연속 7일 이상 근무 / 야간→새벽 연속
             </span>
             <span className="text-black">(셀에 마우스를 올리면 사유 출력)</span>
-            <span className="text-sky-600">토요일</span>
-            <span className="text-red-400">일요일</span>
-            <span className="text-red-600">공휴일</span>
+            {showTimeBar && (
+              <span className="text-black">
+                시간 막대 = 왼쪽 {formatAxisTime(timeAxis.start)} → 오른쪽{" "}
+                {formatAxisTime(timeAxis.end)}, 회색 = 연차·대휴 사용 시간
+              </span>
+            )}
+            <span className="bg-sky-100 rounded px-1">토요일</span>
+            <span className="bg-red-100 rounded px-1">일요일</span>
+            <span className="bg-red-200 rounded px-1">공휴일</span>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -533,7 +550,7 @@ export default function Home() {
 
       <ShiftSidebar
         open={sidebar !== null}
-        title={sidebar?.mode === "day" ? "일자 상세" : "근무 편집"}
+        title={sidebar?.mode === "day" ? "일자 상세" : canEdit ? "근무 편집" : "근무 상세"}
         onClose={() => setSidebar(null)}
       >
         {sidebar?.mode === "employee" && activeEmployee && (

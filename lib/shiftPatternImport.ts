@@ -99,11 +99,11 @@ function cellCode(cell: PatternCell | null): string | null {
 // 내려받는다. sheetjs(xlsx) 무료판은 셀 스타일을 저장하지 못해서(써봐도 그냥 사라짐),
 // 이 함수만 스타일 저장이 되는 exceljs를 번들 크기 때문에 그때그때 동적 import해서 쓴다.
 const CODE_FILL_ARGB: Record<string, string> = {
-  메: "FFFEF08A", // 새벽(메인) - 노랑, 실제 근무표와 동일
-  조: "FFFEF08A", // 새벽(보조)
-  야: "FFBFDBFE", // 야간(메인) - 파랑
-  여: "FFBFDBFE", // 야간(보조)
-  주: "FFC6D59F", // 주간 - 초록
+  메: "FFF1E69D", // 새벽(메인) - 노랑, 실제 근무표(SHIFT_COLORS)와 동일
+  조: "FFF1E69D", // 새벽(보조)
+  야: "FFC4D9F3", // 야간(메인) - 파랑
+  여: "FFC4D9F3", // 야간(보조)
+  주: "FFC7D3A6", // 주간 - 초록
   휴: "FFE5E7EB", // 휴무 - 회색
   대: "FFE5E7EB", // 대휴 - 회색
 };

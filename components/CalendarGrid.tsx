@@ -5,6 +5,7 @@ import { CalendarDay, weekdayLabel, dayOfMonth, getDayColor, todayStr } from "@/
 import { countByTypeForDate, findConsecutiveWorkStreaks, findNightThenDawnPairs } from "@/lib/validation";
 import { computeWeeklyHours } from "@/lib/workStats";
 import { shiftPriority } from "@/lib/shiftDisplay";
+import { TimeAxis } from "@/lib/timeBar";
 import ShiftCell from "./ShiftCell";
 import { EmployeeFilterMode } from "./EmployeeFilter";
 
@@ -17,20 +18,20 @@ interface Props {
   holidayDates: Set<string>;
   holidayNames: Map<string, string | null>;
   weeks: CalendarDay[][];
-  canEdit: boolean;
   showColors: boolean;
   filterEmployeeIds: string[]; // 비어있으면 전체 표시
   filterMode: EmployeeFilterMode; // "highlight"면 전체 표시하되 선택된 사람들만 색 강조, "only"면 그 사람만 필터링
   sortMode: SortMode;
+  timeAxis: TimeAxis | null; // 있으면 각 근무자 줄을 시간 막대로 표시
   onCellClick: (employeeId: string, date: string) => void;
   onDateClick: (date: string) => void;
 }
 
 const DAY_BADGE_CLASS: Record<string, string> = {
   default: "text-black hover:bg-gray-100",
-  saturday: "bg-sky-100 text-sky-700 hover:bg-sky-200",
-  sunday: "bg-red-100 text-red-700 hover:bg-red-200",
-  holiday: "bg-red-200 text-red-800 hover:bg-red-300",
+  saturday: "bg-sky-100 text-black hover:bg-sky-200",
+  sunday: "bg-red-100 text-black hover:bg-red-200",
+  holiday: "bg-red-200 text-black hover:bg-red-300",
 };
 
 export default function CalendarGrid({
@@ -40,11 +41,11 @@ export default function CalendarGrid({
   holidayDates,
   holidayNames,
   weeks,
-  canEdit,
   showColors,
   filterEmployeeIds,
   filterMode,
   sortMode,
+  timeAxis,
   onCellClick,
   onDateClick,
 }: Props) {
@@ -181,10 +182,10 @@ export default function CalendarGrid({
                               shift={shift}
                               leaveUsages={leaveUsageMap.get(`${emp.id}_${day.date}`) ?? []}
                               compLeaveDate={compLeaveDateByWork.get(`${emp.id}_${day.date}`) ?? null}
-                              canEdit={canEdit}
                               invalidReason={invalidReason}
                               severeInvalid={severeInvalid}
                               showColors={cellShowColors}
+                              timeAxis={timeAxis}
                               onClick={() => onCellClick(emp.id, day.date)}
                             />
                           );

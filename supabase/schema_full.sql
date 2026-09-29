@@ -130,6 +130,7 @@ create table if not exists user_preferences (
   user_id uuid primary key references auth.users(id) on delete cascade,
   show_colors boolean not null default true,
   sort_mode text not null default 'default' check (sort_mode in ('default', 'byShiftType')),
+  show_time_bar boolean not null default false,
   updated_at timestamptz not null default now()
 );
 
