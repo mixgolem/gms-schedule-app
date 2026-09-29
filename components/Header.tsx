@@ -12,6 +12,7 @@ import WeekendCompLeaveModal from "./WeekendCompLeaveModal";
 import HolidayManagerModal from "./HolidayManagerModal";
 import ResetScheduleModal from "./ResetScheduleModal";
 import AuditLogModal from "./AuditLogModal";
+import DevInfoModal from "./DevInfoModal";
 import Button from "./ui/Button";
 import { exportFullBackupJson } from "@/lib/fullBackupExport";
 
@@ -69,6 +70,7 @@ export default function Header() {
   const [holidayManagerOpen, setHolidayManagerOpen] = useState(false);
   const [resetScheduleOpen, setResetScheduleOpen] = useState(false);
   const [auditLogOpen, setAuditLogOpen] = useState(false);
+  const [devInfoOpen, setDevInfoOpen] = useState(false);
 
   const handleFullBackup = async () => {
     const { error } = await exportFullBackupJson();
@@ -126,6 +128,13 @@ export default function Header() {
                       </Button>
                     )}
                   </DangerMenu>
+                  <Button
+                    onClick={() => setDevInfoOpen(true)}
+                    className="font-mono font-bold"
+                    title="배포 버전, DB 상태, 구조 점검 등 개발자용 정보"
+                  >
+                    DEV
+                  </Button>
                 </>
               )}
               <span className="text-blue-100 ml-1">
@@ -166,6 +175,7 @@ export default function Header() {
         calendarYear={resetInfo?.year ?? new Date().getFullYear()}
       />
       <AuditLogModal open={auditLogOpen} onClose={() => setAuditLogOpen(false)} />
+      <DevInfoModal open={devInfoOpen} onClose={() => setDevInfoOpen(false)} />
       <ShiftDefaultsModal open={defaultsOpen} onClose={() => setDefaultsOpen(false)} />
       <FullRestoreModal open={restoreOpen} onClose={() => setRestoreOpen(false)} />
     </header>
