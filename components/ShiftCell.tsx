@@ -194,8 +194,8 @@ function TimeBarCell({
   const ticks = computeAxisTicks(timeAxis);
   // 색상 끄기 상태에서도 막대 위치 자체가 정보라 회색으로는 칠해둔다. 강조에서 빠진
   // 사람은 선택한 사람이 돋보이도록 근무·휴가 구간을 아주 연한 회색으로 누른다.
-  const workFillClass = dimmed ? "bg-gray-100" : bgClass || "bg-gray-300";
-  const usageFillClass = dimmed ? "bg-gray-50" : USAGE_FILL_CLASS;
+  const workFillClass = dimmed ? "bg-[#E8EAED]" : bgClass || "bg-gray-300";
+  const usageFillClass = dimmed ? "bg-gray-100" : USAGE_FILL_CLASS;
 
   const label = current === "annual" ? "연차사용" : current ? SHIFT_LABELS[current] : "-";
   const baseRange =
