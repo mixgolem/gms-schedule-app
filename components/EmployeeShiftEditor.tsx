@@ -11,7 +11,7 @@ import {
   LeaveUsageType,
 } from "@/lib/types";
 import { ShiftDefaultsMap } from "@/lib/useShiftDefaults";
-import { weekdayLabel, isWeekend } from "@/lib/dateUtils";
+import { weekdayLabel, isWeekend, todayStr } from "@/lib/dateUtils";
 import { useSpecialNotes } from "@/lib/useSpecialNotes";
 import { supabase } from "@/lib/supabaseClient";
 import { validateSubRanges } from "@/lib/timeRanges";
@@ -417,6 +417,7 @@ export default function EmployeeShiftEditor({
                     active={leaveForDate === d}
                     className="text-xs px-2 py-1"
                   >
+                    {d.slice(0, 4) !== todayStr().slice(0, 4) && `${Number(d.slice(0, 4))}/`}
                     {Number(d.slice(5, 7))}/{Number(d.slice(8, 10))}({weekdayLabel(d)})
                   </Button>
                 ))}
