@@ -14,6 +14,7 @@ interface Props {
   // 2인1조 미충족 같은 일반 경고보다 눈에 더 띄게(칸 전체를 빨갛게) 표시한다.
   severeInvalid?: boolean;
   showColors: boolean; // 근무형태별 색상 표시 on/off
+  dimmed?: boolean; // 근무자 강조 중 선택 안 된 사람 — 시간 막대를 아주 연한 회색으로
   // 있으면 "시간 막대" 보기: 한 줄을 [이름 | 축 전체 막대]로 나누고 근무 시간대만 칠한다.
   timeAxis?: TimeAxis | null;
   onClick: () => void;
@@ -30,6 +31,7 @@ export default function ShiftCell({
   invalidReason,
   severeInvalid,
   showColors,
+  dimmed = false,
   timeAxis,
   onClick,
 }: Props) {
@@ -56,6 +58,7 @@ export default function ShiftCell({
         severe={severe}
         unassignedLeave={unassignedLeave}
         showColors={showColors}
+        dimmed={dimmed}
         timeAxis={timeAxis}
         timeLabel={timeLabel}
         usageSuffix={usageSuffix}
@@ -139,6 +142,7 @@ interface TimeBarCellProps {
   severe: boolean;
   unassignedLeave: boolean;
   showColors: boolean;
+  dimmed: boolean;
   timeAxis: TimeAxis;
   timeLabel: string | null;
   usageSuffix: string;
@@ -158,6 +162,7 @@ function TimeBarCell({
   severe,
   unassignedLeave,
   showColors,
+  dimmed,
   timeAxis,
   timeLabel,
   usageSuffix,
@@ -187,8 +192,10 @@ function TimeBarCell({
 
   const bar = computeShiftTimeBar(shift, leaveUsages, timeAxis);
   const ticks = computeAxisTicks(timeAxis);
-  // 색상 끄기 상태에서도 막대 위치 자체가 정보라 회색으로는 칠해둔다.
-  const workFillClass = bgClass || "bg-gray-300";
+  // 색상 끄기 상태에서도 막대 위치 자체가 정보라 회색으로는 칠해둔다. 강조에서 빠진
+  // 사람은 선택한 사람이 돋보이도록 근무·휴가 구간을 아주 연한 회색으로 누른다.
+  const workFillClass = dimmed ? "bg-gray-100" : bgClass || "bg-gray-300";
+  const usageFillClass = dimmed ? "bg-gray-50" : USAGE_FILL_CLASS;
 
   const label = current === "annual" ? "연차사용" : current ? SHIFT_LABELS[current] : "-";
   const baseRange =
@@ -276,7 +283,7 @@ function TimeBarCell({
             key={i}
             aria-hidden
             className={`absolute top-0 bottom-0 ${
-              seg.kind === "work" ? workFillClass : USAGE_FILL_CLASS
+              seg.kind === "work" ? workFillClass : usageFillClass
             }`}
             style={{ left: `${seg.left}%`, width: `${seg.width}%` }}
           />

@@ -170,10 +170,13 @@ export default function CalendarGrid({
                           // 연속 7일 이상 근무·야간→새벽 연속은 근무자 건강에 직접 영향을 주는
                           // 문제라 2인1조 미충족 같은 일반 경고보다 더 눈에 띄게 표시한다.
                           const severeInvalid = consecutiveWorkInvalid || nightThenDawnInvalid;
-                          const cellShowColors =
-                            filterEmployeeIds.length > 0 && filterMode === "highlight"
-                              ? filterEmployeeIds.includes(emp.id)
-                              : showColors;
+                          const highlighting =
+                            filterEmployeeIds.length > 0 && filterMode === "highlight";
+                          const cellShowColors = highlighting
+                            ? filterEmployeeIds.includes(emp.id)
+                            : showColors;
+                          // 강조 중 선택 안 된 사람 — 시간 막대를 아주 연하게 눌러서 선택한 사람이 돋보이게
+                          const dimmed = highlighting && !filterEmployeeIds.includes(emp.id);
 
                           return (
                             <ShiftCell
@@ -185,6 +188,7 @@ export default function CalendarGrid({
                               invalidReason={invalidReason}
                               severeInvalid={severeInvalid}
                               showColors={cellShowColors}
+                              dimmed={dimmed}
                               timeAxis={timeAxis}
                               onClick={() => onCellClick(emp.id, day.date)}
                             />
