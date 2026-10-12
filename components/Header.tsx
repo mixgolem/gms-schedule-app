@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth, useResetMonth, useToast } from "@/app/providers";
 import EmployeeManagerModal from "./EmployeeManagerModal";
 import UploadScheduleModal from "./UploadScheduleModal";
@@ -83,7 +84,20 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-4 py-3 border-b border-blue-950 bg-blue-900 shadow-md">
-      <span className="font-semibold text-white">GMS 근무 스케줄</span>
+      <span className="flex items-center gap-2.5 shrink-0">
+        {/* 로고 글씨가 진한 남색이라 남색 헤더 위에선 흰 카드를 깔아서 보이게 한다 */}
+        <span className="flex items-center bg-white rounded-md px-1.5 py-1">
+          <Image
+            src="/logo-ksl.png"
+            alt="KSPO&KSL 한국스포츠레저주식회사"
+            width={1914}
+            height={591}
+            priority
+            className="h-7 w-auto"
+          />
+        </span>
+        <span className="font-semibold text-white">GMS 근무 스케줄</span>
+      </span>
       {!loading && (
         <div className="text-sm">
           {session ? (

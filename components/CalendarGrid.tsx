@@ -201,16 +201,21 @@ export default function CalendarGrid({
               </div>
             </div>
 
-            <div className="w-full md:w-36 shrink-0 border rounded-lg p-2 bg-gray-50 transition-shadow duration-150 hover:shadow-sm">
-              <p className="text-[11px] font-medium text-black px-0.5 mb-1">주간 근무시간</p>
-              <div className="space-y-1">
+            {/* 날짜 칸과 같은 구조(머리글 줄 + 근무자 줄)·같은 줄 높이로 맞춰서 옆 근무표 줄과 나란히 보이게 */}
+            <div className="w-full md:w-36 shrink-0 border rounded-lg overflow-hidden bg-white transition-shadow duration-150 hover:shadow-md">
+              <div className="px-2 py-1.5 border-b border-black/5 bg-gray-50 text-base font-bold text-black">
+                주간 근무시간
+              </div>
+              <div className="py-1.5 space-y-1">
                 {weeklyHours.map((r) => (
                   <div
                     key={r.employeeId}
-                    className="flex items-center justify-between gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs transition-colors duration-150 hover:bg-gray-100"
+                    className={`w-full flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 text-xs whitespace-nowrap transition-colors duration-150 hover:bg-gray-100 ${
+                      timeAxis ? "h-8" : "py-1.5"
+                    }`}
                   >
-                    <span className="font-medium truncate">{r.employeeName}</span>
-                    <span className="text-black shrink-0">{r.hours}h</span>
+                    <span className="font-bold text-[13px] truncate">{r.employeeName}</span>
+                    <span className="ml-auto font-bold text-[13px] shrink-0">{r.hours}h</span>
                   </div>
                 ))}
               </div>

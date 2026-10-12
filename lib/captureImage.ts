@@ -13,6 +13,41 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+const LOGO_URL = "/logo-ksl.png";
+
+// 제목줄 맨 왼쪽에 회사 로고를 그리고, 제목 글자가 시작할 x좌표를 돌려준다. 로고가 진한
+// 남색이라 남색 배너 위에서는 묻혀서 흰색 둥근 카드를 깔고 그 위에 올린다.
+async function drawLogo(
+  ctx: CanvasRenderingContext2D,
+  barHeight: number,
+  margin: number,
+  onBanner: boolean
+): Promise<number> {
+  let logo: HTMLImageElement;
+  try {
+    logo = await loadImage(LOGO_URL);
+  } catch {
+    return margin; // 로고를 못 불러와도 근무표 이미지 저장은 그대로 진행
+  }
+
+  const cardHeight = Math.round(barHeight * 0.74);
+  const cardPad = Math.round(cardHeight * 0.14);
+  const logoHeight = cardHeight - cardPad * 2;
+  const logoWidth = Math.round((logoHeight * logo.naturalWidth) / logo.naturalHeight);
+  const cardWidth = logoWidth + cardPad * 2;
+  const cardX = margin;
+  const cardY = Math.round((barHeight - cardHeight) / 2);
+
+  if (onBanner) {
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, Math.round(cardHeight * 0.18));
+    ctx.fill();
+  }
+  ctx.drawImage(logo, cardX + cardPad, cardY + cardPad, logoWidth, logoHeight);
+  return cardX + cardWidth + Math.round(margin * 0.7);
+}
+
 export interface CaptureScheduleImageOptions {
   // 제목 줄을 파란 바탕 + 흰 글씨 "배너"로 그릴지(PDF 저장용), 기본은 흰 바탕 + 검은 글씨.
   banner?: boolean;
@@ -47,14 +82,13 @@ export async function captureScheduleImage(
   if (options?.banner) {
     ctx.fillStyle = "#1e3a8a"; // tailwind blue-900, 앱 헤더/배너와 동일한 색
     ctx.fillRect(0, 0, canvas.width, titleHeight);
-    ctx.fillStyle = "#ffffff";
-  } else {
-    ctx.fillStyle = "#111111";
   }
+  const titleX = await drawLogo(ctx, titleHeight, padding, !!options?.banner);
+  ctx.fillStyle = options?.banner ? "#ffffff" : "#111111";
   ctx.font = `bold ${fontSize}px Arial, sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText(title, padding, padding);
+  ctx.fillText(title, titleX, padding);
   ctx.drawImage(img, 0, titleHeight);
 
   return new Promise((resolve) => {
