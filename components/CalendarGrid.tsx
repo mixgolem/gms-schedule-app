@@ -128,14 +128,14 @@ export default function CalendarGrid({
                         onClick={() => onDateClick(day.date)}
                         className={`w-full px-2 py-1.5 border-b border-black/5 text-sm font-medium text-left transition-colors duration-150 ${DAY_BADGE_CLASS[dayColor]}`}
                       >
-                        <div className="flex items-baseline gap-1.5 min-w-0">
+                        <div className="flex items-baseline gap-1.5 min-w-0 overflow-hidden">
                           <span className="text-base font-bold shrink-0">{dayOfMonth(day.date)}</span>
                           <span className="text-base font-bold shrink-0">{weekdayLabel(day.date)}</span>
                           {day.date === today && (
                             <span className="text-xs font-bold text-blue-900 shrink-0">오늘</span>
                           )}
                           {holidayDates.has(day.date) && (
-                            <span className="text-xs font-bold truncate">
+                            <span className="text-xs font-bold whitespace-nowrap">
                               {holidayNames.get(day.date) || "공휴일"}
                             </span>
                           )}
@@ -210,11 +210,12 @@ export default function CalendarGrid({
                 {weeklyHours.map((r) => (
                   <div
                     key={r.employeeId}
-                    className={`w-full flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 text-xs whitespace-nowrap transition-colors duration-150 hover:bg-gray-100 ${
+                    className={`w-full flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 text-xs whitespace-nowrap overflow-hidden transition-colors duration-150 hover:bg-gray-100 ${
                       timeAxis ? "h-8" : "py-1.5"
                     }`}
                   >
-                    <span className="font-bold text-[13px] truncate">{r.employeeName}</span>
+                    {/* truncate(말줄임)를 쓰면 이미지/PDF 캡처 때 글자 폭이 미세하게 달라져 "서…"처럼 잘린다 */}
+                    <span className="font-bold text-[13px]">{r.employeeName}</span>
                     <span className="ml-auto font-bold text-[13px] shrink-0">{r.hours}h</span>
                   </div>
                 ))}

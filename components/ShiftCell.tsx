@@ -253,11 +253,12 @@ function TimeBarCell({
       } active:translate-y-0 active:shadow-none ${containerClass}`}
     >
       <span
-        className={`w-16 shrink-0 flex items-center gap-0.5 px-1 font-bold text-[13px] ${
+        className={`w-16 shrink-0 flex items-center gap-0.5 px-1 overflow-hidden font-bold text-[13px] ${
           showSevere ? "" : bgClass
         }`}
       >
-        <span className="truncate">{employeeName}</span>
+        {/* truncate(말줄임) 대신 칸 경계에서 잘리게 — 이미지/PDF 캡처 때 "김…"으로 줄어드는 문제 방지 */}
+        <span>{employeeName}</span>
         {isMain && (
           <span
             className="shrink-0 text-[11px]"
