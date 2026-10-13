@@ -137,6 +137,45 @@ export async function runSchemaChecks(): Promise<SchemaCheckResult[]> {
   );
 }
 
+// Supabase 무료 플랜의 DB 용량 한도(약). 정확한 기준은 대시보드 Usage 화면이 최종.
+export const FREE_PLAN_DB_LIMIT_BYTES = 500 * 1024 * 1024;
+
+export interface DbUsage {
+  databaseBytes: number;
+  tables: { name: string; label: string; bytes: number }[];
+}
+
+// migration v21의 get_db_usage() 함수로 DB 전체 크기와 테이블별 크기를 읽는다(관리자 전용).
+export async function fetchDbUsage(): Promise<DbUsage> {
+  const { data, error } = await supabase.rpc("get_db_usage");
+  if (error) {
+    if (error.code === "PGRST202") {
+      throw new Error("용량 조회 함수가 아직 없어요 — supabase/migration_021.sql을 실행해주세요.");
+    }
+    throw new Error(error.message);
+  }
+
+  const labels = new Map<string, string>([
+    ...tableConfigList().map((c) => [c.table, c.label] as [string, string]),
+    ["audit_log", "변경 이력"],
+  ]);
+  const raw = data as { database_bytes: number; tables: { name: string; total_bytes: number }[] };
+  return {
+    databaseBytes: Number(raw.database_bytes),
+    tables: raw.tables.map((t) => ({
+      name: t.name,
+      label: labels.get(t.name) ?? t.name,
+      bytes: Number(t.total_bytes),
+    })),
+  };
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
 export async function fetchRowCounts(): Promise<{ label: string; count: number }[]> {
   const [counts, audit] = await Promise.all([
     fetchCurrentCounts(),

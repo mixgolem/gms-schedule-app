@@ -352,3 +352,36 @@ alter publication supabase_realtime add table comp_leave_summary;
 alter publication supabase_realtime add table annual_leave_allocation;
 alter publication supabase_realtime add table shift_leave_usage;
 alter publication supabase_realtime add table shift_type_defaults;
+
+-- ============================================================
+-- DEV 메뉴용 DB 용량 조회 함수 (관리자 전용, 크기만 반환)
+-- ============================================================
+
+create or replace function get_db_usage()
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_catalog
+as $$
+begin
+  if coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') <> 'admin' then
+    raise exception '관리자만 조회할 수 있어요' using errcode = '42501';
+  end if;
+
+  return json_build_object(
+    'database_bytes', pg_database_size(current_database()),
+    'tables', coalesce((
+      select json_agg(t order by t.total_bytes desc)
+      from (
+        select c.relname as name, pg_total_relation_size(c.oid) as total_bytes
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relkind = 'r'
+      ) t
+    ), '[]'::json)
+  );
+end;
+$$;
+
+revoke all on function get_db_usage() from public, anon;
+grant execute on function get_db_usage() to authenticated;

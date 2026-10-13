@@ -11,9 +11,13 @@ import {
   fetchLastDbChange,
   runSchemaChecks,
   fetchRowCounts,
+  fetchDbUsage,
+  formatBytes,
+  FREE_PLAN_DB_LIMIT_BYTES,
   CommitSummary,
   LastDbChange,
   SchemaCheckResult,
+  DbUsage,
 } from "@/lib/devInfo";
 import Button from "./ui/Button";
 import LinkButton from "./ui/LinkButton";
@@ -70,6 +74,7 @@ export default function DevInfoModal({ open, onClose }: Props) {
   const [counts, setCounts] = useState<Loadable<{ label: string; count: number }[]>>({
     status: "loading",
   });
+  const [usage, setUsage] = useState<Loadable<DbUsage>>({ status: "loading" });
 
   const load = useCallback(() => {
     setCommits({ status: "loading" });
@@ -77,6 +82,7 @@ export default function DevInfoModal({ open, onClose }: Props) {
     setLastChange({ status: "loading" });
     setSchema({ status: "loading" });
     setCounts({ status: "loading" });
+    setUsage({ status: "loading" });
 
     const repoPromise = BUILD_INFO.repo
       ? fetchRecentCommits(BUILD_INFO.repo)
@@ -86,6 +92,7 @@ export default function DevInfoModal({ open, onClose }: Props) {
     toLoadable(fetchLastDbChange()).then(setLastChange);
     toLoadable(runSchemaChecks()).then(setSchema);
     toLoadable(fetchRowCounts()).then(setCounts);
+    toLoadable(fetchDbUsage()).then(setUsage);
   }, []);
 
   useEffect(() => {
@@ -227,6 +234,12 @@ export default function DevInfoModal({ open, onClose }: Props) {
             </p>
           </Section>
 
+          <Section title="DB 용량">
+            <SectionBody value={usage}>
+              {(u) => <DbUsageInfo usage={u} />}
+            </SectionBody>
+          </Section>
+
           <Section title="DB 구조 점검 (migration 적용 여부)">
             <SectionBody value={schema}>
               {(results) => {
@@ -337,5 +350,51 @@ function LastChangeInfo({ change }: { change: LastDbChange }) {
         · {change.changedByEmail ?? "알 수 없음"} · {change.summary}
       </span>
     </span>
+  );
+}
+
+function DbUsageInfo({ usage }: { usage: DbUsage }) {
+  const percent = (usage.databaseBytes / FREE_PLAN_DB_LIMIT_BYTES) * 100;
+  const barClass = percent >= 90 ? "bg-red-500" : percent >= 70 ? "bg-amber-500" : "bg-blue-900";
+  const largest = Math.max(1, ...usage.tables.map((t) => t.bytes));
+
+  return (
+    <div className="space-y-2">
+      <div className="space-y-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <span>
+            전체 <span className="font-bold">{formatBytes(usage.databaseBytes)}</span> / 무료 한도 약{" "}
+            {formatBytes(FREE_PLAN_DB_LIMIT_BYTES)}
+          </span>
+          <span className="font-bold">{percent.toFixed(1)}%</span>
+        </div>
+        <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+          <div className={`h-full ${barClass}`} style={{ width: `${Math.min(100, percent)}%` }} />
+        </div>
+      </div>
+
+      <div className="space-y-0.5">
+        {usage.tables.map((t) => (
+          <div key={t.name} className="grid grid-cols-[10rem_1fr_4rem] items-center gap-2 text-xs">
+            <span className="truncate" title={t.name}>
+              {t.label}
+            </span>
+            <span className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+              <span
+                className="block h-full bg-blue-900/60"
+                style={{ width: `${(t.bytes / largest) * 100}%` }}
+              />
+            </span>
+            <span className="text-right font-mono">{formatBytes(t.bytes)}</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-xs text-black leading-relaxed">
+        · 전체 크기엔 Supabase 기본 시스템 데이터도 들어가서 테이블 합계보다 커요
+        <br />· 변경 이력은 지우지 않고 계속 쌓여서 시간이 지나면 보통 제일 커져요
+        <br />· 데이터 전송량·API 요청 수는 Supabase 대시보드 Usage 화면에서 확인
+      </p>
+    </div>
   );
 }
