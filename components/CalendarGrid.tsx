@@ -121,7 +121,7 @@ export default function CalendarGrid({
                   return (
                     <div
                       key={day.date}
-                      className={`@container border rounded-lg overflow-hidden transition-shadow duration-150 hover:shadow-md ${
+                      className={`day-card @container border rounded-lg overflow-hidden transition-shadow duration-150 hover:shadow-md ${
                         day.date === today ? "ring-2 ring-blue-900 ring-offset-1" : ""
                       } ${day.inMonth ? "bg-white" : "bg-gray-50 opacity-50"}`}
                     >
@@ -204,7 +204,7 @@ export default function CalendarGrid({
             </div>
 
             {/* 날짜 칸과 같은 구조(머리글 줄 + 근무자 줄)·같은 줄 높이로 맞춰서 옆 근무표 줄과 나란히 보이게 */}
-            <div className="w-full md:w-36 shrink-0 border rounded-lg overflow-hidden bg-white transition-shadow duration-150 hover:shadow-md">
+            <div className="day-card w-full md:w-36 shrink-0 border rounded-lg overflow-hidden bg-white transition-shadow duration-150 hover:shadow-md">
               <div className="px-2 py-1.5 border-b border-black/5 bg-gray-50 text-base font-bold text-black">
                 주간 근무시간
               </div>
@@ -212,7 +212,7 @@ export default function CalendarGrid({
                 {weeklyHours.map((r) => (
                   <div
                     key={r.employeeId}
-                    className={`w-full flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 text-xs whitespace-nowrap overflow-hidden transition-colors duration-150 hover:bg-gray-100 ${
+                    className={`shift-chip w-full flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 text-xs whitespace-nowrap overflow-hidden transition-colors duration-150 hover:bg-gray-100 ${
                       timeAxis ? "h-8" : "py-1.5"
                     }`}
                   >

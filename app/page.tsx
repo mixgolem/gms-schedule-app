@@ -425,7 +425,7 @@ export default function Home() {
 
   return (
     <main className="p-4 max-w-[1900px] mx-auto w-full space-y-4">
-      <div className="sticky top-16 z-20 h-14 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
+      <div className="app-toolbar sticky top-16 z-20 h-14 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
         <MonthPicker
           year={year}
           month={month}

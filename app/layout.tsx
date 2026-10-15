@@ -5,6 +5,7 @@ import { AuthProvider, ResetMonthProvider, GlobalLoadingProvider, ToastProvider 
 import Header from "@/components/Header";
 import GlobalLoadingOverlay from "@/components/GlobalLoadingOverlay";
 import ToastPopup from "@/components/ToastPopup";
+import { THEME_INIT_SCRIPT } from "@/lib/themeScript";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,8 +37,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ko"
       data-scroll-behavior="smooth"
+      data-style="glass"
+      data-mode="light"
+      // 저장된 테마를 그리기 전에 스크립트가 data-style/data-mode를 바꾸므로 그 차이는 경고하지 않는다
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-gray-50">
         <AuthProvider>
           <ResetMonthProvider>

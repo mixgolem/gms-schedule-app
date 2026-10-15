@@ -29,7 +29,7 @@ export default function ShiftSidebar({ open, title, onClose, children }: Props) 
         onClick={onClose}
       />
       <div
-        className={`absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl transition-transform duration-200 ease-out flex flex-col ${
+        className={`app-drawer absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl transition-transform duration-200 ease-out flex flex-col ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >

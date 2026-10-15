@@ -104,7 +104,7 @@ export default function ShiftCell({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-1.5 @max-[190px]:gap-1 rounded-lg border px-2 @max-[190px]:px-1.5 py-1.5 text-xs whitespace-nowrap transition-all duration-150 ease-out cursor-pointer hover:shadow-sm hover:-translate-y-0.5 ${hoverClass} active:translate-y-0 active:shadow-none ${colorClass}`}
+      className={`shift-cell w-full flex items-center gap-1.5 @max-[190px]:gap-1 rounded-lg border px-2 @max-[190px]:px-1.5 py-1.5 text-xs whitespace-nowrap transition-all duration-150 ease-out cursor-pointer hover:shadow-sm hover:-translate-y-0.5 ${hoverClass} active:translate-y-0 active:shadow-none ${colorClass}`}
       title={invalidReason ?? (unassignedLeave ? "대휴 원래근무일이 아직 지정 안 됐어요" : undefined)}
     >
       {showSevere && <span aria-hidden>⚠️</span>}
@@ -258,12 +258,12 @@ function TimeBarCell({
       type="button"
       onClick={onClick}
       title={tooltip}
-      className={`w-full h-8 flex items-stretch rounded-lg border overflow-hidden text-xs whitespace-nowrap transition-all duration-150 ease-out cursor-pointer hover:shadow-sm hover:-translate-y-0.5 ${
+      className={`shift-cell shift-cell-bar w-full h-8 flex items-stretch rounded-lg border overflow-hidden text-xs whitespace-nowrap transition-all duration-150 ease-out cursor-pointer hover:shadow-sm hover:-translate-y-0.5 ${
         showSevere ? "hover:bg-red-100" : "hover:brightness-95"
       } active:translate-y-0 active:shadow-none ${containerClass}`}
     >
       <span
-        className={`w-16 shrink-0 flex items-center gap-0.5 px-1 overflow-hidden font-bold text-[13px] ${
+        className={`bar-name w-16 shrink-0 flex items-center gap-0.5 px-1 overflow-hidden font-bold text-[13px] ${
           showSevere ? "" : bgClass
         }`}
       >
@@ -280,7 +280,7 @@ function TimeBarCell({
       </span>
 
       {/* 이름 칸과 막대 사이에 흰 틈 + 진한 선을 둬서, 이름 칸 색과 막대 색이 붙어 보이지 않게 */}
-      <span className="relative flex-1 min-w-0 ml-[3px] bg-white border-l border-black/30">
+      <span className="bar-track relative flex-1 min-w-0 ml-[3px] bg-white border-l border-black/30">
         {ticks.map((left) => (
           <span
             key={left}
@@ -293,7 +293,7 @@ function TimeBarCell({
           <span
             key={i}
             aria-hidden
-            className={`absolute top-0 bottom-0 ${
+            className={`bar-fill absolute top-0 bottom-0 ${
               seg.kind === "work" ? workFillClass : usageFillClass
             }`}
             style={{ left: `${seg.left}%`, width: `${seg.width}%` }}

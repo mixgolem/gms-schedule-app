@@ -17,6 +17,7 @@ import DevInfoModal from "./DevInfoModal";
 import PasswordChangeModal from "./PasswordChangeModal";
 import AccountPasswordResetModal from "./AccountPasswordResetModal";
 import { recordBackup, useLastBackup } from "@/lib/backupLog";
+import { useTheme } from "@/lib/theme";
 import Button from "./ui/Button";
 import DropdownMenu from "./ui/DropdownMenu";
 import { exportFullBackupJson } from "@/lib/fullBackupExport";
@@ -35,6 +36,38 @@ function DangerMenu({ children }: { children: ReactNode }) {
     >
       {children}
     </DropdownMenu>
+  );
+}
+
+const SEGMENT_CLASS = "flex-1 justify-center px-2 py-1 text-xs whitespace-nowrap";
+
+// 계정 메뉴 안의 테마 고르기: 스타일(기본/리퀴드 글래스) × 밝기(라이트/다크). 이 브라우저에 기억된다.
+// 버튼을 눌러도 메뉴가 닫히지 않게 클릭이 메뉴 바깥으로 전달되지 않도록 막는다.
+function ThemePicker() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div
+      className="flex flex-col gap-1 border-y border-gray-100 py-1.5 my-0.5 min-w-[13rem]"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <p className="px-1 text-[11px] font-semibold text-black">🎨 화면 테마</p>
+      <div className="flex gap-1">
+        <Button className={SEGMENT_CLASS} active={theme.style === "basic"} onClick={() => setTheme({ style: "basic" })}>
+          기본
+        </Button>
+        <Button className={SEGMENT_CLASS} active={theme.style === "glass"} onClick={() => setTheme({ style: "glass" })}>
+          리퀴드 글래스
+        </Button>
+      </div>
+      <div className="flex gap-1">
+        <Button className={SEGMENT_CLASS} active={theme.mode === "light"} onClick={() => setTheme({ mode: "light" })}>
+          ☀️ 라이트
+        </Button>
+        <Button className={SEGMENT_CLASS} active={theme.mode === "dark"} onClick={() => setTheme({ mode: "dark" })}>
+          🌙 다크
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -81,10 +114,10 @@ export default function Header() {
       : "\n마지막 백업 기록 없음");
 
   return (
-    <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-4 py-3 border-b border-blue-950 bg-blue-900 shadow-md">
+    <header className="app-header sticky top-0 z-30 h-16 flex items-center justify-between px-4 py-3 border-b border-blue-950 bg-blue-900 shadow-md">
       <span className="flex items-center gap-2.5 shrink-0">
         {/* 로고 글씨가 진한 남색이라 남색 헤더 위에선 흰 카드를 깔아서 보이게 한다 */}
-        <span className="flex items-center bg-white rounded-md px-1.5 py-1">
+        <span className="logo-card flex items-center bg-white rounded-md px-1.5 py-1">
           <Image
             src="/logo-ksl.png"
             alt="KSPO&KSL 한국스포츠레저주식회사"
@@ -178,6 +211,7 @@ export default function Header() {
                     👥 계정 비밀번호 초기화
                   </Button>
                 )}
+                <ThemePicker />
                 <Button className={MENU_ITEM_CLASS} onClick={signOut}>
                   로그아웃
                 </Button>

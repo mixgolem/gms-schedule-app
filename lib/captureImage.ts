@@ -1,4 +1,5 @@
 import { toBlob } from "html-to-image";
+import { CAPTURE_THEME, withCaptureTheme } from "./theme";
 
 export async function captureNodeAsBlob(node: HTMLElement): Promise<Blob | null> {
   return toBlob(node, { pixelRatio: 2, backgroundColor: "#ffffff" });
@@ -48,6 +49,23 @@ async function drawLogo(
   return cardX + cardWidth + Math.round(margin * 0.7);
 }
 
+// 리퀴드 글래스 배경(theme.css의 body::before와 같은 빛 번짐)을 캔버스에 직접 그린다. 이 배경은
+// 근무표 바깥(화면 뒤 고정층)에 있어서 캡처에 안 잡히므로, 근무표는 투명 배경으로 찍고 이 위에 얹는다.
+function paintGlassBackground(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  ctx.fillStyle = "#e2e9f8";
+  ctx.fillRect(0, 0, width, height);
+  const glow = (x: number, y: number, r: number, color: string) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, color);
+    g.addColorStop(1, "rgba(226, 233, 248, 0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  };
+  glow(width * 0.08, -height * 0.05, width * 0.6, "#b4c8ff");
+  glow(width, height * 0.03, width * 0.5, "#d6c5ff");
+  glow(width * 0.55, height * 1.08, width * 0.5, "#b8e4f7");
+}
+
 export interface CaptureScheduleImageOptions {
   // 제목 줄을 파란 바탕 + 흰 글씨 "배너"로 그릴지(PDF 저장용), 기본은 흰 바탕 + 검은 글씨.
   banner?: boolean;
@@ -59,7 +77,11 @@ export async function captureScheduleImage(
   title: string,
   options?: CaptureScheduleImageOptions
 ): Promise<Blob | null> {
-  const raw = await toBlob(node, { pixelRatio: 2, backgroundColor: "#ffffff" });
+  // 공유·인쇄용이라 각자 고른 테마와 상관없이 항상 기본값 테마로 찍는다
+  const glass = CAPTURE_THEME.style === "glass";
+  const raw = await withCaptureTheme(() =>
+    toBlob(node, { pixelRatio: 2, backgroundColor: glass ? undefined : "#ffffff" })
+  );
   if (!raw) return null;
 
   const url = URL.createObjectURL(raw);
@@ -76,11 +98,16 @@ export async function captureScheduleImage(
   const ctx = canvas.getContext("2d");
   if (!ctx) return raw;
 
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (glass) {
+    paintGlassBackground(ctx, canvas.width, canvas.height);
+  } else {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 
   if (options?.banner) {
-    ctx.fillStyle = "#1e3a8a"; // tailwind blue-900, 앱 헤더/배너와 동일한 색
+    // tailwind blue-900, 앱 헤더와 같은 색 (글래스는 헤더처럼 살짝 비치는 남색)
+    ctx.fillStyle = glass ? "rgba(30, 58, 138, 0.88)" : "#1e3a8a";
     ctx.fillRect(0, 0, canvas.width, titleHeight);
   }
   const titleX = await drawLogo(ctx, titleHeight, padding, !!options?.banner);

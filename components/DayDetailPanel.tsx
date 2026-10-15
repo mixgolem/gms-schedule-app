@@ -194,7 +194,7 @@ export default function DayDetailPanel({
                     return (
                       <li
                         key={e.id}
-                        className={`rounded-lg border px-2 py-1.5 ${blockClass} ${
+                        className={`shift-chip rounded-lg border px-2 py-1.5 ${blockClass} ${
                           isPending ? "ring-2 ring-blue-400" : ""
                         }`}
                       >
@@ -253,7 +253,7 @@ export default function DayDetailPanel({
                 return (
                   <li
                     key={e.id}
-                    className={`flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 ${
+                    className={`shift-chip flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 ${
                       isPending ? "ring-2 ring-blue-400" : ""
                     }`}
                   >

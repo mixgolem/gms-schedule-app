@@ -694,7 +694,7 @@ function ReadOnlyDetails({
     <div className="border rounded-lg px-3 py-1 bg-white">
       <InfoRow label="근무형태">
         <span
-          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-bold ${SHIFT_COLORS[type]}`}
+          className={`shift-chip inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-bold ${SHIFT_COLORS[type]}`}
         >
           {shift.is_main && <span title="메인당직">★</span>}
           {SHIFT_LABELS[type]}

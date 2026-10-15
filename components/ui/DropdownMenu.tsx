@@ -47,7 +47,7 @@ export default function DropdownMenu({ label, children, title, triggerClassName 
       {open && (
         <div
           onClick={() => setOpen(false)}
-          className="absolute right-0 top-full z-50 mt-1 flex min-w-max flex-col gap-1 rounded-lg border border-gray-200 bg-white p-1.5 shadow-lg animate-[popIn_150ms_ease-out]"
+          className="app-popover absolute right-0 top-full z-50 mt-1 flex min-w-max flex-col gap-1 rounded-lg border border-gray-200 bg-white p-1.5 shadow-lg animate-[popIn_150ms_ease-out]"
         >
           {children}
         </div>

@@ -19,7 +19,7 @@ const VARIANT_CLASS: Record<Variant, string> = {
   ghost: "bg-transparent text-black border-transparent hover:bg-gray-200",
 };
 
-const ACTIVE_CLASS = "bg-blue-950 text-white border-blue-950 ring-2 ring-blue-300 hover:bg-blue-950";
+const ACTIVE_CLASS = "ui-btn-active bg-blue-950 text-white border-blue-950 ring-2 ring-blue-300 hover:bg-blue-950";
 
 export default function Button({
   variant = "secondary",
@@ -28,7 +28,7 @@ export default function Button({
   ...props
 }: Props) {
   const base =
-    "inline-flex items-center justify-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium shadow-sm " +
+    "ui-btn inline-flex items-center justify-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium shadow-sm " +
     "transition-all duration-150 ease-out hover:shadow-md hover:-translate-y-0.5 " +
     "active:translate-y-0 active:shadow-sm " +
     "disabled:opacity-50 disabled:pointer-events-none disabled:hover:translate-y-0 disabled:hover:shadow-sm";
