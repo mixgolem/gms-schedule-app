@@ -46,7 +46,7 @@ function EmployeeSelect({
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value || null)}
       className="border border-blue-900 rounded-md px-1.5 py-0.5 text-sm font-bold text-blue-950 bg-white"
-      title="나는 누구인지 골라두면 내 줄이 강조되고 내 근무 요약이 떠요"
+      title="나는 누구인지 골라두면 내 근무 요약이 떠요"
     >
       <option value="">{value ? "선택 안 함" : "내 이름 선택"}</option>
       {employees.map((e) => (
@@ -79,7 +79,7 @@ export default function MyWorkSummary({ employees, myEmployeeId, onChangeMyEmplo
     return (
       <div className="flex items-center gap-2 flex-wrap rounded-lg border border-dashed border-blue-300 bg-blue-50/50 px-3 py-1.5 text-sm text-black">
         <span aria-hidden>👤</span>
-        <span>내 이름을 골라두면 내 줄이 강조되고, 오늘·다음 근무와 남은 연차·대휴가 여기 떠요</span>
+        <span>내 이름을 골라두면 오늘·다음 근무와 남은 연차·대휴가 여기 떠요</span>
         <EmployeeSelect employees={employees} value={null} onChange={onChangeMyEmployee} />
         <button
           type="button"

@@ -229,28 +229,6 @@ export default function Home() {
     if (preferencesError) setWarning(preferencesError);
   }, [preferencesError]);
 
-  // "나는 이 직원"을 골라둔 계정은 들어오자마자 내 줄을 강조해둔다(처음 한 번만 —
-  // 그 뒤로 근무자 버튼을 누르거나 전체보기로 풀면 그대로 둔다).
-  const autoHighlightDoneRef = useRef(false);
-  useEffect(() => {
-    if (autoHighlightDoneRef.current || !preferencesLoaded) return;
-    if (!myEmployeeId) {
-      autoHighlightDoneRef.current = true;
-      return;
-    }
-    if (!employees.some((e) => e.id === myEmployeeId)) return; // 직원 목록을 아직 못 불러왔으면 기다린다
-    autoHighlightDoneRef.current = true;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFilterEmployeeIds([myEmployeeId]);
-    setFilterMode("highlight");
-  }, [preferencesLoaded, myEmployeeId, employees]);
-
-  const handleChangeMyEmployee = (id: string | null) => {
-    setMyEmployeeId(id);
-    // 방금 고른 사람으로 바로 강조를 바꿔준다(선택 해제면 전체보기로)
-    setFilterEmployeeIds(id ? [id] : []);
-    setFilterMode("highlight");
-  };
 
   const scheduleTitle = `${year}년 ${month}월 GMS 근무스케줄`;
 
@@ -537,7 +515,7 @@ export default function Home() {
             <MyWorkSummary
               employees={employees}
               myEmployeeId={myEmployeeId}
-              onChangeMyEmployee={handleChangeMyEmployee}
+              onChangeMyEmployee={setMyEmployeeId}
               refreshKey={shifts}
             />
           )}

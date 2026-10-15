@@ -15,9 +15,9 @@ export function useUserPreferences() {
   const [showColors, setShowColorsState] = useState(true);
   const [sortMode, setSortModeState] = useState<SortMode>("default");
   const [showTimeBar, setShowTimeBarState] = useState(false);
-  // "나는 이 직원" — 내 줄 자동 강조·내 요약 카드용 (migration v22)
+  // "나는 이 직원" — 내 근무 요약 카드용 (migration v22)
   const [myEmployeeId, setMyEmployeeIdState] = useState<string | null>(null);
-  // 저장된 설정을 다 불러왔는지 — 내 줄 자동 강조를 불러온 뒤 한 번만 걸기 위해 필요
+  // 저장된 설정을 다 불러왔는지 — 불러오기 전엔 내 근무 요약(이름 선택 안내 포함)을 띄우지 않는다
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
