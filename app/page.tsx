@@ -16,6 +16,7 @@ import EmployeeShiftEditor from "@/components/EmployeeShiftEditor";
 import DayDetailPanel from "@/components/DayDetailPanel";
 import ErpExportModal from "@/components/ErpExportModal";
 import ConfirmPhraseDialog from "@/components/ConfirmPhraseDialog";
+import MyWorkSummary from "@/components/MyWorkSummary";
 import { useSchedule } from "@/lib/useSchedule";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
 import { useUserPreferences } from "@/lib/useUserPreferences";
@@ -26,6 +27,10 @@ import { captureScheduleImage, downloadBlob, canShareFile, shareFile } from "@/l
 import { imageBlobToPdfBlob } from "@/lib/pdfExport";
 import { computeTimeAxis, formatAxisTime } from "@/lib/timeBar";
 import Button from "@/components/ui/Button";
+import DropdownMenu from "@/components/ui/DropdownMenu";
+
+const EXPORT_ITEM_CLASS = "w-full justify-start whitespace-nowrap";
+const TOGGLE_CLASS = "justify-center min-[1760px]:w-full";
 
 type SidebarState =
   | { mode: "employee"; employeeId: string; date: string }
@@ -63,6 +68,9 @@ export default function Home() {
     setSortMode,
     showTimeBar,
     setShowTimeBar,
+    myEmployeeId,
+    setMyEmployeeId,
+    loaded: preferencesLoaded,
     error: preferencesError,
   } = useUserPreferences();
   const timeAxis = computeTimeAxis(shiftDefaults);
@@ -220,6 +228,29 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (preferencesError) setWarning(preferencesError);
   }, [preferencesError]);
+
+  // "나는 이 직원"을 골라둔 계정은 들어오자마자 내 줄을 강조해둔다(처음 한 번만 —
+  // 그 뒤로 근무자 버튼을 누르거나 전체보기로 풀면 그대로 둔다).
+  const autoHighlightDoneRef = useRef(false);
+  useEffect(() => {
+    if (autoHighlightDoneRef.current || !preferencesLoaded) return;
+    if (!myEmployeeId) {
+      autoHighlightDoneRef.current = true;
+      return;
+    }
+    if (!employees.some((e) => e.id === myEmployeeId)) return; // 직원 목록을 아직 못 불러왔으면 기다린다
+    autoHighlightDoneRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFilterEmployeeIds([myEmployeeId]);
+    setFilterMode("highlight");
+  }, [preferencesLoaded, myEmployeeId, employees]);
+
+  const handleChangeMyEmployee = (id: string | null) => {
+    setMyEmployeeId(id);
+    // 방금 고른 사람으로 바로 강조를 바꿔준다(선택 해제면 전체보기로)
+    setFilterEmployeeIds(id ? [id] : []);
+    setFilterMode("highlight");
+  };
 
   const scheduleTitle = `${year}년 ${month}월 GMS 근무스케줄`;
 
@@ -425,18 +456,27 @@ export default function Home() {
             setMonth(m);
           }}
         />
-        <div className="flex items-center gap-2 flex-wrap">
+        <DropdownMenu label="📤 내보내기" title="이 달 근무표를 이미지·PDF·ERP엑셀로 내보내요">
+          <Button onClick={handleCopyImage} className={EXPORT_ITEM_CLASS}>
+            🖼️ 이미지 복사
+          </Button>
+          <Button onClick={handleDownloadImage} className={EXPORT_ITEM_CLASS}>
+            🖼️ 이미지 다운로드
+          </Button>
+          <Button onClick={handleOpenImageInNewTab} className={EXPORT_ITEM_CLASS}>
+            🔗 이미지 새 창에서 열기 (모바일용)
+          </Button>
+          <Button onClick={handleSavePdf} className={EXPORT_ITEM_CLASS}>
+            🖨 PDF 저장
+          </Button>
           <Button
             onClick={() => setErpExportOpen(true)}
+            className={EXPORT_ITEM_CLASS}
             title="선택한 근무자의 한 달치 근무를 ERP 업로드 양식 그대로 내보내요"
           >
-            🖥ERP엑셀 다운로드
+            🖥 ERP엑셀 다운로드
           </Button>
-          <Button onClick={handleCopyImage}>🖼️이미지 복사</Button>
-          <Button onClick={handleDownloadImage}>🖼️이미지 다운로드</Button>
-          <Button onClick={handleOpenImageInNewTab}>🔗(모바일)이미지 새 창에서 열기</Button>
-          <Button onClick={handleSavePdf}>🖨PDF 저장</Button>
-        </div>
+        </DropdownMenu>
       </div>
 
       {warning && (
@@ -451,8 +491,10 @@ export default function Home() {
         </div>
       )}
 
-      <div className="flex gap-4 items-start flex-col md:flex-row">
-        <div className="w-full md:w-36 shrink-0 space-y-3 md:sticky md:top-[120px] md:self-start">
+      {/* 넓은 화면(1760px~)에선 왼쪽 세로 메뉴, 그보다 좁으면(노트북 등) 메뉴를 근무표 위
+          가로줄로 올려서 근무표가 일요일·주간 근무시간까지 화면 안에 다 들어오게 한다. */}
+      <div className="flex gap-4 flex-col min-[1760px]:flex-row min-[1760px]:items-start">
+        <div className="w-full shrink-0 flex flex-wrap items-center gap-x-4 gap-y-2 min-[1760px]:block min-[1760px]:w-36 min-[1760px]:space-y-3 min-[1760px]:sticky min-[1760px]:top-[120px] min-[1760px]:self-start">
           <EmployeeFilter
             employees={employees}
             selectedIds={filterEmployeeIds}
@@ -462,31 +504,43 @@ export default function Home() {
               setFilterMode(mode);
             }}
           />
-          <Button
-            onClick={() => setShowColors(!showColors)}
-            active={showColors}
-            className="w-full justify-center"
-          >
-            근무 색상 {showColors ? "ON" : "OFF"}
-          </Button>
-          <Button
-            onClick={() => setSortMode(sortMode === "default" ? "byShiftType" : "default")}
-            active={sortMode === "byShiftType"}
-            className="w-full justify-center"
-          >
-            {sortMode === "byShiftType" ? "시간대 정렬" : "기본 정렬"}
-          </Button>
-          <Button
-            onClick={() => setShowTimeBar(!showTimeBar)}
-            active={showTimeBar}
-            className="w-full justify-center"
-          >
-            시간 막대 {showTimeBar ? "ON" : "OFF"}
-          </Button>
-          <NoticeBox canEdit={canEdit} />
+          <div className="flex flex-wrap gap-2 min-[1760px]:block min-[1760px]:space-y-3">
+            <Button
+              onClick={() => setShowColors(!showColors)}
+              active={showColors}
+              className={TOGGLE_CLASS}
+            >
+              근무 색상 {showColors ? "ON" : "OFF"}
+            </Button>
+            <Button
+              onClick={() => setSortMode(sortMode === "default" ? "byShiftType" : "default")}
+              active={sortMode === "byShiftType"}
+              className={TOGGLE_CLASS}
+            >
+              {sortMode === "byShiftType" ? "시간대 정렬" : "기본 정렬"}
+            </Button>
+            <Button
+              onClick={() => setShowTimeBar(!showTimeBar)}
+              active={showTimeBar}
+              className={TOGGLE_CLASS}
+            >
+              시간 막대 {showTimeBar ? "ON" : "OFF"}
+            </Button>
+          </div>
+          <div className="basis-full">
+            <NoticeBox canEdit={canEdit} />
+          </div>
         </div>
 
         <div className="flex-1 min-w-0 space-y-3">
+          {preferencesLoaded && (
+            <MyWorkSummary
+              employees={employees}
+              myEmployeeId={myEmployeeId}
+              onChangeMyEmployee={handleChangeMyEmployee}
+              refreshKey={shifts}
+            />
+          )}
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-black py-8 justify-center">
               <div className="h-4 w-4 rounded-full border-2 border-gray-200 border-t-blue-900 animate-spin" />

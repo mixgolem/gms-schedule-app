@@ -5,6 +5,9 @@ import Button from "./ui/Button";
 
 export type EmployeeFilterMode = "highlight" | "only";
 
+const HELP_TEXT = "클릭: 강조(다중 가능) → 강조된 사람 재클릭: 그 사람만 보기 → 다시 클릭: 전체보기";
+const ITEM_CLASS = "justify-start min-[1760px]:w-full";
+
 interface Props {
   employees: Employee[];
   selectedIds: string[];
@@ -34,13 +37,17 @@ export default function EmployeeFilter({ employees, selectedIds, mode, onSelect 
     }
   };
 
+  // 넓은 화면에선 왼쪽 세로 목록, 좁은 화면에선 근무표 위 가로줄로 나란히 놓인다(page.tsx와 같은 1760px 기준).
   return (
-    <div className="w-full space-y-1">
-      <p className="text-xs font-medium text-black px-1 mb-1">근무자별 조회</p>
+    <div
+      className="flex flex-wrap items-center gap-1 min-[1760px]:block min-[1760px]:w-full min-[1760px]:space-y-1"
+      title={HELP_TEXT}
+    >
+      <p className="text-xs font-medium text-black px-1 min-[1760px]:mb-1">근무자별 조회</p>
       <Button
         onClick={() => onSelect([], "highlight")}
         active={selectedIds.length === 0}
-        className="w-full justify-start"
+        className={ITEM_CLASS}
       >
         전체보기
       </Button>
@@ -49,7 +56,7 @@ export default function EmployeeFilter({ employees, selectedIds, mode, onSelect 
           key={emp.id}
           onClick={() => handleClick(emp.id)}
           active={selectedIds.includes(emp.id)}
-          className="w-full justify-start"
+          className={ITEM_CLASS}
         >
           <span className="mr-1 text-black">{employeeLabel(emp.sort_order - 1)}</span>
           {emp.name}
@@ -58,8 +65,8 @@ export default function EmployeeFilter({ employees, selectedIds, mode, onSelect 
           )}
         </Button>
       ))}
-      <p className="text-[11px] text-black px-1 pt-1 leading-snug">
-        클릭: 강조(다중 가능) → 강조된 사람 재클릭: 그 사람만 보기 → 다시 클릭: 전체보기
+      <p className="hidden min-[1760px]:block text-[11px] text-black px-1 pt-1 leading-snug">
+        {HELP_TEXT}
       </p>
     </div>
   );

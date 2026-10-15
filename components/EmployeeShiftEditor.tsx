@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import {
   Employee,
   Shift,
   ShiftLeaveUsage,
   ShiftType,
   SHIFT_LABELS,
+  SHIFT_COLORS,
   LeaveUsageInput,
   LeaveUsageType,
 } from "@/lib/types";
@@ -329,6 +330,42 @@ export default function EmployeeShiftEditor({
     </div>
   );
 
+  const swapSection = swapTargetType && (
+    <div className="space-y-1.5 border rounded-lg p-2 bg-gray-50">
+      <p className="text-xs font-medium text-black">
+        근무 변경을 원할 경우 — {SHIFT_LABELS[swapTargetType]} 대타 가능한 사람
+      </p>
+      {swapCandidates.length === 0 ? (
+        <p className="text-xs text-black">오늘은 대신 서줄 수 있는 사람이 없어요.</p>
+      ) : (
+        <ul className="space-y-1">
+          {swapCandidates.map((c) => (
+            <li
+              key={c.employee.id}
+              className="flex items-center gap-1.5 text-sm bg-white border rounded-lg px-2 py-1"
+            >
+              <span className="font-medium text-black">{c.employee.name}</span>
+              <span className="text-xs text-black">({swapCandidateStatusLabel(c.status)})</span>
+              {c.hasLinkedCompLeave && (
+                <span
+                  className="ml-auto text-xs text-amber-700"
+                  title="이 사람의 대휴는 이미 다른 주말근무일을 보상하도록 연결돼 있어요. 대타로 들어가면 그 연결이 풀려요."
+                >
+                  ⚠️ 대휴 연결 있음
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-[11px] text-black">
+        그날 주간·대휴·휴무·미배정이면서, 대신 서도 7일 연속 근무가 안 되고 휴식시간도
+        충분한 사람만 보여줘요.
+        {canEdit && " 실제로 바꾸려면 두 사람 각자 근무편집에서 직접 반영해주세요."}
+      </p>
+    </div>
+  );
+
   // 조회 전용인데 배정된 근무가 없으면, 편집용 기본값(주간·기본 시간)을 그대로 보여주면
   // 실제 근무처럼 오해할 수 있어서 따로 안내만 한다.
   if (!canEdit && !shift) {
@@ -336,6 +373,21 @@ export default function EmployeeShiftEditor({
       <div className="space-y-4">
         {header}
         <p className="text-sm text-black">이 날은 배정된 근무가 없어요.</p>
+      </div>
+    );
+  }
+
+  // 조회 전용은 잠긴 입력칸 대신 저장된 내용을 글로 정리해서 보여준다.
+  if (!canEdit && shift) {
+    return (
+      <div className="space-y-4">
+        {header}
+        <ReadOnlyDetails
+          shift={shift}
+          usages={leaveUsages.filter((u) => u.shift_id === shift.id)}
+          linkedCompLeaveDate={linkedCompLeaveDate}
+        />
+        {swapSection}
       </div>
     );
   }
@@ -601,42 +653,92 @@ export default function EmployeeShiftEditor({
         </Button>
       )}
 
-      {swapTargetType && (
-        <div className="space-y-1.5 border rounded-lg p-2 bg-gray-50">
-          <p className="text-xs font-medium text-black">
-            근무 변경을 원할 경우 — {SHIFT_LABELS[swapTargetType]} 대타 가능한 사람
-          </p>
-          {swapCandidates.length === 0 ? (
-            <p className="text-xs text-black">오늘은 대신 서줄 수 있는 사람이 없어요.</p>
+      {swapSection}
+    </div>
+  );
+}
+
+function formatDateWithWeekday(date: string): string {
+  return `${date} (${weekdayLabel(date)})`;
+}
+
+function formatRange(start: string, end: string): string {
+  return `${start} ~ ${crossesMidnight(start, end) ? "익일 " : ""}${end}`;
+}
+
+function InfoRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex gap-3 py-2 border-b border-gray-100 last:border-b-0">
+      <span className="w-20 shrink-0 text-xs text-blue-900 pt-0.5">{label}</span>
+      <div className="flex-1 min-w-0 text-sm text-black">{children}</div>
+    </div>
+  );
+}
+
+// 조회 전용(일반 사용자) 근무 상세: 편집 폼 대신 저장된 값만 읽기 좋게 나열한다.
+function ReadOnlyDetails({
+  shift,
+  usages,
+  linkedCompLeaveDate,
+}: {
+  shift: Shift;
+  usages: ShiftLeaveUsage[];
+  linkedCompLeaveDate: string | null;
+}) {
+  const type = shift.shift_type;
+  const start = shift.start_time ? timeForInput(shift.start_time.slice(0, 5)) : null;
+  const end = shift.end_time ? timeForInput(shift.end_time.slice(0, 5)) : null;
+  const sortedUsages = [...usages].sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+  return (
+    <div className="border rounded-lg px-3 py-1 bg-white">
+      <InfoRow label="근무형태">
+        <span
+          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-bold ${SHIFT_COLORS[type]}`}
+        >
+          {shift.is_main && <span title="메인당직">★</span>}
+          {SHIFT_LABELS[type]}
+        </span>
+        {shift.is_main && <span className="ml-2 text-xs">메인당직</span>}
+      </InfoRow>
+
+      {hasHours(type) && start && end && (
+        <InfoRow label="근무시간">{formatRange(start, end)}</InfoRow>
+      )}
+
+      {type === "leave" && (
+        <InfoRow label="보상 근무일">
+          {shift.leave_for_date ? (
+            formatDateWithWeekday(shift.leave_for_date)
           ) : (
-            <ul className="space-y-1">
-              {swapCandidates.map((c) => (
-                <li
-                  key={c.employee.id}
-                  className="flex items-center gap-1.5 text-sm bg-white border rounded-lg px-2 py-1"
-                >
-                  <span className="font-medium text-black">{c.employee.name}</span>
-                  <span className="text-xs text-black">
-                    ({swapCandidateStatusLabel(c.status)})
-                  </span>
-                  {c.hasLinkedCompLeave && (
-                    <span
-                      className="ml-auto text-xs text-amber-700"
-                      title="이 사람의 대휴는 이미 다른 주말근무일을 보상하도록 연결돼 있어요. 대타로 들어가면 그 연결이 풀려요."
-                    >
-                      ⚠️ 대휴 연결 있음
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <span className="text-blue-600 font-semibold">아직 지정 안 됨</span>
           )}
-          <p className="text-[11px] text-black">
-            그날 주간·대휴·휴무·미배정이면서, 대신 서도 7일 연속 근무가 안 되고 휴식시간도
-            충분한 사람만 보여줘요.
-            {canEdit && " 실제로 바꾸려면 두 사람 각자 근무편집에서 직접 반영해주세요."}
-          </p>
-        </div>
+        </InfoRow>
+      )}
+
+      {type === "annual" && shift.annual_hours != null && (
+        <InfoRow label="연차 사용">{shift.annual_hours}시간</InfoRow>
+      )}
+
+      {hasHours(type) && isWeekend(shift.work_date) && (
+        <InfoRow label="연결된 대휴">
+          {linkedCompLeaveDate ? formatDateWithWeekday(linkedCompLeaveDate) : "없음"}
+        </InfoRow>
+      )}
+
+      {sortedUsages.length > 0 && (
+        <InfoRow label="부분 사용">
+          <ul className="space-y-1">
+            {sortedUsages.map((u) => (
+              <li key={u.id}>
+                <span className="font-semibold">{USAGE_LABELS[u.usage_type]}</span>{" "}
+                {Number(u.hours)}시간 ·{" "}
+                {formatRange(u.start_time.slice(0, 5), u.end_time.slice(0, 5))}
+                {u.reason && <span className="block text-xs text-black/70">사유: {u.reason}</span>}
+              </li>
+            ))}
+          </ul>
+        </InfoRow>
       )}
     </div>
   );

@@ -104,18 +104,28 @@ export default function ShiftCell({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs whitespace-nowrap transition-all duration-150 ease-out cursor-pointer hover:shadow-sm hover:-translate-y-0.5 ${hoverClass} active:translate-y-0 active:shadow-none ${colorClass}`}
+      className={`w-full flex items-center gap-1.5 @max-[190px]:gap-1 rounded-lg border px-2 @max-[190px]:px-1.5 py-1.5 text-xs whitespace-nowrap transition-all duration-150 ease-out cursor-pointer hover:shadow-sm hover:-translate-y-0.5 ${hoverClass} active:translate-y-0 active:shadow-none ${colorClass}`}
       title={invalidReason ?? (unassignedLeave ? "대휴 원래근무일이 아직 지정 안 됐어요" : undefined)}
     >
       {showSevere && <span aria-hidden>⚠️</span>}
       <span className="font-bold text-[13px]">{employeeName}</span>
-      {timeLabel && <span className="font-medium">{timeLabel}</span>}
-      {compLeaveDate && (
-        <span
-          className="text-[10px] text-blue-700 font-semibold"
-          title="이 근무일을 보상하는 대휴 날짜"
-        >
-          →{Number(compLeaveDate.slice(5, 7))}/{Number(compLeaveDate.slice(8, 10))}
+      {/* 노트북처럼 날짜 칸이 좁을 때(@container 기준)는 시간 글자를 한 단계 줄이고, 대휴 날짜(→M/D)는
+          시간 바로 아래로 내려서 줄 높이는 그대로 두고 한 줄 폭 안에 들어가게 한다. */}
+      {(timeLabel || compLeaveDate) && (
+        <span className="flex items-center gap-1.5 @max-[190px]:flex-col @max-[190px]:items-start @max-[190px]:gap-0 @max-[190px]:-my-0.5">
+          {timeLabel && (
+            <span className="font-medium @max-[190px]:text-[11px] @max-[190px]:leading-3 @max-[190px]:tracking-tight">
+              {timeLabel}
+            </span>
+          )}
+          {compLeaveDate && (
+            <span
+              className="text-[10px] text-blue-700 font-semibold @max-[190px]:leading-[10px]"
+              title="이 근무일을 보상하는 대휴 날짜"
+            >
+              →{Number(compLeaveDate.slice(5, 7))}/{Number(compLeaveDate.slice(8, 10))}
+            </span>
+          )}
         </span>
       )}
       <span className="flex items-center gap-0.5 ml-auto font-bold text-[13px]">

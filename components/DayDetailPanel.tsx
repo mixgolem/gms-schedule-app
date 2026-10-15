@@ -135,28 +135,29 @@ export default function DayDetailPanel({
         )}
       </p>
 
-      <div className="space-y-2 border rounded-lg px-3 py-2 bg-gray-50">
-        <label className="flex items-center gap-2 text-sm transition-colors duration-150 hover:bg-gray-100 -mx-1 px-1 rounded-md">
+      {/* 공휴일 지정은 관리자만 — 조회 전용에선 위 제목줄의 공휴일 이름 표시로 충분하다 */}
+      {canEdit && (
+        <div className="space-y-2 border rounded-lg px-3 py-2 bg-gray-50">
+          <label className="flex items-center gap-2 text-sm transition-colors duration-150 hover:bg-gray-100 -mx-1 px-1 rounded-md">
+            <input
+              type="checkbox"
+              checked={isHoliday}
+              onChange={() => onToggleHoliday(isHoliday ? null : nameInput.trim() || null)}
+              className="accent-gray-900"
+            />
+            공휴일로 지정
+          </label>
           <input
-            type="checkbox"
-            checked={isHoliday}
-            disabled={!canEdit}
-            onChange={() => onToggleHoliday(isHoliday ? null : nameInput.trim() || null)}
-            className="accent-gray-900"
+            type="text"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            onBlur={() => isHoliday && onRenameHoliday(nameInput.trim() || null)}
+            onKeyDown={(e) => e.key === "Enter" && isHoliday && onRenameHoliday(nameInput.trim() || null)}
+            placeholder="공휴일 이름 (예: 설날, 추석)"
+            className="w-full border rounded-lg px-2 py-1 text-sm bg-white transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
           />
-          공휴일로 지정
-        </label>
-        <input
-          type="text"
-          value={nameInput}
-          disabled={!canEdit}
-          onChange={(e) => setNameInput(e.target.value)}
-          onBlur={() => isHoliday && onRenameHoliday(nameInput.trim() || null)}
-          onKeyDown={(e) => e.key === "Enter" && isHoliday && onRenameHoliday(nameInput.trim() || null)}
-          placeholder="공휴일 이름 (예: 설날, 추석)"
-          className="w-full border rounded-lg px-2 py-1 text-sm bg-white transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300 disabled:opacity-50"
-        />
-      </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         {GROUP_ORDER.map((type) => {

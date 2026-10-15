@@ -131,6 +131,7 @@ create table if not exists user_preferences (
   show_colors boolean not null default true,
   sort_mode text not null default 'default' check (sort_mode in ('default', 'byShiftType')),
   show_time_bar boolean not null default false,
+  my_employee_id uuid, -- "나는 이 직원" (내 줄 강조·내 요약용, 외래키 없음)
   updated_at timestamptz not null default now()
 );
 
@@ -385,3 +386,23 @@ $$;
 
 revoke all on function get_db_usage() from public, anon;
 grant execute on function get_db_usage() to authenticated;
+
+-- ============================================================
+-- JSON 백업 기록 (마지막 백업이 오래되면 알림, 관리자 전용)
+-- ============================================================
+
+create table if not exists backup_log (
+  id bigint generated always as identity primary key,
+  created_at timestamptz not null default now(),
+  created_by uuid default auth.uid(),
+  created_by_email text
+);
+
+create index if not exists backup_log_created_at_idx on backup_log (created_at desc);
+
+alter table backup_log enable row level security;
+
+create policy "backup_log_select_admin" on backup_log
+  for select using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+create policy "backup_log_insert_admin" on backup_log
+  for insert with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');

@@ -112,6 +112,8 @@ const SCHEMA_CHECKS: { version: string; label: string; table: string; columns: s
   { version: "v15", label: "부분사용 사유", table: "shift_leave_usage", columns: "reason" },
   { version: "v16", label: "변경 이력", table: "audit_log", columns: "id" },
   { version: "v20", label: "시간 막대 설정", table: "user_preferences", columns: "show_time_bar" },
+  { version: "v22", label: "내 근무 연결", table: "user_preferences", columns: "my_employee_id" },
+  { version: "v22", label: "백업 기록", table: "backup_log", columns: "id" },
 ];
 
 export interface SchemaCheckResult {

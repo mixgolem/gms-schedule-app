@@ -98,7 +98,9 @@ export default function CalendarGrid({
         return (
           <div key={wi} className="flex flex-col md:flex-row gap-2">
             <div className="flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-2 min-w-full md:min-w-[1400px]">
+              {/* 칸 폭은 화면에 맞춰 줄어들되, 너무 좁아져 글자가 다 잘리기 전(약 1150px)에서는
+                  멈추고 페이지 가로 스크롤로 넘긴다. */}
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-2 min-w-full md:min-w-[1150px]">
                 {week.map((day) => {
                   const dayColor = getDayColor(day.date, holidayDates.has(day.date));
                   const dayEmployees =
@@ -119,7 +121,7 @@ export default function CalendarGrid({
                   return (
                     <div
                       key={day.date}
-                      className={`border rounded-lg overflow-hidden transition-shadow duration-150 hover:shadow-md ${
+                      className={`@container border rounded-lg overflow-hidden transition-shadow duration-150 hover:shadow-md ${
                         day.date === today ? "ring-2 ring-blue-900 ring-offset-1" : ""
                       } ${day.inMonth ? "bg-white" : "bg-gray-50 opacity-50"}`}
                     >

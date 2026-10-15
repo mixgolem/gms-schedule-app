@@ -19,6 +19,7 @@ import {
   SchemaCheckResult,
   DbUsage,
 } from "@/lib/devInfo";
+import { fetchLastBackup, LastBackup, BACKUP_STALE_DAYS } from "@/lib/backupLog";
 import Button from "./ui/Button";
 import LinkButton from "./ui/LinkButton";
 
@@ -75,8 +76,16 @@ export default function DevInfoModal({ open, onClose }: Props) {
     status: "loading",
   });
   const [usage, setUsage] = useState<Loadable<DbUsage>>({ status: "loading" });
+  const [lastBackup, setLastBackup] = useState<Loadable<LastBackup | null>>({ status: "loading" });
 
   const load = useCallback(() => {
+    setLastBackup({ status: "loading" });
+    toLoadable(
+      fetchLastBackup().then(({ last, error }) => {
+        if (error) throw new Error(`백업 기록을 못 읽었어요 (supabase/migration_022.sql 실행 필요할 수 있음): ${error}`);
+        return last;
+      })
+    ).then(setLastBackup);
     setCommits({ status: "loading" });
     setPing({ status: "loading" });
     setLastChange({ status: "loading" });
@@ -225,12 +234,17 @@ export default function DevInfoModal({ open, onClose }: Props) {
               <SectionBody value={lastChange}>
                 {(c) => (c ? <LastChangeInfo change={c} /> : <span>변경 기록 없음</span>)}
               </SectionBody>
+              <span className="text-blue-900">마지막 JSON 백업</span>
+              <SectionBody value={lastBackup}>
+                {(b) => <LastBackupInfo backup={b} />}
+              </SectionBody>
             </div>
             <p className="text-xs text-black leading-relaxed">
-              · 무료 플랜은 약 {PAUSE_DAYS}일 동안 활동이 없으면 일시정지될 수 있어요 (정확한 기준·재개는
-              Supabase 대시보드에서 확인)
+              · 무료 플랜은 약 {PAUSE_DAYS}일 동안 활동이 없으면 일시정지될 수 있어요. 그래서 매일 한 번
+              Vercel 예약 작업이 DB를 자동으로 깨워줘요 (정확한 상태·재개는 Supabase 대시보드에서 확인)
               <br />· 여기 시각은 근무표·공휴일·직원·부분사용이 바뀐 시각 기준이고, 조회만 한 기록은
               남지 않아요
+              <br />· JSON 백업은 {BACKUP_STALE_DAYS}일 넘게 안 받으면 헤더의 JSON 백업 버튼에 알림이 떠요
             </p>
           </Section>
 
@@ -349,6 +363,27 @@ function LastChangeInfo({ change }: { change: LastDbChange }) {
       <span className="text-xs text-black">
         · {change.changedByEmail ?? "알 수 없음"} · {change.summary}
       </span>
+    </span>
+  );
+}
+
+function LastBackupInfo({ backup }: { backup: LastBackup | null }) {
+  if (!backup) {
+    return <span className="text-amber-700 font-bold">기록 없음 — 헤더의 JSON 백업을 한 번 받아주세요</span>;
+  }
+  const stale = backup.daysAgo >= BACKUP_STALE_DAYS;
+  return (
+    <span className="space-x-1.5">
+      <span>{formatDateTime(backup.createdAt)}</span>
+      <span className={`font-bold ${stale ? "text-amber-700" : ""}`}>
+        ({backup.daysAgo === 0 ? "오늘" : `${backup.daysAgo}일 전`})
+      </span>
+      {stale && (
+        <span className="text-xs font-bold border rounded px-1.5 py-0.5 text-amber-700 bg-amber-50 border-amber-300">
+          백업 필요
+        </span>
+      )}
+      <span className="text-xs text-black">· {backup.createdByEmail ?? "알 수 없음"}</span>
     </span>
   );
 }

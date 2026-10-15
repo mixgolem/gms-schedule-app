@@ -5,7 +5,7 @@ import { supabase } from "./supabaseClient";
 import { useAuth } from "@/app/providers";
 import { SortMode } from "@/components/CalendarGrid";
 
-// 근무 색상 표시 여부/정렬 방식/시간 막대 보기는 로그인한 계정별로 기억해서, 다음에
+// 근무 색상 표시 여부/정렬 방식/시간 막대 보기/"나는 이 직원"은 로그인한 계정별로 기억해서, 다음에
 // 로그인해도 마지막에 쓰던 설정 그대로 보이게 한다. 로그아웃 상태에서는 그냥 이번 세션
 // 동안만 유지.
 export function useUserPreferences() {
@@ -15,6 +15,10 @@ export function useUserPreferences() {
   const [showColors, setShowColorsState] = useState(true);
   const [sortMode, setSortModeState] = useState<SortMode>("default");
   const [showTimeBar, setShowTimeBarState] = useState(false);
+  // "나는 이 직원" — 내 줄 자동 강조·내 요약 카드용 (migration v22)
+  const [myEmployeeId, setMyEmployeeIdState] = useState<string | null>(null);
+  // 저장된 설정을 다 불러왔는지 — 내 줄 자동 강조를 불러온 뒤 한 번만 걸기 위해 필요
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,7 +27,7 @@ export function useUserPreferences() {
 
     supabase
       .from("user_preferences")
-      .select("show_colors, sort_mode, show_time_bar")
+      .select("show_colors, sort_mode, show_time_bar, my_employee_id")
       .eq("user_id", userId)
       .maybeSingle()
       .then(({ data, error: fetchError }) => {
@@ -32,10 +36,13 @@ export function useUserPreferences() {
           console.error("설정 불러오기 실패:", fetchError);
           return;
         }
-        if (!data) return;
-        setShowColorsState(data.show_colors);
-        setSortModeState(data.sort_mode as SortMode);
-        setShowTimeBarState(data.show_time_bar);
+        if (data) {
+          setShowColorsState(data.show_colors);
+          setSortModeState(data.sort_mode as SortMode);
+          setShowTimeBarState(data.show_time_bar);
+          setMyEmployeeIdState(data.my_employee_id);
+        }
+        setLoaded(true);
       });
 
     return () => {
@@ -88,7 +95,18 @@ export function useUserPreferences() {
     [persist]
   );
 
+  const setMyEmployeeId = useCallback(
+    (value: string | null) => {
+      setMyEmployeeIdState(value);
+      persist({ my_employee_id: value }, "내 근무");
+    },
+    [persist]
+  );
+
   return {
+    loaded,
+    myEmployeeId,
+    setMyEmployeeId,
     showColors,
     setShowColors,
     sortMode,
