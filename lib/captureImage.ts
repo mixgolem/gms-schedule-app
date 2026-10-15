@@ -52,18 +52,19 @@ async function drawLogo(
 // 리퀴드 글래스 배경(theme.css의 body::before와 같은 빛 번짐)을 캔버스에 직접 그린다. 이 배경은
 // 근무표 바깥(화면 뒤 고정층)에 있어서 캡처에 안 잡히므로, 근무표는 투명 배경으로 찍고 이 위에 얹는다.
 function paintGlassBackground(ctx: CanvasRenderingContext2D, width: number, height: number) {
-  ctx.fillStyle = "#e2e9f8";
+  ctx.fillStyle = "#dbe4f7";
   ctx.fillRect(0, 0, width, height);
   const glow = (x: number, y: number, r: number, color: string) => {
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, color);
-    g.addColorStop(1, "rgba(226, 233, 248, 0)");
+    g.addColorStop(1, "rgba(219, 228, 247, 0)");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, width, height);
   };
-  glow(width * 0.08, -height * 0.05, width * 0.6, "#b4c8ff");
-  glow(width, height * 0.03, width * 0.5, "#d6c5ff");
-  glow(width * 0.55, height * 1.08, width * 0.5, "#b8e4f7");
+  glow(width * 0.05, 0, width * 0.62, "#9fb8ff");
+  glow(width, height * 0.1, width * 0.52, "#c7b2ff");
+  glow(width * 0.32, height * 0.62, width * 0.45, "#d6ccff");
+  glow(width * 0.55, height * 1.08, width * 0.52, "#9fd8f2");
 }
 
 export interface CaptureScheduleImageOptions {

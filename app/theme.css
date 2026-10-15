@@ -107,8 +107,8 @@ html[data-style="glass"] {
 }
 
 html[data-style="glass"][data-mode="light"] {
-  --color-white: rgb(255 255 255 / 0.62);
-  --color-gray-50: rgb(255 255 255 / 0.4);
+  --color-white: rgb(255 255 255 / 0.42);
+  --color-gray-50: rgb(255 255 255 / 0.25);
   --glass-border: rgb(255 255 255 / 0.75);
   --glass-line: rgb(100 116 139 / 0.28);
   --glass-shadow: 0 8px 28px rgb(30 41 90 / 0.1), inset 0 1px 0 rgb(255 255 255 / 0.85);
@@ -132,7 +132,7 @@ html[data-style="glass"][data-mode="dark"] {
    body 배경에 background-attachment: fixed를 쓰면 스크롤할 때마다 페이지 전체를 다시 그려서
    버벅인다. 그래서 화면에 고정된 별도 층(body::before)에 그려 스크롤과 따로 움직이게 한다. */
 html[data-style="glass"] body { background: transparent; }
-html[data-style="glass"][data-mode="light"] { background-color: #e2e9f8; }
+html[data-style="glass"][data-mode="light"] { background-color: #dbe4f7; }
 html[data-style="glass"][data-mode="dark"] { background-color: #050914; }
 html[data-style="glass"] body::before {
   content: "";
@@ -144,10 +144,11 @@ html[data-style="glass"] body::before {
 }
 html[data-style="glass"][data-mode="light"] body::before {
   background:
-    radial-gradient(1100px 620px at 8% -8%, #b4c8ff 0%, transparent 62%),
-    radial-gradient(900px 560px at 100% 4%, #d6c5ff 0%, transparent 60%),
-    radial-gradient(800px 600px at 55% 110%, #b8e4f7 0%, transparent 60%),
-    #e2e9f8;
+    radial-gradient(1100px 700px at 5% 0%, #9fb8ff 0%, transparent 62%),
+    radial-gradient(900px 620px at 100% 10%, #c7b2ff 0%, transparent 60%),
+    radial-gradient(760px 520px at 32% 62%, #d6ccff 0%, transparent 62%),
+    radial-gradient(900px 700px at 55% 108%, #9fd8f2 0%, transparent 60%),
+    #dbe4f7;
 }
 html[data-style="glass"][data-mode="dark"] body::before {
   background:
@@ -252,7 +253,7 @@ html[data-style="glass"][data-mode="dark"] .ui-btn-active {
 
 /* 다크 글래스 = 다크 테크: 카드 테두리에 옅은 청록 빛, 오늘 칸은 빛나는 링 */
 html[data-style="glass"][data-mode="dark"] .day-card {
-  border-color: rgb(56 189 248 / 0.18);
+  border-color: rgb(148 163 184 / 0.3);
   box-shadow: 0 0 0 1px rgb(56 189 248 / 0.04), 0 12px 32px rgb(0 0 0 / 0.4),
     inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
@@ -379,3 +380,46 @@ html[data-style="glass"] :is(.app-drawer, .app-popover) .ui-btn { border-radius:
 
 /* 날짜 머리글(요일·공휴일 색 띠)에도 같은 빛 반사를 얹어 칸과 질감을 맞춘다 */
 html[data-style="glass"] .day-card > button:first-child { background-image: var(--sheen); }
+
+/* ───────────────────────── 날짜 칸 구분 ─────────────────────────
+ * 반투명 카드가 배경과 섞여 날짜끼리 경계가 흐려 보여서: 카드는 더 불투명하게, 테두리·머리글
+ * 구분선은 더 또렷하게. (칸 크기·간격은 그대로 — 노트북 폭 레이아웃 유지)
+ * 그림자는 :not(.ring-2)로 걸어 "오늘" 칸의 링·빛은 건드리지 않는다.
+ */
+/* 라이트: 위가 조금 더 밝은 반투명 유리판. 날짜 구분은 회색 테두리 대신 밝은 유리 테 + 얇은 외곽선 + 그림자로 */
+html[data-style="glass"][data-mode="light"] .day-card {
+  background-color: transparent;
+  /* 대부분 비치는 유리판: 왼쪽 위만 살짝 밝고 오른쪽 아래로 갈수록 더 투명 */
+  background-image: linear-gradient(135deg, rgb(255 255 255 / 0.42) 0%, rgb(255 255 255 / 0.16) 100%);
+  border-color: rgb(255 255 255 / 0.75);
+}
+html[data-style="glass"][data-mode="light"] .day-card:not(.ring-2) {
+  box-shadow: 0 0 0 1px rgb(100 116 139 / 0.16), 0 8px 24px rgb(30 41 90 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 0 0 1px rgb(255 255 255 / 0.22);
+}
+/* 다크: 어두운 반투명 유리판 + 옅은 빛 테 */
+html[data-style="glass"][data-mode="dark"] .day-card {
+  background-color: transparent;
+  background-image: linear-gradient(180deg, rgb(30 41 59 / 0.62) 0%, rgb(15 23 42 / 0.5) 100%);
+}
+html[data-style="glass"][data-mode="dark"] .day-card:not(.ring-2) {
+  border-color: rgb(255 255 255 / 0.1);
+  box-shadow: 0 0 0 1px rgb(148 163 184 / 0.16), 0 8px 24px rgb(0 0 0 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+html[data-mode="dark"]:not([data-style="glass"]) .day-card { border-color: #3a4a70; }
+
+/* 날짜 머리글: 평일은 투명(유리판 그대로), 토·일·공휴일은 색 띠 유지 */
+html[data-style="glass"] .day-card > button:first-child:not(.bg-sky-100, .bg-red-100, .bg-red-200) {
+  background-color: transparent;
+}
+html[data-style="glass"] .day-card > div:first-child.bg-gray-50 { background-color: transparent; }
+
+/* 날짜 머리글 아래 구분선 */
+html[data-style="glass"][data-mode="light"] .day-card > button:first-child { border-bottom-color: rgb(100 116 139 / 0.22); }
+html[data-mode="dark"] .day-card > button:first-child { border-bottom-color: rgb(148 163 184 / 0.22); }
+
+/* 색이 없는(흰) 칸·칩 — 주간 근무시간 줄, 미배정 칸 등 — 도 유리판처럼 비치게 */
+html[data-style="glass"][data-mode="light"] :is(.shift-cell, .shift-chip).bg-white {
+  background-color: rgb(255 255 255 / 0.3);
+}

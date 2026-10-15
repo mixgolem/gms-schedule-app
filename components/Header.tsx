@@ -41,7 +41,7 @@ function DangerMenu({ children }: { children: ReactNode }) {
 
 const SEGMENT_CLASS = "flex-1 justify-center px-2 py-1 text-xs whitespace-nowrap";
 
-// 계정 메뉴 안의 테마 고르기: 스타일(기본/리퀴드 글래스) × 밝기(라이트/다크). 계정에 기억된다.
+// 헤더 🎨 테마 메뉴: 스타일(기본/리퀴드 글래스) × 밝기(라이트/다크). 로그인 중이면 계정에 기억된다.
 // 버튼을 눌러도 메뉴가 닫히지 않게 클릭이 메뉴 바깥으로 전달되지 않도록 막는다.
 function ThemePicker({
   theme,
@@ -52,7 +52,7 @@ function ThemePicker({
 }) {
   return (
     <div
-      className="flex flex-col gap-1 border-y border-gray-100 py-1.5 my-0.5 min-w-[13rem]"
+      className="flex flex-col gap-1 p-0.5 min-w-[13rem]"
       onClick={(e) => e.stopPropagation()}
     >
       <p className="px-1 text-[11px] font-semibold text-black">🎨 화면 테마</p>
@@ -137,7 +137,11 @@ export default function Header() {
         <span className="font-semibold text-white">GMS 근무 스케줄</span>
       </span>
       {!loading && (
-        <div className="text-sm">
+        <div className="text-sm flex items-center gap-2">
+          {/* 테마는 자주 바꿀 수 있게 계정 메뉴와 따로 둔다(로그인 전 화면에서도 바꿀 수 있음) */}
+          <DropdownMenu label="🎨 테마" title="화면 테마 (기본·리퀴드 글래스 / 라이트·다크)">
+            <ThemePicker theme={theme} setTheme={setTheme} />
+          </DropdownMenu>
           {session ? (
             <div className="flex items-center gap-2 flex-wrap">
               {canEdit && (
@@ -218,7 +222,6 @@ export default function Header() {
                     👥 계정 비밀번호 초기화
                   </Button>
                 )}
-                <ThemePicker theme={theme} setTheme={setTheme} />
                 <Button className={MENU_ITEM_CLASS} onClick={signOut}>
                   로그아웃
                 </Button>
