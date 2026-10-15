@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "./supabaseClient";
 import { THEME_STORAGE_KEY } from "./themeScript";
 
 // 화면 테마 = 스타일(기본/리퀴드 글래스) × 밝기(라이트/다크). <html data-style data-mode>에
@@ -65,26 +66,97 @@ export async function withCaptureTheme<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-export function useTheme() {
+function saveLocal(theme: Theme) {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
+  } catch {
+    // 저장 못 하는 환경이면 이번 접속 동안만 유지
+  }
+}
+
+function hasLocalChoice(): boolean {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+async function saveToAccount(userId: string, theme: Theme) {
+  const { error } = await supabase.from("user_preferences").upsert(
+    {
+      user_id: userId,
+      theme_style: theme.style,
+      theme_mode: theme.mode,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+  if (error) console.error("테마 설정 저장 실패:", error);
+}
+
+// 테마는 계정별로 기억한다(user_preferences, migration v23) — 어느 기기로 로그인해도 같은 테마.
+// 브라우저(localStorage)에도 같이 적어 두는 건 로그인 전 화면·첫 화면 깜빡임 방지용이다.
+// Header처럼 항상 떠 있는 곳에서 한 번만 쓴다(로그인하자마자 계정 테마를 불러와야 해서).
+export function useTheme(userId: string | null) {
   const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
+  const themeRef = useRef<Theme>(DEFAULT_THEME);
+
+  const commit = useCallback((next: Theme) => {
+    themeRef.current = next;
+    setThemeState(next);
+    applyThemeInstantly(next);
+    saveLocal(next);
+  }, []);
 
   useEffect(() => {
+    const current = readTheme();
+    themeRef.current = current;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setThemeState(readTheme());
+    setThemeState(current);
   }, []);
 
-  const setTheme = useCallback((patch: Partial<Theme>) => {
-    setThemeState((prev) => {
-      const next = { ...prev, ...patch };
-      applyThemeInstantly(next);
-      try {
-        localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // 저장 못 하는 환경이면 이번 접속 동안만 유지
-      }
-      return next;
-    });
-  }, []);
+  // 로그인하면 계정에 저장된 테마로 바꾼다. 계정에 아직 없는데 이 브라우저에서 골라 둔 게
+  // 있으면(계정 저장 기능 전에 고른 경우) 그걸 계정으로 옮겨 둔다.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    supabase
+      .from("user_preferences")
+      .select("theme_style, theme_mode")
+      .eq("user_id", userId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("테마 설정 불러오기 실패:", error);
+          return;
+        }
+        if (data?.theme_style && data?.theme_mode) {
+          const saved: Theme = {
+            style: data.theme_style === "basic" ? "basic" : "glass",
+            mode: data.theme_mode === "dark" ? "dark" : "light",
+          };
+          if (saved.style !== themeRef.current.style || saved.mode !== themeRef.current.mode) {
+            commit(saved);
+          }
+        } else if (hasLocalChoice()) {
+          saveToAccount(userId, themeRef.current);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, commit]);
+
+  const setTheme = useCallback(
+    (patch: Partial<Theme>) => {
+      const next = { ...themeRef.current, ...patch };
+      commit(next);
+      if (userId) saveToAccount(userId, next);
+    },
+    [userId, commit]
+  );
 
   return { theme, setTheme };
 }

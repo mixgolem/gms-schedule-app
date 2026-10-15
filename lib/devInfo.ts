@@ -114,6 +114,7 @@ const SCHEMA_CHECKS: { version: string; label: string; table: string; columns: s
   { version: "v20", label: "시간 막대 설정", table: "user_preferences", columns: "show_time_bar" },
   { version: "v22", label: "내 근무 연결", table: "user_preferences", columns: "my_employee_id" },
   { version: "v22", label: "백업 기록", table: "backup_log", columns: "id" },
+  { version: "v23", label: "화면 테마 설정", table: "user_preferences", columns: "theme_style, theme_mode" },
 ];
 
 export interface SchemaCheckResult {

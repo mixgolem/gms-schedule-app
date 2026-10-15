@@ -131,7 +131,9 @@ create table if not exists user_preferences (
   show_colors boolean not null default true,
   sort_mode text not null default 'default' check (sort_mode in ('default', 'byShiftType')),
   show_time_bar boolean not null default false,
-  my_employee_id uuid, -- "나는 이 직원" (내 줄 강조·내 요약용, 외래키 없음)
+  my_employee_id uuid, -- "나는 이 직원" (내 근무 요약용, 외래키 없음)
+  theme_style text check (theme_style in ('basic', 'glass')), -- 화면 테마 (null = 기본값)
+  theme_mode text check (theme_mode in ('light', 'dark')),
   updated_at timestamptz not null default now()
 );
 

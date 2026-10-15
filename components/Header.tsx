@@ -17,7 +17,7 @@ import DevInfoModal from "./DevInfoModal";
 import PasswordChangeModal from "./PasswordChangeModal";
 import AccountPasswordResetModal from "./AccountPasswordResetModal";
 import { recordBackup, useLastBackup } from "@/lib/backupLog";
-import { useTheme } from "@/lib/theme";
+import { Theme, useTheme } from "@/lib/theme";
 import Button from "./ui/Button";
 import DropdownMenu from "./ui/DropdownMenu";
 import { exportFullBackupJson } from "@/lib/fullBackupExport";
@@ -41,10 +41,15 @@ function DangerMenu({ children }: { children: ReactNode }) {
 
 const SEGMENT_CLASS = "flex-1 justify-center px-2 py-1 text-xs whitespace-nowrap";
 
-// 계정 메뉴 안의 테마 고르기: 스타일(기본/리퀴드 글래스) × 밝기(라이트/다크). 이 브라우저에 기억된다.
+// 계정 메뉴 안의 테마 고르기: 스타일(기본/리퀴드 글래스) × 밝기(라이트/다크). 계정에 기억된다.
 // 버튼을 눌러도 메뉴가 닫히지 않게 클릭이 메뉴 바깥으로 전달되지 않도록 막는다.
-function ThemePicker() {
-  const { theme, setTheme } = useTheme();
+function ThemePicker({
+  theme,
+  setTheme,
+}: {
+  theme: Theme;
+  setTheme: (patch: Partial<Theme>) => void;
+}) {
   return (
     <div
       className="flex flex-col gap-1 border-y border-gray-100 py-1.5 my-0.5 min-w-[13rem]"
@@ -86,6 +91,8 @@ export default function Header() {
   const [auditLogOpen, setAuditLogOpen] = useState(false);
   const [devInfoOpen, setDevInfoOpen] = useState(false);
 
+  // 메뉴가 닫혀 있어도 로그인하자마자 계정 테마를 불러와야 해서 여기(항상 떠 있는 헤더)서 쓴다
+  const { theme, setTheme } = useTheme(session?.user.id ?? null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [accountResetOpen, setAccountResetOpen] = useState(false);
   // 관리자가 임시 비밀번호를 발급한 계정이면 로그인하자마자 비밀번호 변경 창을 띄운다
@@ -211,7 +218,7 @@ export default function Header() {
                     👥 계정 비밀번호 초기화
                   </Button>
                 )}
-                <ThemePicker />
+                <ThemePicker theme={theme} setTheme={setTheme} />
                 <Button className={MENU_ITEM_CLASS} onClick={signOut}>
                   로그아웃
                 </Button>
