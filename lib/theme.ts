@@ -7,7 +7,8 @@ import { THEME_STORAGE_KEY } from "./themeScript";
 // 화면 테마 = 스타일(기본/리퀴드 글래스) × 밝기(라이트/다크). <html data-style data-mode>에
 // 걸어두면 globals.css의 테마 규칙이 색 변수·표면 효과를 바꾼다. 컴포넌트 클래스는 그대로.
 export type ThemeStyle = "basic" | "glass";
-export type ThemeMode = "light" | "dark";
+// 다크 모드는 없앴다 — 예전에 다크로 저장된 값이 있어도 라이트로 보인다
+export type ThemeMode = "light";
 export interface Theme {
   style: ThemeStyle;
   mode: ThemeMode;
@@ -22,7 +23,7 @@ function readTheme(): Theme {
   const d = document.documentElement.dataset;
   return {
     style: d.style === "basic" ? "basic" : "glass",
-    mode: d.mode === "dark" ? "dark" : "light",
+    mode: "light",
   };
 }
 
@@ -132,10 +133,10 @@ export function useTheme(userId: string | null) {
           console.error("테마 설정 불러오기 실패:", error);
           return;
         }
-        if (data?.theme_style && data?.theme_mode) {
+        if (data?.theme_style) {
           const saved: Theme = {
             style: data.theme_style === "basic" ? "basic" : "glass",
-            mode: data.theme_mode === "dark" ? "dark" : "light",
+            mode: "light",
           };
           if (saved.style !== themeRef.current.style || saved.mode !== themeRef.current.mode) {
             commit(saved);

@@ -1,10 +1,11 @@
 /*
- * 화면 테마 — <html data-style="basic|glass" data-mode="light|dark"> (lib/theme.ts)
+ * 화면 테마 — <html data-style="basic|glass" data-mode="light"> (lib/theme.ts)
+ * (다크 모드는 없앴다 — data-mode는 항상 light)
  *
  * 컴포넌트는 그대로 두고, Tailwind v4가 색 클래스(bg-white, text-black, bg-gray-100 …)에
  * 쓰는 색 변수(--color-*)를 테마별로 다시 정의해서 화면 전체 색을 한 번에 바꾼다.
  * 변수로 못 바꾸는 것(근무형태 고유색, 헤더 남색, 진한 글자색 등)만 아래에서 클래스로 덮는다.
- * 기본 + 라이트(data-style=basic, data-mode=light)는 아무 규칙도 안 걸려 원래 화면과 똑같다.
+ * 기본(data-style=basic)은 아무 규칙도 안 걸려 원래 화면과 똑같다.
  * 이 파일은 @layer 밖이라 Tailwind 유틸리티보다 우선한다.
  */
 
@@ -15,92 +16,7 @@ html.theme-switching *::after {
   transition: none !important;
 }
 
-/* ───────────────────────── 다크 (기본·글래스 공통) ───────────────────────── */
-
-html[data-mode="dark"] {
-  color-scheme: dark;
-
-  /* 흰 표면 ↔ 검은 글자를 뒤집고, 회색 단계도 거꾸로 */
-  --color-white: #111a2e;
-  --color-black: #e6ebf5;
-  --color-gray-50: #0b1222;
-  --color-gray-100: #1a2540;
-  --color-gray-200: #24314f;
-  --color-gray-300: #34436a;
-  --color-gray-400: #55648a;
-  --color-gray-500: #8390b0;
-  --color-gray-600: #a5b0ca;
-  --color-gray-700: #c3cbe0;
-  --color-gray-800: #dde3f0;
-  --color-gray-900: #eef1f8;
-
-  /* 배경으로 쓰는 연한 색(알림·요일 머리글 등)은 어두운 같은 계열로 */
-  --color-blue-50: #15264a;
-  --color-blue-100: #1c3260;
-  --color-blue-200: #244079;
-  --color-sky-100: #12324a;
-  --color-sky-200: #174260;
-  --color-red-50: #2a161c;
-  --color-red-100: #3a1c24;
-  --color-red-200: #4a2029;
-  --color-red-300: #5d2732;
-  --color-amber-50: #2a2210;
-  --color-amber-100: #3a2e12;
-  --color-green-50: #10281c;
-
-  --page-bg: #0b1222;
-  /* globals.css의 body 배경·기본 글자색 — 색 지정 없는 글씨(선택칸, 주간 근무시간 등)가 따라온다 */
-  --background: var(--page-bg);
-  --foreground: #e6ebf5;
-}
-
-@layer base {
-  /* 색 지정 없는 테두리(Tailwind v4 기본은 글자색)가 다크에서 너무 밝아지지 않게 */
-  html[data-mode="dark"] *,
-  html[data-mode="dark"] ::before,
-  html[data-mode="dark"] ::after {
-    border-color: #2c3a5c;
-  }
-}
-
-/* 진한 글자색 → 밝은 같은 계열 */
-html[data-mode="dark"] :is(.text-blue-950, .text-blue-900, .text-blue-800) { color: #a5c8ff; }
-html[data-mode="dark"] :is(.text-blue-700, .text-blue-600, .text-blue-500) { color: #7fb0ff; }
-html[data-mode="dark"] :is(.text-red-800, .text-red-700, .text-red-600, .text-red-500) { color: #fca5a5; }
-html[data-mode="dark"] :is(.text-amber-800, .text-amber-700, .text-amber-600, .text-amber-500) { color: #fcd34d; }
-html[data-mode="dark"] :is(.text-green-800, .text-green-700, .text-green-600, .text-emerald-900, .text-emerald-700) { color: #86efac; }
-html[data-mode="dark"] .text-white { color: #ffffff; }
-html[data-mode="dark"] :is(.border-blue-900, .border-blue-950) { border-color: #3d5a99; }
-html[data-mode="dark"] .ring-blue-900 { --tw-ring-color: #60a5fa; }
-html[data-mode="dark"] :is(.bg-black\/20, .bg-black\/30, .bg-black\/40) { background-color: rgb(0 0 0 / 0.55); }
-
-/* 헤더·로고: 로고 글씨가 남색이라 로고 카드는 항상 흰색 */
-html[data-mode="dark"] .app-header { background-color: #0a1020; border-color: #1c2742; }
-html:is([data-mode="dark"], [data-style="glass"]) .logo-card { background-color: #ffffff; }
-
-/* 선택된(켜진) 버튼 */
-html[data-mode="dark"] .ui-btn-active {
-  background-color: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
-  --tw-ring-color: rgb(147 197 253 / 0.45);
-}
-
-/* 오늘 테두리 링 사이 틈은 페이지 배경색 */
-html[data-mode="dark"] .day-card { --tw-ring-offset-color: var(--page-bg); }
-
-/* 근무형태 색 (lib/types.ts SHIFT_COLORS의 다크 버전) */
-html[data-mode="dark"] .bg-\[\#F1E69D\] { background-color: #4d4318; }
-html[data-mode="dark"] .border-\[\#D8C66E\] { border-color: #7d6d27; }
-html[data-mode="dark"] .text-yellow-900 { color: #fde68a; }
-html[data-mode="dark"] .bg-\[\#C7D3A6\] { background-color: #33401f; }
-html[data-mode="dark"] .border-\[\#A3AC86\] { border-color: #5c6e3c; }
-html[data-mode="dark"] .text-\[\#4B5233\] { color: #dcebb4; }
-html[data-mode="dark"] .bg-\[\#C4D9F3\] { background-color: #1b355a; }
-html[data-mode="dark"] .border-\[\#8FB1DB\] { border-color: #3a6aa3; }
-html[data-mode="dark"] .bg-\[\#E8EAED\] { background-color: #1a2236; }
-
-/* ───────────────────────── 리퀴드 글래스 (라이트·다크 공통 구조) ───────────────────────── */
+/* ───────────────────────── 리퀴드 글래스 ───────────────────────── */
 
 html[data-style="glass"] {
   --glass-blur: blur(18px) saturate(170%);
@@ -116,24 +32,12 @@ html[data-style="glass"][data-mode="light"] {
   --page-bg: #e9eefb;
 }
 
-html[data-style="glass"][data-mode="dark"] {
-  --color-white: rgb(15 23 42 / 0.55);
-  --color-gray-50: rgb(15 23 42 / 0.35);
-  --color-gray-100: rgb(51 65 85 / 0.45);
-  --color-gray-200: rgb(71 85 105 / 0.38);
-  --glass-border: rgb(148 163 184 / 0.2);
-  --glass-line: rgb(148 163 184 / 0.16);
-  --glass-shadow: 0 10px 34px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.07);
-  --glass-strong: rgb(13 20 38 / 0.82);
-  --page-bg: #050914;
-}
-
-/* 배경: 유리 효과는 뒤에 비치는 게 있어야 살아나서, 은은한 빛 번짐(+다크는 격자)을 깐다.
+/* 배경: 유리 효과는 뒤에 비치는 게 있어야 살아나서, 은은한 빛 번짐을 깐다.
    body 배경에 background-attachment: fixed를 쓰면 스크롤할 때마다 페이지 전체를 다시 그려서
    버벅인다. 그래서 화면에 고정된 별도 층(body::before)에 그려 스크롤과 따로 움직이게 한다. */
 html[data-style="glass"] body { background: transparent; }
 html[data-style="glass"][data-mode="light"] { background-color: #dbe4f7; }
-html[data-style="glass"][data-mode="dark"] { background-color: #050914; }
+
 html[data-style="glass"] body::before {
   content: "";
   position: fixed;
@@ -150,15 +54,6 @@ html[data-style="glass"][data-mode="light"] body::before {
     radial-gradient(900px 700px at 55% 108%, #9fd8f2 0%, transparent 60%),
     #dbe4f7;
 }
-html[data-style="glass"][data-mode="dark"] body::before {
-  background:
-    radial-gradient(1000px 600px at 10% -10%, rgb(37 99 235 / 0.4) 0%, transparent 60%),
-    radial-gradient(900px 560px at 100% 0%, rgb(124 58 237 / 0.32) 0%, transparent 58%),
-    radial-gradient(900px 640px at 60% 115%, rgb(14 165 233 / 0.24) 0%, transparent 60%),
-    linear-gradient(rgb(148 163 184 / 0.05) 1px, transparent 1px) 0 0 / 34px 34px,
-    linear-gradient(90deg, rgb(148 163 184 / 0.05) 1px, transparent 1px) 0 0 / 34px 34px,
-    #050914;
-}
 
 @layer base {
   html[data-style="glass"] *,
@@ -169,6 +64,9 @@ html[data-style="glass"][data-mode="dark"] body::before {
 }
 
 html[data-style="glass"] .text-white { color: #ffffff; }
+
+/* 헤더 로고: 로고 글씨가 남색이라 로고 카드는 반투명 대신 항상 흰색 */
+html[data-style="glass"] .logo-card { background-color: #ffffff; }
 
 /* 카드(날짜 칸·표·공지 등): 반투명 + 위쪽 하이라이트. 개수가 많아 블러는 안 건다(스크롤 버벅임 방지) */
 /* :where로 우선순위를 낮춰 둔다 — 안 그러면 아래 "오늘" 링 규칙보다 세져서 오늘 테두리가 사라진다 */
@@ -218,17 +116,11 @@ html[data-style="glass"] .app-popover {
   border-radius: 12px;
 }
 html[data-style="glass"][data-mode="light"] .app-popover { --glass-fill: rgb(255 255 255 / 0.93); }
-html[data-style="glass"][data-mode="dark"] .app-popover { --glass-fill: rgb(12 18 34 / 0.94); }
 
 html[data-style="glass"][data-mode="light"] .app-header {
   --glass-fill: rgb(30 58 138 / 0.72);
   border-color: rgb(255 255 255 / 0.25);
   box-shadow: 0 8px 30px rgb(30 58 138 / 0.25), inset 0 -1px 0 rgb(255 255 255 / 0.15);
-}
-html[data-style="glass"][data-mode="dark"] .app-header {
-  --glass-fill: rgb(5 9 20 / 0.55);
-  border-color: rgb(56 189 248 / 0.22);
-  box-shadow: 0 1px 0 rgb(56 189 248 / 0.18), 0 10px 40px rgb(0 0 0 / 0.45);
 }
 
 /* 버튼: 유리 알약 느낌 */
@@ -243,38 +135,11 @@ html[data-style="glass"][data-mode="light"] .ui-btn-active {
   box-shadow: 0 6px 18px rgb(37 99 235 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.35);
   --tw-ring-color: rgb(147 197 253 / 0.6);
 }
-html[data-style="glass"][data-mode="dark"] .ui-btn-active {
-  background-image: linear-gradient(135deg, #0284c7, #6366f1);
-  border-color: rgb(125 211 252 / 0.45);
-  color: #ffffff;
-  box-shadow: 0 0 18px rgb(56 189 248 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.25);
-  --tw-ring-color: rgb(56 189 248 / 0.35);
-}
-
-/* 다크 글래스 = 다크 테크: 카드 테두리에 옅은 청록 빛, 오늘 칸은 빛나는 링 */
-html[data-style="glass"][data-mode="dark"] .day-card {
-  border-color: rgb(148 163 184 / 0.3);
-  box-shadow: 0 0 0 1px rgb(56 189 248 / 0.04), 0 12px 32px rgb(0 0 0 / 0.4),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-}
-html[data-style="glass"][data-mode="dark"] .ring-blue-900 {
-  --tw-ring-color: #38bdf8;
-  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), 0 0 26px rgb(56 189 248 / 0.45);
-}
-html[data-style="glass"][data-mode="dark"] .app-toolbar {
-  box-shadow: inset 0 -1px 0 rgb(56 189 248 / 0.18), 0 10px 30px rgb(0 0 0 / 0.35);
-}
 
 /* ───────────────────────── 리퀴드 글래스: 근무 칸 (iOS Liquid Glass 느낌) ─────────────────────────
- * 근무형태 색을 "칠한 색"이 아니라 "색이 비치는 유리"로: 반투명 색조 + 위쪽 빛 반사(sheen) +
- * 밝은 테두리 + 안쪽 빛 테. 칸마다 블러는 걸지 않는다(수백 개라 버벅임) — 뒤 배경이 은은한
- * 그라데이션이라 블러 없이도 유리처럼 보인다. 근무표 칸·일자 상세 칩·근무 상세 배지가 같은 규칙을 쓴다.
+ * 근무형태 색(--tint) 위에 위쪽 옅은 빛 반사(sheen) + 밝은 테두리 + 안쪽 빛 테. 칸마다 블러는
+ * 걸지 않는다(수백 개라 버벅임). 근무표 칸·일자 상세 칩·근무 상세 배지가 같은 규칙을 쓴다.
  */
-html[data-style="glass"] .bg-\[\#F1E69D\] { --tint: 245 190 20; }
-html[data-style="glass"] .bg-\[\#C7D3A6\] { --tint: 120 190 40; }
-html[data-style="glass"] .bg-\[\#C4D9F3\] { --tint: 60 135 245; }
-html[data-style="glass"] :is(.bg-gray-200, .bg-gray-300, .bg-\[\#E8EAED\]) { --tint: 148 163 184; }
-html[data-style="glass"] :is(.shift-cell, .shift-chip).bg-red-50 { --tint: 239 68 68; }
 
 /* 라이트 글래스는 기존 근무표 색(lib/types.ts SHIFT_COLORS)을 거의 그대로 쓰고 위쪽 옅은
    그라데이션만 얹는다 — 연한 반투명 색조보다 원래 근무표와 같은 색감이 읽기 편해서. */
@@ -298,12 +163,6 @@ html[data-style="glass"][data-mode="light"] {
   --glass-rim: rgb(255 255 255 / 0.78);
   --glass-rim-inner: inset 0 1px 0 rgb(255 255 255 / 0.85);
 }
-html[data-style="glass"][data-mode="dark"] {
-  --tint-alpha: 0.22;
-  --sheen: linear-gradient(180deg, rgb(255 255 255 / 0.06) 0%, rgb(255 255 255 / 0) 70%);
-  --glass-rim: rgb(255 255 255 / 0.13);
-  --glass-rim-inner: inset 0 1px 0 rgb(255 255 255 / 0.12);
-}
 
 /* 근무 칸·칩: 색조 유리 */
 html[data-style="glass"] :is(.shift-cell, .shift-chip) {
@@ -313,9 +172,7 @@ html[data-style="glass"] :is(.shift-cell, .shift-chip) {
   border-radius: 8px;
   box-shadow: var(--glass-rim-inner), 0 1px 3px rgb(15 23 42 / 0.07);
 }
-html[data-style="glass"][data-mode="dark"] :is(.shift-cell, .shift-chip) {
-  box-shadow: var(--glass-rim-inner), inset 0 0 0 1px rgb(var(--tint, 148 163 184) / 0.3);
-}
+
 html[data-style="glass"] .shift-cell:hover {
   filter: none;
   box-shadow: var(--glass-rim-inner), 0 4px 12px rgb(var(--tint, 100 116 139) / 0.22);
@@ -325,7 +182,7 @@ html[data-style="glass"] .shift-cell.border-red-400 { border-color: rgb(239 68 6
 
 /* 시간 막대 줄: 바깥은 맑은 유리, 이름 칸·칠해진 구간만 색조 유리 */
 html[data-style="glass"] .shift-cell-bar { --tint: 255 255 255; }
-html[data-style="glass"][data-mode="dark"] .shift-cell-bar { --tint: 148 163 184; --tint-alpha: 0.08; }
+
 html[data-style="glass"] :is(.bar-name, .bar-fill) {
   background-color: rgb(var(--tint) / calc(var(--tint-alpha) + 0.12));
   background-image: var(--sheen);
@@ -346,10 +203,7 @@ html[data-style="glass"] .app-drawer :is(.border.rounded-lg, .border.rounded-md)
   border-radius: 10px;
   box-shadow: var(--glass-rim-inner), 0 4px 14px rgb(15 23 42 / 0.06);
 }
-html[data-style="glass"][data-mode="dark"] .app-drawer :is(.border.rounded-lg, .border.rounded-md):not(.shift-chip, .ui-btn, input, select, textarea) {
-  background-color: rgb(30 41 59 / 0.35);
-  box-shadow: var(--glass-rim-inner), 0 4px 14px rgb(0 0 0 / 0.25);
-}
+
 /* 패널 제목줄·변경 대기 바 */
 html[data-style="glass"] .app-drawer > div:first-child { border-color: var(--glass-rim); }
 html[data-style="glass"] .app-drawer .sticky.bottom-0 {
@@ -366,10 +220,7 @@ html[data-style="glass"] :is(input:not([type="checkbox"]):not([type="radio"]), s
   border-radius: 8px;
   box-shadow: inset 0 1px 2px rgb(15 23 42 / 0.08);
 }
-html[data-style="glass"][data-mode="dark"] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
-  background-color: rgb(2 6 23 / 0.45);
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.4);
-}
+
 html[data-style="glass"] :is(input, select, textarea):focus {
   outline: none;
   box-shadow: 0 0 0 3px rgb(59 130 246 / 0.28), inset 0 1px 2px rgb(15 23 42 / 0.08);
@@ -397,18 +248,6 @@ html[data-style="glass"][data-mode="light"] .day-card:not(.ring-2) {
   box-shadow: 0 0 0 1px rgb(100 116 139 / 0.16), 0 8px 24px rgb(30 41 90 / 0.12),
     inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 0 0 1px rgb(255 255 255 / 0.22);
 }
-/* 다크: 어두운 반투명 유리판 + 옅은 빛 테 */
-html[data-style="glass"][data-mode="dark"] .day-card {
-  background-color: transparent;
-  background-image: linear-gradient(180deg, rgb(30 41 59 / 0.62) 0%, rgb(15 23 42 / 0.5) 100%);
-}
-html[data-style="glass"][data-mode="dark"] .day-card:not(.ring-2) {
-  border-color: rgb(255 255 255 / 0.1);
-  box-shadow: 0 0 0 1px rgb(148 163 184 / 0.16), 0 8px 24px rgb(0 0 0 / 0.35),
-    inset 0 1px 0 rgb(255 255 255 / 0.08);
-}
-html[data-mode="dark"]:not([data-style="glass"]) .day-card { border-color: #3a4a70; }
-
 /* 날짜 머리글: 평일은 투명(유리판 그대로), 토·일·공휴일은 색 띠 유지 */
 html[data-style="glass"] .day-card > button:first-child:not(.bg-sky-100, .bg-red-100, .bg-red-200) {
   background-color: transparent;
@@ -417,7 +256,6 @@ html[data-style="glass"] .day-card > div:first-child.bg-gray-50 { background-col
 
 /* 날짜 머리글 아래 구분선 */
 html[data-style="glass"][data-mode="light"] .day-card > button:first-child { border-bottom-color: rgb(100 116 139 / 0.22); }
-html[data-mode="dark"] .day-card > button:first-child { border-bottom-color: rgb(148 163 184 / 0.22); }
 
 /* 색이 없는(흰) 칸·칩 — 주간 근무시간 줄, 미배정 칸 등 — 도 유리판처럼 비치게 */
 html[data-style="glass"][data-mode="light"] :is(.shift-cell, .shift-chip).bg-white {

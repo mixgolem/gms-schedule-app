@@ -41,7 +41,7 @@ function DangerMenu({ children }: { children: ReactNode }) {
 
 const SEGMENT_CLASS = "flex-1 justify-center px-2 py-1 text-xs whitespace-nowrap";
 
-// 헤더 🎨 테마 메뉴: 스타일(기본/리퀴드 글래스) × 밝기(라이트/다크). 로그인 중이면 계정에 기억된다.
+// 헤더 🎨 테마 메뉴: 기본 / 리퀴드 글래스. 로그인 중이면 계정에 기억된다.
 // 버튼을 눌러도 메뉴가 닫히지 않게 클릭이 메뉴 바깥으로 전달되지 않도록 막는다.
 function ThemePicker({
   theme,
@@ -62,14 +62,6 @@ function ThemePicker({
         </Button>
         <Button className={SEGMENT_CLASS} active={theme.style === "glass"} onClick={() => setTheme({ style: "glass" })}>
           리퀴드 글래스
-        </Button>
-      </div>
-      <div className="flex gap-1">
-        <Button className={SEGMENT_CLASS} active={theme.mode === "light"} onClick={() => setTheme({ mode: "light" })}>
-          ☀️ 라이트
-        </Button>
-        <Button className={SEGMENT_CLASS} active={theme.mode === "dark"} onClick={() => setTheme({ mode: "dark" })}>
-          🌙 다크
         </Button>
       </div>
     </div>
@@ -139,7 +131,7 @@ export default function Header() {
       {!loading && (
         <div className="text-sm flex items-center gap-2">
           {/* 테마는 자주 바꿀 수 있게 계정 메뉴와 따로 둔다(로그인 전 화면에서도 바꿀 수 있음) */}
-          <DropdownMenu label="🎨 테마" title="화면 테마 (기본·리퀴드 글래스 / 라이트·다크)">
+          <DropdownMenu label="🎨 테마" title="화면 테마 (기본 / 리퀴드 글래스)">
             <ThemePicker theme={theme} setTheme={setTheme} />
           </DropdownMenu>
           {session ? (
