@@ -27,9 +27,7 @@ import { captureScheduleImage, downloadBlob, canShareFile, shareFile } from "@/l
 import { imageBlobToPdfBlob } from "@/lib/pdfExport";
 import { computeTimeAxis, formatAxisTime } from "@/lib/timeBar";
 import Button from "@/components/ui/Button";
-import DropdownMenu from "@/components/ui/DropdownMenu";
 
-const EXPORT_ITEM_CLASS = "w-full justify-start whitespace-nowrap";
 const TOGGLE_CLASS = "justify-center min-[1760px]:w-full";
 
 type SidebarState =
@@ -425,7 +423,8 @@ export default function Home() {
 
   return (
     <main className="p-4 max-w-[1900px] mx-auto w-full space-y-4">
-      <div className="app-toolbar sticky top-16 z-20 h-14 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
+      {/* 좁은 화면에선 버튼이 두 줄로 넘어갈 수 있어서 높이를 고정하지 않는다(아래 메뉴를 덮지 않게) */}
+      <div className="app-toolbar sticky top-[var(--header-h,4rem)] z-20 min-h-14 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
         <MonthPicker
           year={year}
           month={month}
@@ -434,27 +433,18 @@ export default function Home() {
             setMonth(m);
           }}
         />
-        <DropdownMenu label="📤 내보내기" title="이 달 근무표를 이미지·PDF·ERP엑셀로 내보내요">
-          <Button onClick={handleCopyImage} className={EXPORT_ITEM_CLASS}>
-            🖼️ 이미지 복사
-          </Button>
-          <Button onClick={handleDownloadImage} className={EXPORT_ITEM_CLASS}>
-            🖼️ 이미지 다운로드
-          </Button>
-          <Button onClick={handleOpenImageInNewTab} className={EXPORT_ITEM_CLASS}>
-            🔗 이미지 새 창에서 열기 (모바일용)
-          </Button>
-          <Button onClick={handleSavePdf} className={EXPORT_ITEM_CLASS}>
-            🖨 PDF 저장
-          </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button onClick={handleCopyImage}>🖼️ 이미지 복사</Button>
+          <Button onClick={handleDownloadImage}>🖼️ 이미지 다운로드</Button>
+          <Button onClick={handleOpenImageInNewTab}>🔗 이미지 새 창에서 열기 (모바일용)</Button>
+          <Button onClick={handleSavePdf}>🖨 PDF 저장</Button>
           <Button
             onClick={() => setErpExportOpen(true)}
-            className={EXPORT_ITEM_CLASS}
             title="선택한 근무자의 한 달치 근무를 ERP 업로드 양식 그대로 내보내요"
           >
             🖥 ERP엑셀 다운로드
           </Button>
-        </DropdownMenu>
+        </div>
       </div>
 
       {warning && (
@@ -472,7 +462,7 @@ export default function Home() {
       {/* 넓은 화면(1760px~)에선 왼쪽 세로 메뉴, 그보다 좁으면(노트북 등) 메뉴를 근무표 위
           가로줄로 올려서 근무표가 일요일·주간 근무시간까지 화면 안에 다 들어오게 한다. */}
       <div className="flex gap-4 flex-col min-[1760px]:flex-row min-[1760px]:items-start">
-        <div className="w-full shrink-0 flex flex-wrap items-center gap-x-4 gap-y-2 min-[1760px]:block min-[1760px]:w-36 min-[1760px]:space-y-3 min-[1760px]:sticky min-[1760px]:top-[120px] min-[1760px]:self-start">
+        <div className="w-full shrink-0 flex flex-wrap items-center gap-x-4 gap-y-2 min-[1760px]:block min-[1760px]:w-36 min-[1760px]:space-y-3 min-[1760px]:sticky min-[1760px]:top-[calc(var(--header-h,4rem)_+_56px)] min-[1760px]:self-start">
           <EmployeeFilter
             employees={employees}
             selectedIds={filterEmployeeIds}

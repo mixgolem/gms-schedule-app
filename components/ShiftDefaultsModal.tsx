@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useShiftDefaults } from "@/lib/useShiftDefaults";
 import { SHIFT_LABELS } from "@/lib/types";
-import { useToast } from "@/app/providers";
+import { useAuth, useToast } from "@/app/providers";
+import ReadOnlyNotice from "./ui/ReadOnlyNotice";
 import TimeInput24 from "./ui/TimeInput24";
 import Button from "./ui/Button";
 
@@ -27,6 +28,7 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
   const [draft, setDraft] = useState(defaults);
   const [saving, setSaving] = useState(false);
   const { showToast } = useToast();
+  const { canEdit } = useAuth();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -61,6 +63,7 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
         </div>
 
         <div className="p-4 space-y-3">
+          {!canEdit && <ReadOnlyNotice />}
           <p className="text-sm text-black">
             새벽/주간/야간 근무를 새로 등록할 때 기본으로 채워질 출근·퇴근 시각이에요. 이미 저장된
             근무 기록에는 영향을 주지 않아요.
@@ -71,6 +74,11 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
             TYPES.map((type) => (
               <div key={type} className="flex items-center justify-between gap-3 border rounded-lg p-2">
                 <span className="text-sm font-medium w-10 shrink-0">{SHIFT_LABELS[type]}</span>
+                {!canEdit ? (
+                  <span className="text-sm font-semibold text-black">
+                    {draft[type].start} ~ {toDisplay(draft[type].end)}
+                  </span>
+                ) : (
                 <div className="flex items-center gap-2">
                   <TimeInput24
                     value={draft[type].start}
@@ -82,16 +90,19 @@ export default function ShiftDefaultsModal({ open, onClose }: Props) {
                     onChange={(v) => setDraft((prev) => ({ ...prev, [type]: { ...prev[type], end: v } }))}
                   />
                 </div>
+                )}
               </div>
             ))
           )}
         </div>
 
         <div className="border-t p-3 flex justify-end gap-2">
-          <Button onClick={onClose}>취소</Button>
-          <Button variant="primary" onClick={handleSave} disabled={saving}>
-            {saving ? "저장 중..." : "저장"}
-          </Button>
+          <Button onClick={onClose}>{canEdit ? "취소" : "닫기"}</Button>
+          {canEdit && (
+            <Button variant="primary" onClick={handleSave} disabled={saving}>
+              {saving ? "저장 중..." : "저장"}
+            </Button>
+          )}
         </div>
       </div>
     </div>

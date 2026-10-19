@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useEmployees } from "@/lib/useEmployees";
 import { employeeLabel } from "@/lib/types";
-import { useToast } from "@/app/providers";
+import { useAuth, useToast } from "@/app/providers";
 import Button from "./ui/Button";
+import ReadOnlyNotice from "./ui/ReadOnlyNotice";
 
 interface Props {
   open: boolean;
@@ -28,6 +29,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
   const [editingName, setEditingName] = useState("");
   const [editingNumber, setEditingNumber] = useState("");
   const { showToast } = useToast();
+  const { canEdit } = useAuth();
 
   if (!open) return null;
 
@@ -84,6 +86,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {!canEdit && <ReadOnlyNotice />}
           {loading ? (
             <p className="text-sm text-black">불러오는 중...</p>
           ) : (
@@ -123,9 +126,11 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                   </div>
                 ) : (
                   <span
-                    className="flex-1 min-w-0 text-sm cursor-pointer rounded-md px-1 -mx-1 transition-colors duration-150 hover:bg-gray-100 flex items-center gap-1.5"
-                    onClick={() => startEdit(emp.id, emp.name, emp.employee_number)}
-                    title="클릭해서 이름/사번 수정"
+                    className={`flex-1 min-w-0 text-sm rounded-md px-1 -mx-1 flex items-center gap-1.5 ${
+                      canEdit ? "cursor-pointer transition-colors duration-150 hover:bg-gray-100" : ""
+                    }`}
+                    onClick={canEdit ? () => startEdit(emp.id, emp.name, emp.employee_number) : undefined}
+                    title={canEdit ? "클릭해서 이름/사번 수정" : undefined}
                   >
                     <span className="truncate">{emp.name}</span>
                     {emp.employee_number && (
@@ -136,6 +141,10 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                   </span>
                 )}
 
+                {!canEdit && !emp.active && (
+                  <span className="text-xs text-black shrink-0">비활성</span>
+                )}
+                {canEdit && (
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
@@ -166,11 +175,13 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
                     삭제
                   </Button>
                 </div>
+                )}
               </div>
             ))
           )}
         </div>
 
+        {canEdit && (
         <div className="border-t p-3 flex gap-2 shrink-0">
           <input
             value={newName}
@@ -190,6 +201,7 @@ export default function EmployeeManagerModal({ open, onClose }: Props) {
             추가
           </Button>
         </div>
+        )}
       </div>
     </div>
   );

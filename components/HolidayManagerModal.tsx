@@ -5,8 +5,9 @@ import Image from "next/image";
 import { useHolidayManager } from "@/lib/useHolidayManager";
 import { weekdayLabel } from "@/lib/dateUtils";
 import { parseHolidayFile, applyParsedHolidays, ParseHolidayResult } from "@/lib/holidayImport";
-import { useToast } from "@/app/providers";
+import { useAuth, useToast } from "@/app/providers";
 import Button from "./ui/Button";
+import ReadOnlyNotice from "./ui/ReadOnlyNotice";
 import LinkButton from "./ui/LinkButton";
 
 interface Props {
@@ -37,6 +38,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkInputKey, setBulkInputKey] = useState(0);
   const { showToast } = useToast();
+  const { canEdit } = useAuth();
 
   if (!open) return null;
 
@@ -177,12 +179,15 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
                   ▶
                 </button>
               </div>
-              <Button onClick={switchToBulk} className="text-sm px-2.5 py-1">
-                엑셀 일괄 등록
-              </Button>
+              {canEdit && (
+                <Button onClick={switchToBulk} className="text-sm px-2.5 py-1">
+                  엑셀 일괄 등록
+                </Button>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {!canEdit && <ReadOnlyNotice />}
               {loading ? (
                 <p className="text-sm text-black">불러오는 중...</p>
               ) : holidays.length === 0 ? (
@@ -209,26 +214,31 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
                       />
                     ) : (
                       <span
-                        className="flex-1 min-w-0 text-sm cursor-pointer rounded-md px-1 -mx-1 truncate transition-colors duration-150 hover:bg-gray-100"
-                        onClick={() => startEdit(h.work_date, h.name)}
-                        title="클릭해서 이름 수정"
+                        className={`flex-1 min-w-0 text-sm rounded-md px-1 -mx-1 truncate ${
+                          canEdit ? "cursor-pointer transition-colors duration-150 hover:bg-gray-100" : ""
+                        }`}
+                        onClick={canEdit ? () => startEdit(h.work_date, h.name) : undefined}
+                        title={canEdit ? "클릭해서 이름 수정" : undefined}
                       >
                         {h.name || <span className="text-black">(이름 없음)</span>}
                       </span>
                     )}
 
-                    <Button
-                      variant="danger"
-                      onClick={() => handleDelete(h.work_date, h.name)}
-                      className="text-sm px-2.5 py-1 shrink-0"
-                    >
-                      삭제
-                    </Button>
+                    {canEdit && (
+                      <Button
+                        variant="danger"
+                        onClick={() => handleDelete(h.work_date, h.name)}
+                        className="text-sm px-2.5 py-1 shrink-0"
+                      >
+                        삭제
+                      </Button>
+                    )}
                   </div>
                 ))
               )}
             </div>
 
+            {canEdit && (
             <div className="border-t p-3 space-y-2 shrink-0">
               <p className="text-sm text-black">
                 · 추가 시 해당 날짜 주간/대휴 근무 → 자동 휴무 전환
@@ -258,6 +268,7 @@ export default function HolidayManagerModal({ open, onClose, calendarYear }: Pro
               </div>
               {addError && <p className="text-red-600 text-sm">{addError}</p>}
             </div>
+            )}
           </>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm">

@@ -5,6 +5,7 @@ import { useAuth, useGlobalLoading, useToast } from "@/app/providers";
 import { linkWeekendCompLeave, unlinkWeekendCompLeave } from "@/lib/weekendCompLeaveLink";
 import { getMonthDates, todayStr } from "@/lib/dateUtils";
 import Button from "./ui/Button";
+import ReadOnlyNotice from "./ui/ReadOnlyNotice";
 
 interface Props {
   open: boolean;
@@ -127,7 +128,19 @@ export default function WeekendCompLeaveModal({ open, onClose, calendarYear }: P
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
           {!canEdit ? (
-            <p className="text-red-500">로그인한 사용자만 사용할 수 있어요.</p>
+            // 이 창은 자동 연결을 "실행"하는 도구라 조회할 목록이 따로 없다 — 규칙만 안내한다.
+            <>
+              <ReadOnlyNotice />
+              <div className="text-sm text-black leading-relaxed">
+                <p className="font-medium mb-0.5">주말 근무 ↔ 대휴 자동 연결 규칙</p>
+                <p>· 대상: 지정 기간 내 주말(토/일) 근무일</p>
+                <p>· 연결 순서: 해당 주(월~금) 대휴 우선 → 없으면 다음 주(월~금)</p>
+                <p>· 둘 다 없으면 연결 안 함 · 공휴일 근무는 제외</p>
+              </div>
+              <p className="text-sm text-blue-900 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1.5">
+                연결 결과는 근무표 칸의 &quot;→날짜&quot; 표시와 아래쪽 대체휴무 표에서 확인할 수 있어요.
+              </p>
+            </>
           ) : (
             <>
               <div className="text-sm text-black leading-relaxed">

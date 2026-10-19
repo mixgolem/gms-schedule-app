@@ -40,7 +40,7 @@ export default function DropdownMenu({ label, children, title, triggerClassName 
         active={open}
         title={title}
         aria-expanded={open}
-        className={triggerClassName?.(open) ?? ""}
+        className={`whitespace-nowrap ${triggerClassName?.(open) ?? ""}`}
       >
         {label} {open ? "▴" : "▾"}
       </Button>

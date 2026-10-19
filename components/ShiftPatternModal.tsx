@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { useAuth, useGlobalLoading, useToast } from "@/app/providers";
@@ -16,9 +16,13 @@ import {
 import { generatePatternRows, applyPatternRows } from "@/lib/shiftPatternApply";
 import { generateShiftPattern, verifyGeneratedPattern, MIN_EMPLOYEES } from "@/lib/generateShiftPattern";
 import { employeeLabel, RAW_CODE_BG_CLASS } from "@/lib/types";
-import { todayStr, parseLocalDate } from "@/lib/dateUtils";
+import { todayStr, parseLocalDate, weekdayLabel } from "@/lib/dateUtils";
+import { computeCycleStatus, startDateAlignment, CycleStatus } from "@/lib/patternCycle";
+import { useDetectedCycle } from "@/lib/useDetectedCycle";
 import Button from "./ui/Button";
 import ConfirmDialog from "./ConfirmDialog";
+import ConfirmPhraseDialog from "./ConfirmPhraseDialog";
+import ReadOnlyNotice from "./ui/ReadOnlyNotice";
 
 interface Props {
   open: boolean;
@@ -164,6 +168,45 @@ function PatternCategoryCounts({
   );
 }
 
+function formatMonthDay(date: string): string {
+  return `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}(${weekdayLabel(date)})`;
+}
+
+// 지금 적용돼 있는 패턴이 몇 주기 며칠차인지, 언제 끝나고 다음 주기가 언제 시작하는지 막대로 보여준다.
+function CycleProgressCard({ cycle, matchRate }: { cycle: CycleStatus; matchRate: number }) {
+  if (!cycle.started) {
+    return (
+      <div className="rounded-lg border-2 border-blue-900 bg-blue-50 px-3 py-2 text-sm text-blue-950">
+        <p className="font-bold">적용 예정인 패턴이 있어요</p>
+        <p className="mt-0.5">{formatMonthDay(cycle.nextCycleStart)}부터 시작해요.</p>
+      </div>
+    );
+  }
+  const percent = Math.round((cycle.dayInCycle / cycle.cycleLength) * 100);
+  return (
+    <div className="rounded-lg border-2 border-blue-900 bg-blue-50 px-3 py-2.5 text-sm text-blue-950 space-y-2">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <p className="font-bold">현재 패턴 진행 중 · {cycle.cycleNumber}주기</p>
+        <p className="font-extrabold text-base">
+          {cycle.dayInCycle} / {cycle.cycleLength}일차
+        </p>
+      </div>
+      <div className="h-2.5 rounded-full bg-white border border-blue-200 overflow-hidden">
+        <div className="h-full rounded-full bg-blue-900" style={{ width: `${percent}%` }} />
+      </div>
+      <p>
+        {formatMonthDay(cycle.cycleStart)} 시작 · {formatMonthDay(cycle.cycleEnd)} 종료
+        {cycle.daysLeft > 0 ? ` (${cycle.daysLeft}일 남음)` : " (오늘 마지막 날)"} →{" "}
+        <b>다음 주기 시작 {formatMonthDay(cycle.nextCycleStart)}</b>
+      </p>
+      <p className="text-xs text-blue-900/70">
+        실제 근무표로 판단했어요 — 최근 근무가 저장된 패턴과 {Math.round(matchRate * 100)}% 일치(나머지는
+        대휴·연차 등 개별 수정)
+      </p>
+    </div>
+  );
+}
+
 export default function ShiftPatternModal({ open, onClose }: Props) {
   const { canEdit } = useAuth();
   const { employees } = useEmployees();
@@ -189,8 +232,39 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
   );
   const [genCycleMultiplier, setGenCycleMultiplier] = useState(1);
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+  // 시작일을 직접 고쳤는지 — 안 고쳤으면 "다음 주기 시작일"을 기본값으로 계속 맞춰 둔다
+  const [startTouched, setStartTouched] = useState(false);
+  const [applyConfirm, setApplyConfirm] = useState<"normal" | "midCycle" | null>(null);
+
+  // 지금 돌아가는 패턴의 주기(몇 주기 며칠차, 언제 끝나는지). 적용 기록은 실제와 어긋날 수 있어서
+  // 실제 근무표로 알아낸다. 근무표가 어느 패턴과도 잘 안 맞으면 null → 예전처럼 안내 문구만.
+  const { detected } = useDetectedCycle(open, latestApplication?.appliedAt);
+  const cycle: CycleStatus | null = detected
+    ? computeCycleStatus(detected.anchorStart, detected.cycleLength, todayStr())
+    : null;
+  const nextCycleStart = cycle?.nextCycleStart ?? null;
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (open) setStartTouched(false);
+  }, [open]);
+
+  useEffect(() => {
+    // 기본 시작일은 "오늘"이 아니라 진행 중인 주기가 끝난 다음 날 — 주기 중간에 덮어쓰는 실수 방지
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (open && !startTouched && nextCycleStart) setStartDate(nextCycleStart);
+  }, [open, startTouched, nextCycleStart]);
 
   if (!open) return null;
+
+  const alignment = detected
+    ? startDateAlignment(detected.anchorStart, detected.cycleLength, startDate)
+    : null;
+
+  const chooseStartDate = (date: string) => {
+    setStartTouched(true);
+    setStartDate(date);
+  };
 
   const activePattern = parsedDays ?? current?.days ?? null;
   const activePresentSlots = parsedDays ? parsedPresentSlots : current?.presentSlots ?? [];
@@ -233,8 +307,8 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
     setStatus("parsed");
   };
 
+  // 생성·다운로드는 DB에 저장하지 않는 작업이라 일반 사용자(조회 전용)도 해볼 수 있다.
   const handleGenerate = () => {
-    if (!canEdit) return;
     setErrorMsg(null);
     setSummary(null);
 
@@ -263,8 +337,10 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
     setStatus("parsed");
   };
 
+  // 시스템 반영은 "패턴 업로드" 탭에서만 — 자동 생성한 패턴은 반드시 엑셀로 내려받아 확인한
+  // 다음 업로드 탭에서 올려야 한다(생성 결과를 바로 반영·적용하는 실수 방지).
   const handleSavePattern = () => {
-    if (!parsedDays || validationErrors.length > 0) return;
+    if (mode !== "upload" || !parsedDays || validationErrors.length > 0) return;
     setSaveConfirmOpen(true);
   };
 
@@ -282,11 +358,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
     setParsedPresentSlots([]);
     setParsedFilename("");
     setStatus("idle");
-    setSummary(
-      mode === "upload"
-        ? "패턴이 시스템에 반영됐어요. 아래에서 적용할 날짜를 선택해주세요."
-        : "패턴이 시스템에 반영됐어요. 적용하려면 \"패턴 업로드\" 탭으로 이동해주세요."
-    );
+    setSummary("패턴이 시스템에 반영됐어요. 아래에서 적용할 날짜를 선택해주세요.");
     showToast("반영 완료!");
   };
 
@@ -303,7 +375,8 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
   const totalDays = Math.max(1, cycles) * patternLength;
   const endDate = format(addDays(parseLocalDate(startDate), totalDays - 1), "yyyy-MM-dd");
 
-  const handleApply = async () => {
+  // 주기 시작일이면 가벼운 확인, 주기 중간이면 확인 문구를 직접 입력해야 진행된다.
+  const handleApply = () => {
     if (!activePattern) return;
     const { rows, clearedCells } = generatePatternRows(
       activePattern,
@@ -318,11 +391,20 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
       setStatus("error");
       return;
     }
+    setApplyConfirm(alignment && !alignment.aligned ? "midCycle" : "normal");
+  };
 
-    const ok = window.confirm(
-      `반드시 패턴 시작일을 확인하여 적용하세요.\n\n${startDate} ~ ${endDate} 기간에 이 패턴을 적용할까요?\n이 기간에 이미 있던 근무 기록은 지워지고 패턴 내용으로 대체돼요(빈칸인 근무자·날짜는 새로 채워지지 않고 기존 기록만 삭제돼요). 되돌릴 수 없어요.`
+  const runApply = async () => {
+    setApplyConfirm(null);
+    if (!activePattern) return;
+    const { rows, clearedCells } = generatePatternRows(
+      activePattern,
+      activePresentSlots,
+      employees,
+      startDate,
+      endDate,
+      shiftDefaults
     );
-    if (!ok) return;
 
     setStatus("applying");
     setErrorMsg(null);
@@ -360,10 +442,8 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
-          {!canEdit ? (
-            <p className="text-red-500">로그인한 사용자만 관리할 수 있어요.</p>
-          ) : (
-            <>
+          <>
+              {!canEdit && <ReadOnlyNotice />}
               <div className="flex gap-1.5">
                 {(
                   [
@@ -418,7 +498,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                 </div>
               )}
 
-              {mode === "upload" && (
+              {mode === "upload" && canEdit && (
                 <div className="space-y-2 border-2 border-blue-100 rounded-lg p-3 bg-blue-50/30">
                   <p className="text-sm font-semibold text-blue-900">엑셀 파일로 패턴 올리기</p>
                   <div className="text-sm text-black leading-relaxed">
@@ -519,7 +599,7 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
               {parsedDays && (
                 <div className="space-y-2 border-t pt-3">
                   <p className="text-sm font-medium text-black">
-                    미리보기 — 저장 전 내용을 확인해주세요
+                    미리보기 — {mode === "generate" ? "다운로드" : "저장"} 전 내용을 확인해주세요
                   </p>
                   <PatternPreviewTable days={parsedDays} presentSlots={parsedPresentSlots} />
                   <p className="text-sm font-medium text-black">근무자별 근무 일수</p>
@@ -558,11 +638,10 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                 </div>
               )}
 
-              {parsedDays && (
+              {parsedDays && mode === "upload" && (
                 <div className="space-y-1.5">
                   <p className="text-sm text-blue-900">
                     · &quot;패턴 시스템에 반영&quot;은 눌러서 확인하면 바로 반영돼요(다른 사용자도 바로 조회 가능)
-                    {mode === "generate" && " · \"패턴 다운로드\"는 반영 없이 엑셀 파일로만 받아요"}
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -573,11 +652,31 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                     >
                       {validationErrors.length > 0 ? "패턴이 유효하지 않아 반영 불가" : "패턴 시스템에 반영"}
                     </Button>
-                    {mode === "generate" && (
-                      <Button onClick={handleDownloadPattern} className="flex-1 py-2">
-                        패턴 다운로드
-                      </Button>
-                    )}
+                    <Button onClick={reset} className="py-2">
+                      취소
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {parsedDays && mode === "generate" && (
+                <div className="space-y-2">
+                  <div className="rounded-lg border-2 border-blue-900 bg-blue-50 px-3 py-2 text-sm text-blue-950 space-y-1">
+                    <p className="font-bold">생성한 패턴은 바로 반영되지 않아요</p>
+                    <p>
+                      ① 아래 &quot;패턴 다운로드&quot;로 엑셀을 받아 내용을 확인하고 → ② &quot;패턴 업로드&quot;
+                      탭에서 그 파일을 올려 시스템에 반영한 뒤 → ③ 다음 주기 시작일에 맞춰 적용해주세요.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="primary"
+                      onClick={handleDownloadPattern}
+                      disabled={validationErrors.length > 0}
+                      className="flex-1 py-2"
+                    >
+                      {validationErrors.length > 0 ? "패턴이 유효하지 않아 다운로드 불가" : "패턴 다운로드"}
+                    </Button>
                     <Button onClick={reset} className="py-2">
                       취소
                     </Button>
@@ -591,17 +690,23 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                   <p className="text-sm font-medium text-black">근무자별 근무 일수</p>
                   <PatternCategoryCounts days={activePattern} presentSlots={activePresentSlots} />
 
-                  <div className="space-y-2 border-t pt-3">
+                  {(canEdit || (cycle && detected)) && (
+                  <div className="space-y-3 border-t pt-3">
                     <p className="text-sm font-medium text-black">
-                      &quot;{activeFilename}&quot; 패턴 적용
+                      {canEdit ? <>&quot;{activeFilename}&quot; 패턴 적용</> : "현재 패턴 주기"}
                     </p>
-                    <div className="flex items-center gap-2 flex-wrap">
+
+                    {cycle && detected && <CycleProgressCard cycle={cycle} matchRate={detected.matchRate} />}
+
+                    {canEdit && (
+                    <>
+                    <div className="flex items-end gap-2 flex-wrap">
                       <div>
                         <label className="text-sm text-blue-900 block mb-0.5">시작일</label>
                         <input
                           type="date"
                           value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
+                          onChange={(e) => chooseStartDate(e.target.value)}
                           className="border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
                         />
                       </div>
@@ -618,26 +723,83 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
                           className="w-20 border rounded-lg px-2 py-1.5 text-sm transition-shadow duration-150 focus:outline-none focus:ring-1 focus:ring-gray-300"
                         />
                       </div>
+                      {cycle && (
+                        <div className="flex gap-1.5">
+                          <Button
+                            onClick={() => chooseStartDate(cycle.nextCycleStart)}
+                            active={startDate === cycle.nextCycleStart}
+                            className="text-xs px-2 py-1.5"
+                          >
+                            다음 주기 {formatMonthDay(cycle.nextCycleStart)}
+                          </Button>
+                          <Button
+                            onClick={() => chooseStartDate(cycle.followingCycleStart)}
+                            active={startDate === cycle.followingCycleStart}
+                            className="text-xs px-2 py-1.5"
+                          >
+                            그다음 주기 {formatMonthDay(cycle.followingCycleStart)}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     <p className="text-sm text-black">
-                      총 {totalDays}일 적용 · 종료일: {endDate}
+                      총 {totalDays}일 적용 · {startDate} ~ {endDate}
                     </p>
-                    <p className="text-sm font-bold text-red-600">
-                      반드시 패턴 시작일을 확인하여 적용하세요.
-                    </p>
+
+                    {alignment ? (
+                      alignment.aligned ? (
+                        <div className="rounded-lg border-2 border-green-500 bg-green-50 px-3 py-2 text-sm text-green-800">
+                          <p className="font-bold">✓ 주기 시작일에 맞췄어요</p>
+                          <p className="mt-0.5">
+                            {startDate === nextCycleStart
+                              ? "진행 중인 주기가 끝난 다음 날부터 새 패턴이 이어져요."
+                              : "주기 첫날이라 근무 순서가 어긋나지 않아요."}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border-2 border-red-500 bg-red-50 px-3 py-2 text-sm text-red-800 space-y-1.5">
+                          <p className="font-bold text-base">
+                            ⚠️ 진행 중인 주기의 {alignment.dayInCycle}일차예요
+                          </p>
+                          <p>
+                            주기 중간에 새 패턴을 넣으면 근무자별 휴무·대휴 개수와 근무 순서가 어긋나고,
+                            연속 근무가 생길 수 있어요. 현재 주기가 끝난 다음 날부터 적용하는 걸 권장해요.
+                          </p>
+                          {nextCycleStart && (
+                            <Button
+                              onClick={() => chooseStartDate(nextCycleStart)}
+                              className="text-xs px-2 py-1"
+                            >
+                              다음 주기 시작일({formatMonthDay(nextCycleStart)})로 맞추기
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    ) : (
+                      <p className="text-sm font-bold text-red-600">
+                        반드시 패턴 시작일을 확인하여 적용하세요.
+                      </p>
+                    )}
+
                     <Button
                       variant="danger"
                       onClick={handleApply}
                       disabled={status === "applying"}
                       className="w-full py-2"
                     >
-                      {status === "applying" ? "적용 중..." : "적용"}
+                      {status === "applying"
+                        ? "적용 중..."
+                        : alignment && !alignment.aligned
+                        ? "그래도 이 날짜부터 적용"
+                        : "적용"}
                     </Button>
+                    </>
+                    )}
                   </div>
+                  )}
                 </>
               )}
-            </>
-          )}
+          </>
         </div>
       </div>
 
@@ -648,6 +810,23 @@ export default function ShiftPatternModal({ open, onClose }: Props) {
         confirmLabel="저장"
         onConfirm={runSavePattern}
         onCancel={() => setSaveConfirmOpen(false)}
+      />
+      <ConfirmDialog
+        open={applyConfirm === "normal"}
+        title="근무패턴 적용"
+        message={`${startDate} ~ ${endDate} 기간에 이 패턴을 적용할까요?\n이 기간에 이미 있던 근무 기록은 지워지고 패턴 내용으로 대체돼요(빈칸인 근무자·날짜는 기존 기록만 삭제돼요). 되돌릴 수 없어요.`}
+        confirmLabel="적용"
+        onConfirm={runApply}
+        onCancel={() => setApplyConfirm(null)}
+      />
+      <ConfirmPhraseDialog
+        open={applyConfirm === "midCycle"}
+        title="주기 중간에 근무패턴 적용"
+        message={`진행 중인 주기의 ${alignment?.dayInCycle ?? ""}일차(${startDate})부터 새 패턴을 적용해요. 근무자별 휴무·대휴 개수와 근무 순서가 어긋날 수 있어요.${nextCycleStart ? `\n권장 시작일: ${nextCycleStart} (다음 주기 시작)` : ""}\n${startDate} ~ ${endDate}의 기존 근무 기록은 지워지고 되돌릴 수 없어요.`}
+        phrase="주기중간적용"
+        danger
+        onConfirm={runApply}
+        onCancel={() => setApplyConfirm(null)}
       />
     </div>
   );

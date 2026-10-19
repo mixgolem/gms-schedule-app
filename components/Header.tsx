@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { Fragment, ReactNode, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth, useResetMonth, useToast } from "@/app/providers";
@@ -83,6 +83,20 @@ export default function Header() {
   const [auditLogOpen, setAuditLogOpen] = useState(false);
   const [devInfoOpen, setDevInfoOpen] = useState(false);
 
+  // 화면이 좁으면 헤더 버튼이 여러 줄로 넘어가 헤더가 높아진다. 그 아래 붙는 상단 툴바·왼쪽
+  // 메뉴(sticky)가 헤더 밑으로 숨지 않게, 실제 헤더 높이를 --header-h 변수로 알려준다(app/page.tsx).
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const update = () => root.style.setProperty("--header-h", `${Math.round(el.getBoundingClientRect().height)}px`);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // 메뉴가 닫혀 있어도 로그인하자마자 계정 테마를 불러와야 해서 여기(항상 떠 있는 헤더)서 쓴다
   const { theme, setTheme } = useTheme(session?.user.id ?? null);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -113,7 +127,10 @@ export default function Header() {
       : "\n마지막 백업 기록 없음");
 
   return (
-    <header className="app-header sticky top-0 z-30 h-16 flex items-center justify-between px-4 py-3 border-b border-blue-950 bg-blue-900 shadow-md">
+    <header
+      ref={headerRef}
+      className="app-header sticky top-0 z-30 min-h-16 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b border-blue-950 bg-blue-900 shadow-md"
+    >
       <span className="flex items-center gap-2.5 shrink-0">
         {/* 로고 글씨가 진한 남색이라 남색 헤더 위에선 흰 카드를 깔아서 보이게 한다 */}
         <span className="logo-card flex items-center bg-white rounded-md px-1.5 py-1">
@@ -129,13 +146,14 @@ export default function Header() {
         <span className="font-semibold text-white">GMS 근무 스케줄</span>
       </span>
       {!loading && (
-        <div className="text-sm flex items-center gap-2">
+        <div className="text-sm flex flex-wrap items-center justify-end gap-2">
           {/* 테마는 자주 바꿀 수 있게 계정 메뉴와 따로 둔다(로그인 전 화면에서도 바꿀 수 있음) */}
           <DropdownMenu label="🎨 테마" title="화면 테마 (기본 / 리퀴드 글래스)">
             <ThemePicker theme={theme} setTheme={setTheme} />
           </DropdownMenu>
           {session ? (
-            <div className="flex items-center gap-2 flex-wrap">
+            // contents: 테마·메뉴·계정 버튼이 한 줄 흐름으로 이어져 좁을 때 자연스럽게 줄바꿈되도록
+            <div className="contents">
               {canEdit && (
                 <>
                   <Button onClick={() => setUploadOpen(true)}>근무표 업로드</Button>
@@ -187,6 +205,18 @@ export default function Header() {
                   </Button>
                 </>
               )}
+              {/* 일반 사용자는 관리 메뉴를 조회 전용으로 볼 수 있다(수정은 DB 권한상 관리자만).
+                  업로드·백업·초기화·복원·계정 초기화·DEV는 관리자 전용이라 여기 없다. */}
+              {!canEdit && (
+                <>
+                  <Button onClick={() => setPatternOpen(true)}>근무패턴 관리</Button>
+                  <Button onClick={() => setWeekendCompLeaveOpen(true)}>주말:대휴 연결</Button>
+                  <Button onClick={() => setManagerOpen(true)}>근무자 설정</Button>
+                  <Button onClick={() => setDefaultsOpen(true)}>근무시간 설정</Button>
+                  <Button onClick={() => setHolidayManagerOpen(true)}>공휴일 관리</Button>
+                  <Button onClick={() => setAuditLogOpen(true)}>변경 이력</Button>
+                </>
+              )}
               {/* 관리자 버튼이 많아 노트북 폭에서도 한 줄에 들어가게, 계정 관련은 메뉴 하나로 묶는다 */}
               <DropdownMenu
                 label={
@@ -230,6 +260,9 @@ export default function Header() {
         </div>
       )}
 
+      {/* 이 창들은 헤더에 늘 붙어 있어서 로그인 화면(로그인 전)에서 이미 데이터를 한 번 읽는다.
+          로그인 전엔 DB 권한상 빈 결과라, 계정이 바뀌면 key로 새로 만들어 다시 읽게 한다. */}
+      <Fragment key={session?.user.id ?? "signed-out"}>
       <EmployeeManagerModal open={managerOpen} onClose={() => setManagerOpen(false)} />
       <UploadScheduleModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
       <ShiftPatternModal open={patternOpen} onClose={() => setPatternOpen(false)} />
@@ -252,6 +285,7 @@ export default function Header() {
       <DevInfoModal open={devInfoOpen} onClose={() => setDevInfoOpen(false)} />
       <ShiftDefaultsModal open={defaultsOpen} onClose={() => setDefaultsOpen(false)} />
       <FullRestoreModal open={restoreOpen} onClose={() => setRestoreOpen(false)} />
+      </Fragment>
       {session?.user.email && (
         <PasswordChangeModal
           open={passwordOpen || showForcedPassword}
